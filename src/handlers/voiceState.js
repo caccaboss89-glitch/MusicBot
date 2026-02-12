@@ -56,6 +56,16 @@ module.exports = (client) => {
                         } else if (oldChannelId !== botChannelId && newChannelId === botChannelId) {
                             // Utente entrato nel canale del bot
                             stats.startListening(guildId, memberId);
+                            // Salva le info Discord dell'utente
+                            const member = newState?.member;
+                            if (member && member.user) {
+                                stats.updateUserDiscordInfo(memberId, {
+                                    username: member.user.username,
+                                    globalName: member.user.globalName,
+                                    avatar: member.user.avatar,
+                                    discriminator: member.user.discriminator
+                                });
+                            }
                         }
                     }
                 } catch (e) {}
