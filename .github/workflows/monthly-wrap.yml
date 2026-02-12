@@ -9,16 +9,15 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   generate-wrap:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main branch
+      - name: Checkout wrap-data branch
         uses: actions/checkout@v3
         with:
-          ref: main
+          ref: wrap-data
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -26,27 +25,23 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Copy stats to wrap directory
-        run: node scripts/generate-wrap.js
-        env:
-          STATS_FILE: ./data/stats.json
+      - name: Fetch main branch for stats.json
+        run: |
+          git fetch origin main
+          mkdir -p wrap
+          git show origin/main:data/stats.json > wrap/stats.json
 
       - name: Configure Git
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Commit and push to wrap-data branch
+      - name: Commit and push wrap data
         run: |
-          git fetch origin wrap-data --depth=1 || true
-          git checkout wrap-data || git checkout --orphan wrap-data
-          git pull origin wrap-data --allow-unrelated-histories || true
-          git add wrap/
+          git add wrap/stats.json
           if git diff --cached --quiet; then
             echo "No changes to wrap"
           else
             git commit -m "Monthly wrap for $(date +%B-%Y)"
             git push origin wrap-data
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
