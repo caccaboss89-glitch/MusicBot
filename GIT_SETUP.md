@@ -27,10 +27,10 @@ git commit -m "Initial commit: music bot with statistics system"
 ## Step 2: Crea un repo su GitHub
 
 1. Vai su https://github.com/new
-2. Crea un repo vuoto con il nome `DiscordMusicBot`
+2. Crea un repo vuoto con il nome `MusicBot`
 3. **NON** spuntare "Add a README file" o ".gitignore" (li hai già)
 4. Clicca "Create repository"
-5. Copia l'URL del repo (tipo: `https://github.com/tuousername/DiscordMusicBot.git`)
+5. Copia l'URL del repo (tipo: `https://github.com/tuousername/MusicBot.git`)
 
 ---
 
@@ -39,7 +39,7 @@ git commit -m "Initial commit: music bot with statistics system"
 Nel PowerShell, esegui:
 
 ```powershell
-git remote add origin https://github.com/caccaboss89-glitch/sito-wrapper-MusicBot.git
+git remote add origin https://github.com/caccaboss89-glitch/MusicBot.git
 ```
 
 (Già configurato)
@@ -88,7 +88,7 @@ git checkout main
 
 ## Step 6: Verifica su GitHub
 
-Vai su https://github.com/caccaboss89-glitch/sito-wrapper-MusicBot
+Vai su https://github.com/caccaboss89-glitch/MusicBot
 
 Dovresti vedere:
 - Branch `main` con il codice
