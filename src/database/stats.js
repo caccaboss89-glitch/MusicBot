@@ -62,7 +62,7 @@ function saveStats(data) {
     }
 }
 
-function ensureUser(data, userId) {
+function ensureUser(data, userId, discordUser = null) {
     if (!data.users[userId]) {
         data.users[userId] = {
             listeningTimeMs: 0,
@@ -75,6 +75,14 @@ function ensureUser(data, userId) {
     if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
     if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
     if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
+    
+    // Aggiungi info Discord se fornite
+    if (discordUser) {
+        u.username = discordUser.username;
+        u.global_name = discordUser.globalName || null;
+        u.avatar = discordUser.avatar;
+        u.discriminator = discordUser.discriminator;
+    }
     return u;
 }
 
@@ -237,12 +245,13 @@ function incrementSongsCompleted() {
  * Registra un'aggiunta a playlist (solo aggiunte, non rimozioni).
  * @param {string} userId
  * @param {'server'|'personal'} type
+ * @param {object} discordUser - Opzionale, info Discord dell'utente
  */
-function recordPlaylistAdd(userId, type) {
+function recordPlaylistAdd(userId, type, discordUser = null) {
     try {
         if (!userId || !type) return;
         const data = loadStats();
-        ensureUser(data, userId);
+        ensureUser(data, userId, discordUser);
         if (type === 'server') {
             data.users[userId].serverPlaylistAdds = (data.users[userId].serverPlaylistAdds || 0) + 1;
         } else if (type === 'personal') {
@@ -251,6 +260,22 @@ function recordPlaylistAdd(userId, type) {
         saveStats(data);
     } catch (e) {
         console.error('⚠️ [STATS] Errore recordPlaylistAdd:', e.message);
+    }
+}
+
+/**
+ * Aggiorna le informazioni Discord di un utente nelle statistiche
+ * @param {string} userId
+ * @param {object} discordUser - Oggetto utente Discord
+ */
+function updateUserDiscordInfo(userId, discordUser) {
+    try {
+        if (!userId || !discordUser) return;
+        const data = loadStats();
+        ensureUser(data, userId, discordUser);
+        saveStats(data);
+    } catch (e) {
+        console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
     }
 }
 
@@ -293,6 +318,9 @@ module.exports = {
 
     // Contatori playlist
     recordPlaylistAdd,
+    
+    // Info Discord
+    updateUserDiscordInfo,
 
     // Debug
     getActiveListenersDebug
