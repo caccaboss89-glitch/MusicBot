@@ -144,3 +144,8 @@ git push origin wrap-data
 
 ### "Unauthorized" o errore di autenticazione
 Usa il Personal Access Token (vedi Step 4), non la password di GitHub.
+
+
+
+### Esempio
+git checkout main ; git add .github/workflows/monthly-wrap.yml ; git commit -m "Update env" ; git push origin main
