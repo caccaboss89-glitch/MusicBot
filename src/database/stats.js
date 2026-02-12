@@ -67,9 +67,7 @@ function ensureUser(data, userId) {
         data.users[userId] = {
             listeningTimeMs: 0,
             serverPlaylistAdds: 0,
-            personalPlaylistAdds: 0,
-            username: undefined,
-            avatar: undefined
+            personalPlaylistAdds: 0
         };
     }
     // Migrazione: assicura tutti i campi
@@ -77,27 +75,7 @@ function ensureUser(data, userId) {
     if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
     if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
     if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
-    if (!u.username) u.username = undefined;
-    if (!u.avatar) u.avatar = undefined;
     return u;
-}
-
-/**
- * Aggiorna il nome e avatar di un utente.
- * @param {string} userId
- * @param {string|undefined} username
- * @param {string|undefined} avatar
- */
-function updateUserDiscordInfo(userId, username, avatar) {
-    try {
-        const data = loadStats();
-        ensureUser(data, userId);
-        data.users[userId].username = username;
-        data.users[userId].avatar = avatar;
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
-    }
 }
 
 // ─── Timer di ascolto ───────────────────────────────────────
@@ -157,12 +135,6 @@ function startAllListeners(guildId, voiceChannel) {
         voiceChannel.members.forEach(member => {
             if (!member.user.bot) {
                 startListening(guildId, member.user.id);
-                // Salva le informazioni di Discord
-                updateUserDiscordInfo(
-                    member.user.id,
-                    member.user.username,
-                    member.user.avatar
-                );
             }
         });
     } catch (e) {
@@ -321,9 +293,6 @@ module.exports = {
 
     // Contatori playlist
     recordPlaylistAdd,
-
-    // Discord info
-    updateUserDiscordInfo,
 
     // Debug
     getActiveListenersDebug
