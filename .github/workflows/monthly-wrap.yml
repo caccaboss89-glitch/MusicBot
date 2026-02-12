@@ -1,0 +1,55 @@
+name: Monthly Wrap Generation
+
+on:
+  schedule:
+    # Every 1st of the month at 10:00 UTC
+    - cron: '0 10 1 * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub UI for testing
+
+jobs:
+  generate-wrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Generate Monthly Wrap HTML
+        run: node scripts/generate-wrap.js
+        env:
+          STATS_FILE: ./data/stats.json
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Push to wrap-data branch
+        run: |
+          git fetch origin wrap-data || git fetch origin main
+          git checkout wrap-data 2>/dev/null || git checkout -b wrap-data
+          git merge main --no-edit || true
+          git add wrap/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Monthly wrap for $(date +%B-%Y)"
+            git push origin wrap-data
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reset main branch tracking
+        run: |
+          git checkout main
+          git pull origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

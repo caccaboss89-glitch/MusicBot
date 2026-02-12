@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temp files
+temp/
+*.tmp
+
+# Build output (Rust)
+audio_engine/target/
+
+# Queue backup (transient)
+data/queue_backup.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Stats and data are versioned for monthly wrap
+# data/stats.json — INCLUDE in git
+# data/playlists.json — INCLUDE in git

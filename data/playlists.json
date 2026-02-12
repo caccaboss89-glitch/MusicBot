@@ -1,0 +1,43 @@
+{
+  "server": [
+    {
+      "title": "KID YUGI - KING LEAR feat. SOSA PRIORITY",
+      "url": "https://www.youtube.com/watch?v=A0r1FezpUy0",
+      "thumbnail": "https://i.ytimg.com/vi/A0r1FezpUy0/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDP2_pxofZny6H04yVg_2_8Rgd8JQ",
+      "isLive": false,
+      "requester": "704006042819756083",
+      "duration": 153,
+      "addedBy": "704006042819756083"
+    }
+  ],
+  "users": {
+    "704006042819756083": {
+      "playlists": {
+        "Generale": [],
+        "test": [
+          {
+            "title": "KID YUGI - KING LEAR feat. SOSA PRIORITY",
+            "url": "https://www.youtube.com/watch?v=A0r1FezpUy0",
+            "thumbnail": "https://i.ytimg.com/vi/A0r1FezpUy0/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDP2_pxofZny6H04yVg_2_8Rgd8JQ",
+            "isLive": false,
+            "requester": "704006042819756083",
+            "duration": 153
+          }
+        ],
+        "dfhdf": [],
+        "dfg": [],
+        "sdfsf": [],
+        "fhfghf": [],
+        "ciao": [],
+        "sdgsd": []
+      },
+      "activePlaylist": "test"
+    },
+    "717842969331367986": {
+      "playlists": {
+        "Generale": []
+      },
+      "activePlaylist": "Generale"
+    }
+  }
+}

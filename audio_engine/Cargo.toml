@@ -1,0 +1,20 @@
+[package]
+name = "discord_audio_mixer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+symphonia = { version = "0.5", features = ["all"] }
+crossbeam-channel = "0.5"
+anyhow = "1.0"
+byteorder = "1.4"
+libc = "0.2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = 'abort'
