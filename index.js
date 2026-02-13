@@ -95,16 +95,27 @@ client.on('guildDelete', (guild) => {
 client.once('clientReady', () => {
     console.log(`Logged in as ${client.user?.tag}`);
     
-    // ── AUTO-PUSH STATS ────────────────────────────────────────────
-    // Ogni 30 minuti, prova a pushare stats.json su GitHub
+    // ── AUTO-PUSH STATS (1° del mese alle 10:00 Roma time) ────────────────────────────────────────────
+    // Controlla ogni minuto se è il momento di pushare
     const { pushStats } = require('./scripts/push-stats');
     setInterval(() => {
-        try {
-            pushStats();
-        } catch (e) {
-            console.warn('⚠️ [STATS-PUSH] Errore durante il push automatico:', e.message);
+        const now = new Date();
+        // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
+        const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
+        const day = romaTime.getDate();
+        const hour = romaTime.getHours();
+        const minute = romaTime.getMinutes();
+        
+        // Controlla se è il 1° del mese tra le 10:00 e le 10:59
+        if (day === 1 && hour === 10 && minute === 0) {
+            console.log('📤 [STATS-PUSH] Pushin stats del mese...');
+            try {
+                pushStats();
+            } catch (e) {
+                console.warn('⚠️ [STATS-PUSH] Errore:', e.message);
+            }
         }
-    }, 30 * 60 * 1000); // 30 minuti
+    }, 60 * 1000); // Controlla ogni minuto
 });
 
 // ─── GRACEFUL SHUTDOWN ───────────────────────────────────────────

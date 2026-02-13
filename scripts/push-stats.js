@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Script per pushare automaticamente stats.json su GitHub
+ * Script per pushare stats.json su GitHub
  * Esegui: node scripts/push-stats.js
- * O aggiungilo a una task ricorrente/bot startup
+ * Chiamato automaticamente il 1° del mese alle 10:00 Roma time
  */
 
 const fs = require('fs');
@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const STATS_FILE = './data/stats.json';
-const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot Stats';
+const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot Stats Auto-Pusher';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 
 function pushStats() {
@@ -21,8 +21,12 @@ function pushStats() {
         }
 
         // Configura git
-        execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { stdio: 'pipe' });
-        execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { stdio: 'pipe' });
+        try {
+            execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { stdio: 'pipe' });
+            execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { stdio: 'pipe' });
+        } catch (e) {
+            // Potrebbe già essere configurato
+        }
 
         // Aggiungi il file
         execSync('git add data/stats.json', { stdio: 'pipe' });
@@ -31,13 +35,14 @@ function pushStats() {
         const status = execSync('git status --porcelain data/stats.json', { encoding: 'utf-8' });
         
         if (!status.trim()) {
-            console.log('✓ Stats file is up to date on GitHub');
+            console.log('✓ Stats file is already up to date on GitHub');
             return true;
         }
 
         // Fai il commit
         const timestamp = new Date().toISOString();
-        execSync(`git commit -m "Auto-update stats.json [${timestamp}]"`, { stdio: 'pipe' });
+        const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+        execSync(`git commit -m "Monthly stats update - ${monthYear} [${timestamp}]"`, { stdio: 'pipe' });
 
         // Fai il push
         execSync('git push origin main', { stdio: 'pipe' });
