@@ -2,8 +2,10 @@ name: Monthly Wrap Generation
 
 on:
   schedule:
-    # Every 1st of the month at 10:00 UTC
-    - cron: '0 10 1 * *'
+    # 1° del mese alle 10:00 Roma time (CET = UTC+1, CEST = UTC+2)
+    # Roma 10:00 = UTC 08:00 (inverno) o UTC 09:00 (estate)
+    # Per semplicità, usiamo UTC 08:00 (funziona con fuso orario invernale)
+    - cron: '0 8 1 * *'
   workflow_dispatch:
     # Allow manual trigger from GitHub UI for testing
 
