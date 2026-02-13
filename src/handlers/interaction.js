@@ -584,7 +584,20 @@ module.exports = function registerInteractionHandlers(client, deps) {
                     }
 
                     case 'btn_toggle_server': {
-                        const sServer = getCurrentSong(serverQueue); if (!sServer) return; const dbServer = loadDatabase(); const idxServer = dbServer.server.findIndex(x => areSameSong(x.url, sServer.url)); if (idxServer !== -1) dbServer.server.splice(idxServer, 1); else { dbServer.server.push({ ...sServer, addedBy: interaction.user.id }); try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'server'); } catch(e){} } saveDatabase(dbServer); if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{}); return;
+                        const sServer = getCurrentSong(serverQueue);
+                        if (!sServer) return;
+                        const dbServer = loadDatabase();
+                        const idxServer = (dbServer.server || []).findIndex(x => areSameSong(x.url, sServer.url));
+                        if (idxServer !== -1) {
+                            dbServer.server.splice(idxServer, 1);
+                        } else {
+                            if (!dbServer.server) dbServer.server = [];
+                            dbServer.server.push({ ...sServer, addedBy: interaction.user.id });
+                            try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'server'); } catch(e){}
+                        }
+                        saveDatabase(dbServer);
+                        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                        return;
                     }
 
                     case 'btn_toggle_like': {
