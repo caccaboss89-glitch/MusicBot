@@ -27,11 +27,12 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Fetch main branch for stats.json
+      - name: Fetch main branch for stats.json and playlists.json
         run: |
           git fetch origin main
           mkdir -p wrap
           git show origin/main:data/stats.json > wrap/stats.json
+          git show origin/main:data/playlists.json > wrap/playlists.json
 
       - name: Configure Git
         run: |
@@ -40,7 +41,7 @@ jobs:
 
       - name: Commit and push wrap data
         run: |
-          git add wrap/stats.json
+          git add wrap/stats.json wrap/playlists.json
           if git diff --cached --quiet; then
             echo "No changes to wrap"
           else
