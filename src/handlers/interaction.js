@@ -443,7 +443,7 @@ module.exports = function registerInteractionHandlers(client, deps) {
                             const db = loadDatabase();
                             const currentSongForMix = getCurrentSong(serverQueue);
                             let seedSource = db.server.length > 0 ? db.server : (currentSongForMix ? [currentSongForMix] : serverQueue.history);
-                            if (!seedSource || seedSource.length === 0) { if(statusMsg) await statusMsg.edit({ content: '❌ Serve almeno una canzone salvata o in riproduzione per generare un Mix!' }); return; }
+                            if (!seedSource || seedSource.length === 0) { if(statusMsg) await statusMsg.edit({ content: '❌ Serve almeno una canzone salvata o in riproduzione per generare un Mix!' }).catch(() => {}); return; }
                             const randomSong = seedSource[Math.floor(Math.random() * seedSource.length)];
                             const videoId = getYoutubeId(randomSong.url);
                             if (!videoId) throw new Error("ID Video non valido");
@@ -452,7 +452,7 @@ module.exports = function registerInteractionHandlers(client, deps) {
                             if (songsFound && songsFound.length > 0) {
                                 const currentMixSong = getCurrentSong(serverQueue);
                                 if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
-                                if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) { if(statusMsg) await statusMsg.edit({ content: `❌ **Limite Coda Raggiunto!**` }); return; }
+                                if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) { if(statusMsg) await statusMsg.edit({ content: `❌ **Limite Coda Raggiunto!**` }).catch(() => {}); return; }
                                 clearFinishedQueue(serverQueue);
                                 songsFound.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
                                 saveQueueState(guildId, serverQueue);
@@ -463,11 +463,11 @@ module.exports = function registerInteractionHandlers(client, deps) {
                                     if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
                                     if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
                                 }
-                                if(statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` });
-                            } else { if(statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }); }
+                                if(statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => {});
+                            } else { if(statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => {}); }
                         } catch (e) {
                             console.error("Errore Mix:", e);
-                            if(statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' });
+                            if(statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => {});
                         } finally { serverQueue.isTaskRunning = false; }
                         return;
                     }
