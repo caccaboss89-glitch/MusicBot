@@ -164,7 +164,7 @@ function createDashboardComponents(serverQueue, userId = null) {
     const isTerminated = serverQueue && !serverQueue.currentDeckLoaded;
     
     const db = loadDatabase();
-    const isDuplicateServer = isSongValid ? db.server.some(s => areSameSong(s.url, song.url)) : false;
+    const isDuplicateServer = isSongValid ? (db.server || []).some(s => areSameSong(s.url, song.url)) : false;
     const isLive = isSongValid ? song.isLive === true : false;
 
     
@@ -252,7 +252,7 @@ function generateSearchResultsView(type, userId, query, page, playlistName = nul
     let currentPlName = DEFAULT_PLAYLIST_NAME;
 
     if (type === 'server') {
-        items = db.server;
+        items = db.server || [];
     } else {
         const userData = getUserData(db, userId);
         currentPlName = playlistName || userData.activePlaylist || DEFAULT_PLAYLIST_NAME;

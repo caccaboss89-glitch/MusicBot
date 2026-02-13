@@ -1,1 +1,18 @@
-{}
+{
+  "users": {
+    "717842969331367986": {
+      "listeningTimeMs": 0,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "alex_the_real",
+      "global_name": "Lil Alex",
+      "avatar": "98f6b206d11cc9d759ab66494df3cd7c",
+      "discriminator": "0"
+    }
+  },
+  "global": {
+    "songsStarted": 0,
+    "songsCompleted": 0
+  },
+  "lastUpdated": "2026-02-13T21:43:08.810Z"
+}
