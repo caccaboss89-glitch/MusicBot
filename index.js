@@ -94,6 +94,17 @@ client.on('guildDelete', (guild) => {
 
 client.once('clientReady', () => {
     console.log(`Logged in as ${client.user?.tag}`);
+    
+    // ── AUTO-PUSH STATS ────────────────────────────────────────────
+    // Ogni 30 minuti, prova a pushare stats.json su GitHub
+    const { pushStats } = require('./scripts/push-stats');
+    setInterval(() => {
+        try {
+            pushStats();
+        } catch (e) {
+            console.warn('⚠️ [STATS-PUSH] Errore durante il push automatico:', e.message);
+        }
+    }, 30 * 60 * 1000); // 30 minuti
 });
 
 // ─── GRACEFUL SHUTDOWN ───────────────────────────────────────────
