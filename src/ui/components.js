@@ -32,7 +32,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     let currentPlName = DEFAULT_PLAYLIST_NAME;
     
     if (type === 'server') {
-        items = db.server;
+        items = db.server || [];
     } else {
         // Playlist personale — ottieni dati utente (con migrazione automatica)
         const userData = getUserData(db, userId);
