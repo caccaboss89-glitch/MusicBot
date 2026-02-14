@@ -1,1 +1,33 @@
-{}
+{
+  "users": {
+    "717842969331367986": {
+      "listeningTimeMs": 536578,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "alex_the_real",
+      "global_name": "Lil Alex",
+      "avatar": "98f6b206d11cc9d759ab66494df3cd7c",
+      "discriminator": "0"
+    },
+    "704006042819756083": {
+      "listeningTimeMs": 470993,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0
+    },
+    "1439293517276119224": {
+      "listeningTimeMs": 470993,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0
+    },
+    "1444313159182712924": {
+      "listeningTimeMs": 470993,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0
+    }
+  },
+  "global": {
+    "songsStarted": 5,
+    "songsCompleted": 1
+  },
+  "lastUpdated": "2026-02-13T21:52:27.022Z"
+}
