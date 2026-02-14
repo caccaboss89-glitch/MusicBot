@@ -1,33 +1,46 @@
 {
   "users": {
     "717842969331367986": {
-      "listeningTimeMs": 536578,
-      "serverPlaylistAdds": 0,
-      "personalPlaylistAdds": 0,
+      "listeningTimeMs": 17962848,
+      "serverPlaylistAdds": 51,
+      "personalPlaylistAdds": 33,
       "username": "alex_the_real",
       "global_name": "Lil Alex",
       "avatar": "98f6b206d11cc9d759ab66494df3cd7c",
       "discriminator": "0"
     },
     "704006042819756083": {
-      "listeningTimeMs": 470993,
-      "serverPlaylistAdds": 0,
-      "personalPlaylistAdds": 0
+      "listeningTimeMs": 20979552,
+      "serverPlaylistAdds": 59,
+      "personalPlaylistAdds": 59
     },
     "1439293517276119224": {
-      "listeningTimeMs": 470993,
+      "listeningTimeMs": 884543,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0
     },
     "1444313159182712924": {
-      "listeningTimeMs": 470993,
+      "listeningTimeMs": 2181055,
       "serverPlaylistAdds": 0,
-      "personalPlaylistAdds": 0
+      "personalPlaylistAdds": 0,
+      "username": "sdrogo_21",
+      "global_name": "Caick",
+      "avatar": "7f9f1dfd9a876f51809606c7f4110a89",
+      "discriminator": "0"
+    },
+    "1098245111177031751": {
+      "listeningTimeMs": 7411471,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "pain197585",
+      "global_name": "Pain19",
+      "avatar": "c82b3fa769ed6e6ffdea579381ed5f5c",
+      "discriminator": "0"
     }
   },
   "global": {
-    "songsStarted": 5,
-    "songsCompleted": 1
+    "songsStarted": 153,
+    "songsCompleted": 114
   },
-  "lastUpdated": "2026-02-13T21:52:27.022Z"
+  "lastUpdated": "2026-02-14T03:41:47.769Z"
 }

@@ -1,1 +1,1633 @@
-{}
+{
+  "server": [
+    {
+      "title": "DUCKWORTH.",
+      "url": "https://music.youtube.com/watch?v=Dm-foWGDBF0",
+      "thumbnail": "https://i.ytimg.com/vi/Dm-foWGDBF0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDBMUQhRwF9VQBP3M3z7LDzVGoJYA",
+      "isLive": false,
+      "duration": 249,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "GOD.",
+      "url": "https://music.youtube.com/watch?v=bBTeAg5CFRA",
+      "thumbnail": "https://i.ytimg.com/vi/bBTeAg5CFRA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBUDH7nNYKIoP9CEmoDP5ZlxaPe9w",
+      "isLive": false,
+      "duration": 249,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "XXX.",
+      "url": "https://music.youtube.com/watch?v=TFr4br_GrSc",
+      "thumbnail": "https://i.ytimg.com/vi/TFr4br_GrSc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAI9L9tvmpHQlsoYgfBxz5deWKyQw",
+      "isLive": false,
+      "duration": 255,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "LOVE.",
+      "url": "https://music.youtube.com/watch?v=XKkV2j9DbIQ",
+      "thumbnail": "https://i.ytimg.com/vi/XKkV2j9DbIQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDf7bYc0_D192L7g4-OuELOY8jd-Q",
+      "isLive": false,
+      "duration": 214,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "HUMBLE.",
+      "url": "https://music.youtube.com/watch?v=H4RELGc9su8",
+      "thumbnail": "https://i.ytimg.com/vi/H4RELGc9su8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPBmJj3LDMglifR-OgKDMrSp6xhQ",
+      "isLive": false,
+      "duration": 177,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "PRIDE.",
+      "url": "https://music.youtube.com/watch?v=J87pJrxvJ5E",
+      "thumbnail": "https://i.ytimg.com/vi/J87pJrxvJ5E/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAbSROhizAOK-Z8GB6xLVykoSTULw",
+      "isLive": false,
+      "duration": 276,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "LOYALTY.",
+      "url": "https://music.youtube.com/watch?v=ZxGMK9Hb6n8",
+      "thumbnail": "https://i.ytimg.com/vi/ZxGMK9Hb6n8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBcDFHY2toXERL_6v1thaGsITwPyg",
+      "isLive": false,
+      "duration": 228,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "ELEMENT.",
+      "url": "https://music.youtube.com/watch?v=SwvzXM-EVrQ",
+      "thumbnail": "https://i.ytimg.com/vi/SwvzXM-EVrQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBRQaQxqJ6zxLS_hVHFSRvXSr0N2g",
+      "isLive": false,
+      "duration": 209,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "DNA.",
+      "url": "https://music.youtube.com/watch?v=Fb3j_yuFh1s",
+      "thumbnail": "https://i.ytimg.com/vi/Fb3j_yuFh1s/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAxuuoHNH8LvRRABJkjXIt3PXrOeg",
+      "isLive": false,
+      "duration": 186,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "Hybris",
+      "url": "https://www.youtube.com/watch?v=r0jbG9r2v6Q",
+      "thumbnail": "https://i.ytimg.com/vi/r0jbG9r2v6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDuGw2izlf0JK0ROdAVXhXPm1kkYg",
+      "isLive": false,
+      "duration": 117,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kabuki",
+      "url": "https://www.youtube.com/watch?v=qMc0eVNaTlA",
+      "thumbnail": "https://i.ytimg.com/vi/qMc0eVNaTlA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAdo4M0V1JrZMJIDWvgutGHVO4ZxQ",
+      "isLive": false,
+      "duration": 181,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "No Gimmick",
+      "url": "https://www.youtube.com/watch?v=ihH560xz1c4",
+      "thumbnail": "https://i.ytimg.com/vi/ihH560xz1c4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDSZ78cz-PaxyhwnjaDNiam3Dfqig",
+      "isLive": false,
+      "duration": 176,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "GRAMMELOT",
+      "url": "https://www.youtube.com/watch?v=vimWnTfENko",
+      "thumbnail": "https://i.ytimg.com/vi/vimWnTfENko/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAvVumNAznyYnvOPi0RSRqC2tkUvw",
+      "isLive": false,
+      "duration": 97,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Yung 3p 3",
+      "url": "https://www.youtube.com/watch?v=DbWqfUPVoOo",
+      "thumbnail": "https://i.ytimg.com/vi/DbWqfUPVoOo/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBC3CwT_DnysAiJYStC9s2n6GNCJg",
+      "isLive": false,
+      "duration": 118,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "KID YUGI  - STURM UND DRANG",
+      "url": "https://www.youtube.com/watch?v=DwYtU_Q-1_k",
+      "thumbnail": "https://i.ytimg.com/vi/DwYtU_Q-1_k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDKBHYkYUtdY4vg7dBunSSpOa8hSg",
+      "isLive": false,
+      "duration": 113,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Back n' Forth",
+      "url": "https://www.youtube.com/watch?v=H6iXz-v2hRQ",
+      "thumbnail": "https://i.ytimg.com/vi/H6iXz-v2hRQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD4Kgf0DPFfhwPfLl9InSLs6T7wuQ",
+      "isLive": false,
+      "duration": 146,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "KID YUGI - KING LEAR feat. SOSA PRIORITY",
+      "url": "https://www.youtube.com/watch?v=A0r1FezpUy0",
+      "thumbnail": "https://i.ytimg.com/vi/A0r1FezpUy0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBsIE7HyirI4hfrqHSyjQn_Cap1Qg",
+      "isLive": false,
+      "duration": 153,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "KID YUGI - DEM feat. TONY BOY & ARTIE 5IVE (Prod. DOD)",
+      "url": "https://www.youtube.com/watch?v=xDT1-35FE3I",
+      "thumbnail": "https://i.ytimg.com/vi/xDT1-35FE3I/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC1HA-TFzBpToaF9sIW1hY61uV_VQ",
+      "isLive": false,
+      "duration": 244,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Paradise Now",
+      "url": "https://www.youtube.com/watch?v=8lYvCxQAxBY",
+      "thumbnail": "https://i.ytimg.com/vi/8lYvCxQAxBY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB6P2urB1PH9k1Q1zuADhKl2Hza_Q",
+      "isLive": false,
+      "duration": 201,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Il Filmografo",
+      "url": "https://www.youtube.com/watch?v=bQ40dbIvFkI",
+      "thumbnail": "https://i.ytimg.com/vi/bQ40dbIvFkI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCzvTXNg7oHhcEIAJ3HewVpgsWMug",
+      "isLive": false,
+      "duration": 147,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Il Ferro di Čechov",
+      "url": "https://www.youtube.com/watch?v=I6WnvAyMg9c",
+      "thumbnail": "https://i.ytimg.com/vi/I6WnvAyMg9c/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCkhg_erLrVYadjpQ7lMMSZkrmkrQ",
+      "isLive": false,
+      "duration": 197,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "HYAENA",
+      "url": "https://music.youtube.com/watch?v=qS6ozdhzSVQ",
+      "thumbnail": "https://i.ytimg.com/vi/qS6ozdhzSVQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAsHe7lQpGcijnSdDG5rzUSGJOzcw",
+      "isLive": false,
+      "duration": 223,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "THANK GOD",
+      "url": "https://music.youtube.com/watch?v=kPpm2p_xQ40",
+      "thumbnail": "https://i.ytimg.com/vi/kPpm2p_xQ40/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCa-agh3oGnHKKFBT47O-U2XKYkuA",
+      "isLive": false,
+      "duration": 185,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "MODERN JAM",
+      "url": "https://music.youtube.com/watch?v=DEN41y8EcTQ",
+      "thumbnail": "https://i.ytimg.com/vi/DEN41y8EcTQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBj9TGXdSoxRzIJFOI8xEND1ZOgrw",
+      "isLive": false,
+      "duration": 256,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "MY EYES",
+      "url": "https://music.youtube.com/watch?v=yhohHPdPczQ",
+      "thumbnail": "https://i.ytimg.com/vi/yhohHPdPczQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCtFWyLBKPOu_NHuZGLHacjMBqcPg",
+      "isLive": false,
+      "duration": 252,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "GOD'S COUNTRY",
+      "url": "https://music.youtube.com/watch?v=V5aG6wBnzXs",
+      "thumbnail": "https://i.ytimg.com/vi/V5aG6wBnzXs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLByP3qvofv2gCW2hMFZ4eYposqnVw",
+      "isLive": false,
+      "duration": 128,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "SIRENS",
+      "url": "https://music.youtube.com/watch?v=cW4cpK5XYVs",
+      "thumbnail": "https://i.ytimg.com/vi/cW4cpK5XYVs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDnY-zPlhKuET6BFjnW5w0mfi90A",
+      "isLive": false,
+      "duration": 205,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "MELTDOWN",
+      "url": "https://music.youtube.com/watch?v=qOwogdsFvbY",
+      "thumbnail": "https://i.ytimg.com/vi/qOwogdsFvbY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDrGmPWKOsNEJRsL7GD613GsZfFFQ",
+      "isLive": false,
+      "duration": 247,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "FE!N",
+      "url": "https://music.youtube.com/watch?v=2nR1zrNzgcY",
+      "thumbnail": "https://i.ytimg.com/vi/2nR1zrNzgcY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDaYAKV2CEdCsZO85rP6SOG0foaVw",
+      "isLive": false,
+      "duration": 192,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "I KNOW ?",
+      "url": "https://music.youtube.com/watch?v=l-Z8PWbAveU",
+      "thumbnail": "https://i.ytimg.com/vi/l-Z8PWbAveU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAL8wOla_kUg9-ehmb_d27g3k38ew",
+      "isLive": false,
+      "duration": 212,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "TOPIA TWINS",
+      "url": "https://music.youtube.com/watch?v=qCwf0lrlVXc",
+      "thumbnail": "https://i.ytimg.com/vi/qCwf0lrlVXc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDBhqBH6yHYXX7zrtQkWct117uI2A",
+      "isLive": false,
+      "duration": 224,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "SKITZO",
+      "url": "https://music.youtube.com/watch?v=e74FMh7wEy4",
+      "thumbnail": "https://i.ytimg.com/vi/e74FMh7wEy4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD08LpKNEnoZAJIminkIXyQLxZzCg",
+      "isLive": false,
+      "duration": 367,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "LOST FOREVER",
+      "url": "https://music.youtube.com/watch?v=fd-xDxnmZPc",
+      "thumbnail": "https://i.ytimg.com/vi/fd-xDxnmZPc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCJ92R9eSwFjHzywVP0mW2cf8uGgQ",
+      "isLive": false,
+      "duration": 164,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "LOOOVE",
+      "url": "https://music.youtube.com/watch?v=LpmC9WbZXI4",
+      "thumbnail": "https://i.ytimg.com/vi/LpmC9WbZXI4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD7Bo1n4zMhsE34MoI2SB8eFbKLDA",
+      "isLive": false,
+      "duration": 227,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "K-POP",
+      "url": "https://music.youtube.com/watch?v=ukiaSGya_CA",
+      "thumbnail": "https://i.ytimg.com/vi/ukiaSGya_CA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7GNhSK5ne7okq1CieRbbnhGgMHw",
+      "isLive": false,
+      "duration": 186,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "TELEKINESIS",
+      "url": "https://music.youtube.com/watch?v=zIuZhdJVWIs",
+      "thumbnail": "https://i.ytimg.com/vi/zIuZhdJVWIs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDQE1xTWOTiwUm75d9VX5ffv9NcLQ",
+      "isLive": false,
+      "duration": 354,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "TIL FURTHER NOTICE",
+      "url": "https://music.youtube.com/watch?v=Fl2BBVSniGA",
+      "thumbnail": "https://i.ytimg.com/vi/Fl2BBVSniGA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAasRY_PrXaWh4ce4pWUysOysAIhQ",
+      "isLive": false,
+      "duration": 315,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny - Massafghanistan",
+      "url": "https://www.youtube.com/watch?v=qpCh76f7JNk",
+      "thumbnail": "https://i.ytimg.com/vi/qpCh76f7JNk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB28X1ZuLpMDVwzQKNtCPhv8fbKnA",
+      "isLive": false,
+      "duration": 153,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Quarto di Bue",
+      "url": "https://www.youtube.com/watch?v=BmYh-G9nb_U",
+      "thumbnail": "https://i.ytimg.com/vi/BmYh-G9nb_U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA-5Y7vHv-9CivYDyRPRBKVLpy65Q",
+      "isLive": false,
+      "duration": 107,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny, Guè - Steppers (Visual)",
+      "url": "https://www.youtube.com/watch?v=icdh9LvBFCw",
+      "thumbnail": "https://i.ytimg.com/vi/icdh9LvBFCw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHZYL-WJRvXKDWTSK_hqgOsRvnQg",
+      "isLive": false,
+      "duration": 167,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny, Tony Boy - Sintetico (Visual)",
+      "url": "https://www.youtube.com/watch?v=umdg7hCEGI8",
+      "thumbnail": "https://i.ytimg.com/vi/umdg7hCEGI8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB3CvZmIpYCf_BU5qg_-ky2ROu9uw",
+      "isLive": false,
+      "duration": 152,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny, Artie 5ive - Porto il Commerciale (Visual)",
+      "url": "https://www.youtube.com/watch?v=3ejrcBMxXIE",
+      "thumbnail": "https://i.ytimg.com/vi/3ejrcBMxXIE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAb0QEBcAVBH6yKOq9tA3ez0-CDRw",
+      "isLive": false,
+      "duration": 146,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny, Astro - Lo Faccio per Me",
+      "url": "https://www.youtube.com/watch?v=wW9vv9B9LM8",
+      "thumbnail": "https://i.ytimg.com/vi/wW9vv9B9LM8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAoQAPagkJTVeLsayNP7sDJ3GXagQ",
+      "isLive": false,
+      "duration": 160,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Night Skinny - Ce Je (Visual)",
+      "url": "https://www.youtube.com/watch?v=aKO0OH8nF4o",
+      "thumbnail": "https://i.ytimg.com/vi/aKO0OH8nF4o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPFFgG5zaIgAdaU1j7Jt5XZzq3Zg",
+      "isLive": false,
+      "duration": 203,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "STARGAZING",
+      "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
+      "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
+      "isLive": false,
+      "duration": 271,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "CAROUSEL",
+      "url": "https://music.youtube.com/watch?v=V3nTOpabmMI",
+      "thumbnail": "https://i.ytimg.com/vi/V3nTOpabmMI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDrWiKjuElO0gOBWJE0StXgHg-Gew",
+      "isLive": false,
+      "duration": 181,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "SICKO MODE",
+      "url": "https://music.youtube.com/watch?v=NQbkGDoD7B0",
+      "thumbnail": "https://i.ytimg.com/vi/NQbkGDoD7B0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBmVndqi2TJNWxbokcb-CXxfL4apg",
+      "isLive": false,
+      "duration": 313,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "R.I.P. SCREW",
+      "url": "https://music.youtube.com/watch?v=2-ZPWON1bbs",
+      "thumbnail": "https://i.ytimg.com/vi/2-ZPWON1bbs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCGCPcGT6NSShaHMplqnZjcsoyq-g",
+      "isLive": false,
+      "duration": 186,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "STOP TRYING TO BE GOD",
+      "url": "https://music.youtube.com/watch?v=vH68UJG1Qfg",
+      "thumbnail": "https://i.ytimg.com/vi/vH68UJG1Qfg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC3xeQDsuzvWmsfWd3VWT11TWMA2w",
+      "isLive": false,
+      "duration": 339,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "NO BYSTANDERS",
+      "url": "https://music.youtube.com/watch?v=IjZso16Glss",
+      "thumbnail": "https://i.ytimg.com/vi/IjZso16Glss/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLArJ4uwQCVEPLjnkMI5k-DkOlrRZA",
+      "isLive": false,
+      "duration": 219,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "SKELETONS",
+      "url": "https://music.youtube.com/watch?v=u3eEtCr2CJk",
+      "thumbnail": "https://i.ytimg.com/vi/u3eEtCr2CJk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLATJrSiy7aaEx1fhrwfgLdG-egJRg",
+      "isLive": false,
+      "duration": 146,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "WAKE UP",
+      "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+      "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+      "isLive": false,
+      "duration": 232,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "5% TINT",
+      "url": "https://music.youtube.com/watch?v=L9MemVs7-wg",
+      "thumbnail": "https://i.ytimg.com/vi/L9MemVs7-wg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2PozQC3mCGJC7gZGsfTpOPn2awg",
+      "isLive": false,
+      "duration": 197,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "NC-17",
+      "url": "https://music.youtube.com/watch?v=LTiNm5yUu7o",
+      "thumbnail": "https://i.ytimg.com/vi/LTiNm5yUu7o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZful06ynGewyXx7qJUqA9AzMr8A",
+      "isLive": false,
+      "duration": 157,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "ASTROTHUNDER",
+      "url": "https://music.youtube.com/watch?v=nZo1pPyNExo",
+      "thumbnail": "https://i.ytimg.com/vi/nZo1pPyNExo/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxPW9sd_13_5FTdD7m76tAMBGEdA",
+      "isLive": false,
+      "duration": 143,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "YOSEMITE",
+      "url": "https://music.youtube.com/watch?v=9dm6HKE_7KI",
+      "thumbnail": "https://i.ytimg.com/vi/9dm6HKE_7KI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAmpywr9plSq4GurOqm2V6CiUPXig",
+      "isLive": false,
+      "duration": 151,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "CAN'T SAY",
+      "url": "https://music.youtube.com/watch?v=4Lk6xbu-W2w",
+      "thumbnail": "https://i.ytimg.com/vi/4Lk6xbu-W2w/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAyyl7m15hCtKaoZ3Z-Vq9YPKGTzw",
+      "isLive": false,
+      "duration": 199,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "WHO? WHAT!",
+      "url": "https://music.youtube.com/watch?v=Ykzk5erqQnM",
+      "thumbnail": "https://i.ytimg.com/vi/Ykzk5erqQnM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDhzikGj_BnB8UT9r1UdTQeJE_X3A",
+      "isLive": false,
+      "duration": 177,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "BUTTERFLY EFFECT",
+      "url": "https://music.youtube.com/watch?v=k2pwvr8p4vM",
+      "thumbnail": "https://i.ytimg.com/vi/k2pwvr8p4vM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD6k_8e1sFewnoXoqUizahDiJt5kg",
+      "isLive": false,
+      "duration": 191,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "HOUSTONFORNICATION",
+      "url": "https://music.youtube.com/watch?v=R-7BWkAf2vM",
+      "thumbnail": "https://i.ytimg.com/vi/R-7BWkAf2vM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBIumuFuB-_6PM4OBuJtHXBTtXRgw",
+      "isLive": false,
+      "duration": 218,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "COFFEE BEAN",
+      "url": "https://music.youtube.com/watch?v=1o0iCmOPcTA",
+      "thumbnail": "https://i.ytimg.com/vi/1o0iCmOPcTA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDoZEpzOmwJXG0xNLpEcpZe_jIVyg",
+      "isLive": false,
+      "duration": 210,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "Kid Yugi, Massimo Pericolo - 6SEI6 (Visual)",
+      "url": "https://www.youtube.com/watch?v=w4yzBi4Qezs",
+      "thumbnail": "https://i.ytimg.com/vi/w4yzBi4Qezs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD98p6wsSH5VBhDyjXy1TLrsDntLw",
+      "isLive": false,
+      "duration": 196,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Donna",
+      "url": "https://www.youtube.com/watch?v=TCe_5FuG9sA",
+      "thumbnail": "https://i.ytimg.com/vi/TCe_5FuG9sA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBImxetB924pdJjml0ILzQFhhhDDQ",
+      "isLive": false,
+      "duration": 186,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - S.X.S.I.C. (Visual)",
+      "url": "https://www.youtube.com/watch?v=BYML-pYUu6Q",
+      "thumbnail": "https://i.ytimg.com/vi/BYML-pYUu6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCIjq0UxlKTcR32JeeUsTinCXrADQ",
+      "isLive": false,
+      "duration": 202,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Modalità Demonio (Visual)",
+      "url": "https://www.youtube.com/watch?v=1_SOEciu7LQ",
+      "thumbnail": "https://i.ytimg.com/vi/1_SOEciu7LQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDztAr0sWBSFRSNvVvgodgcHmcFyA",
+      "isLive": false,
+      "duration": 177,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Glocky - Diablo (Visual)",
+      "url": "https://www.youtube.com/watch?v=Q_CeZob_794",
+      "thumbnail": "https://i.ytimg.com/vi/Q_CeZob_794/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7Egi7r6Gp4htpJPRDZA4M9hp3ZQ",
+      "isLive": false,
+      "duration": 146,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Loki (Visual)",
+      "url": "https://www.youtube.com/watch?v=UqPsPPKN7aA",
+      "thumbnail": "https://i.ytimg.com/vi/UqPsPPKN7aA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxy6BBj6UFocDU6qsekTyMgBeDRA",
+      "isLive": false,
+      "duration": 173,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Ex Angelo (Original Version) (Visual)",
+      "url": "https://www.youtube.com/watch?v=QusbW2guOFI",
+      "thumbnail": "https://i.ytimg.com/vi/QusbW2guOFI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDdNiy5jN0ztG6PjcI_DVOug4fS-A",
+      "isLive": false,
+      "duration": 204,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "64 BARRE DA CENSURA (Red Bull 64 Bars)",
+      "url": "https://www.youtube.com/watch?v=bfe3p7StXBM",
+      "thumbnail": "https://i.ytimg.com/vi/bfe3p7StXBM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBwsrf2AxXGwVUeI73aHFYrBW_0EQ",
+      "isLive": false,
+      "duration": 195,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - L'Anticristo",
+      "url": "https://www.youtube.com/watch?v=eWKwOac6p4g",
+      "thumbnail": "https://i.ytimg.com/vi/eWKwOac6p4g/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCQ3wdwxC6NtS9C5UQuSNsr5B53Yg",
+      "isLive": false,
+      "duration": 146,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Tony Boy, Artie 5ive - Capra a tre Teste (Visual)",
+      "url": "https://www.youtube.com/watch?v=uX7PYIZ7CJ8",
+      "thumbnail": "https://i.ytimg.com/vi/uX7PYIZ7CJ8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDV1eA2Dp1-I2jqzVKmDgteRvnmg",
+      "isLive": false,
+      "duration": 197,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Tedua, Junior K - Eva (Visual)",
+      "url": "https://www.youtube.com/watch?v=mKvMFlBPin8",
+      "thumbnail": "https://i.ytimg.com/vi/mKvMFlBPin8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHHEyZLGaddQHVT_cFVO1uNaR_mQ",
+      "isLive": false,
+      "duration": 161,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Papa V, Noyz Narcos - Servizio (Visual)",
+      "url": "https://www.youtube.com/watch?v=26amTQOcK7M",
+      "thumbnail": "https://i.ytimg.com/vi/26amTQOcK7M/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBRJSjTR99lyKa7LU6tmNBYZNgiQQ",
+      "isLive": false,
+      "duration": 207,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Il Signore delle Mosche (Visual)",
+      "url": "https://www.youtube.com/watch?v=6ErZMhyuVN4",
+      "thumbnail": "https://i.ytimg.com/vi/6ErZMhyuVN4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD9QclsuuCV9RBjXonHRwGfFqoaKQ",
+      "isLive": false,
+      "duration": 195,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Lilith (Visual)",
+      "url": "https://www.youtube.com/watch?v=Vq5F6zj1MX4",
+      "thumbnail": "https://i.ytimg.com/vi/Vq5F6zj1MX4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC4g49sbPNUmPZikt4gtZV6o-xXhA",
+      "isLive": false,
+      "duration": 165,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Ernia - Nemico (Visual)",
+      "url": "https://www.youtube.com/watch?v=1lfsgzDBaTc",
+      "thumbnail": "https://i.ytimg.com/vi/1lfsgzDBaTc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDkKKui-iNVr37Ael2XUlA_BAg0rA",
+      "isLive": false,
+      "duration": 186,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Simba La Rue - Denaro (Visual)",
+      "url": "https://www.youtube.com/watch?v=seeofUsSRJc",
+      "thumbnail": "https://i.ytimg.com/vi/seeofUsSRJc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCBI5U7K5Mpy0rKjkArXLgipzz5Qg",
+      "isLive": false,
+      "duration": 144,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Yung 3p 4 (Visual)",
+      "url": "https://www.youtube.com/watch?v=OALaaMfjFdE",
+      "thumbnail": "https://i.ytimg.com/vi/OALaaMfjFdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCsYBqHGzzVQwclRn04HWHnt8Ivmg",
+      "isLive": false,
+      "duration": 186,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Geolier - Terr1 (Visual)",
+      "url": "https://www.youtube.com/watch?v=TU72BbShdQ0",
+      "thumbnail": "https://i.ytimg.com/vi/TU72BbShdQ0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBVMrapi9Y_GlVwzFPHriQYoodc0g",
+      "isLive": false,
+      "duration": 186,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Fido Guido - Ilva (Fume scure rmx - Visual)",
+      "url": "https://www.youtube.com/watch?v=4htQRfUl4A8",
+      "thumbnail": "https://i.ytimg.com/vi/4htQRfUl4A8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCUB-DdAfu54FTPO0_7Qkg5hNC2DQ",
+      "isLive": false,
+      "duration": 189,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Paganini",
+      "url": "https://www.youtube.com/watch?v=9alkA8SYQQQ",
+      "thumbnail": "https://i.ytimg.com/vi/9alkA8SYQQQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB6Lv-GBrg35f6w_9ZdIbzloa4tsw",
+      "isLive": false,
+      "duration": 179,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Sfera Ebbasta, Shablo - Ex Angelo (Visual)",
+      "url": "https://www.youtube.com/watch?v=iNzylCe3ZnQ",
+      "thumbnail": "https://i.ytimg.com/vi/iNzylCe3ZnQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDr3gaa4NH2kHWlYDXgAuzfrfxN2Q",
+      "isLive": false,
+      "duration": 179,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Lucifero (Visual)",
+      "url": "https://www.youtube.com/watch?v=3F0LppqS6AU",
+      "thumbnail": "https://i.ytimg.com/vi/3F0LppqS6AU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5QTx17n_tS9zMgm6nHdHR6kmWwg",
+      "isLive": false,
+      "duration": 180,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - L'ultimo a Cadere (Visual)",
+      "url": "https://www.youtube.com/watch?v=dl8Iu6Djw6Q",
+      "thumbnail": "https://i.ytimg.com/vi/dl8Iu6Djw6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCHwvRGmJX3hWAEefAT0ZsmCLqEjQ",
+      "isLive": false,
+      "duration": 163,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Shiva - La Violenza Necessaria (Visual)",
+      "url": "https://www.youtube.com/watch?v=LjjBJLszC20",
+      "thumbnail": "https://i.ytimg.com/vi/LjjBJLszC20/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDg6Qi6eyEzVdFFu_ndSAzE-kb7Q",
+      "isLive": false,
+      "duration": 164,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Tutti Fenomeni - Eroina (Visual)",
+      "url": "https://www.youtube.com/watch?v=QLbyNOY819k",
+      "thumbnail": "https://i.ytimg.com/vi/QLbyNOY819k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMFfLcpbdQmhUJNDetnmEz6gU0tg",
+      "isLive": false,
+      "duration": 199,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Jolly (Visual)",
+      "url": "https://www.youtube.com/watch?v=P5_n2llQo4E",
+      "thumbnail": "https://i.ytimg.com/vi/P5_n2llQo4E/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBBJbdBBS-MMCbWaNZSQzeg7eh1SA",
+      "isLive": false,
+      "duration": 175,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Tony Boy - Mostro (Visual)",
+      "url": "https://www.youtube.com/watch?v=VbsdxQa1UC0",
+      "thumbnail": "https://i.ytimg.com/vi/VbsdxQa1UC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC4eve9izK4vbyrGEpwylnbE7DWnQ",
+      "isLive": false,
+      "duration": 190,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Ill Santo, FT Kings - Berserker",
+      "url": "https://www.youtube.com/watch?v=cs4kdWEK7JI",
+      "thumbnail": "https://i.ytimg.com/vi/cs4kdWEK7JI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBa83T_ujqogPXORmYYHEWqpy4N1Q",
+      "isLive": false,
+      "duration": 144,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, ANNA - Push It",
+      "url": "https://www.youtube.com/watch?v=61Ogxw9YYTE",
+      "thumbnail": "https://i.ytimg.com/vi/61Ogxw9YYTE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCLv_XbFvVv3TW061WPytcmtWRKzQ",
+      "isLive": false,
+      "duration": 178,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Amelie (Visual)",
+      "url": "https://www.youtube.com/watch?v=XoD_CAcor2o",
+      "thumbnail": "https://i.ytimg.com/vi/XoD_CAcor2o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBH_tiCxFh_f0RKjwiwzdkBXwBgtA",
+      "isLive": false,
+      "duration": 185,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Gilgamesh (Visual)",
+      "url": "https://www.youtube.com/watch?v=bAcA47cJM4k",
+      "thumbnail": "https://i.ytimg.com/vi/bAcA47cJM4k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCJmQ_fKakHLkB3gm2y2vk-DDNAsg",
+      "isLive": false,
+      "duration": 162,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Papa V, RRARI DAL TACCO - Chuck Norris (Visual) ft. Nerissima Serpe",
+      "url": "https://www.youtube.com/watch?v=I0y3ERjZo_o",
+      "thumbnail": "https://i.ytimg.com/vi/I0y3ERjZo_o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCgsmzlWMrs52-sOypUmTu5TRWdFw",
+      "isLive": false,
+      "duration": 204,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Tristano e Isotta (Visual)",
+      "url": "https://www.youtube.com/watch?v=hHpGfKYjOEw",
+      "thumbnail": "https://i.ytimg.com/vi/hHpGfKYjOEw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBtOLrwvqBBUfe8nz3SS58_VYCLlg",
+      "isLive": false,
+      "duration": 218,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Simba La Rue, FT Kings - Mu' Ammar Gheddafi (Visual)",
+      "url": "https://www.youtube.com/watch?v=dKXgUs2icDI",
+      "thumbnail": "https://i.ytimg.com/vi/dKXgUs2icDI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBXlh4srioAJ_0T6yDgPbql2jNOUw",
+      "isLive": false,
+      "duration": 150,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi, Artie 5ive - Bullet Ballet (Visual)",
+      "url": "https://www.youtube.com/watch?v=a787umVy4jc",
+      "thumbnail": "https://i.ytimg.com/vi/a787umVy4jc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDpxrpGyAhvlRj3E7a-aFJSxx_ufw",
+      "isLive": false,
+      "duration": 212,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Per il Sangue Versato (Visual)",
+      "url": "https://www.youtube.com/watch?v=VT4FmaPOE3E",
+      "thumbnail": "https://i.ytimg.com/vi/VT4FmaPOE3E/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD9YPlH5J75V5dFr4sL7B_fBf4_cQ",
+      "isLive": false,
+      "duration": 206,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Per te che Lotto (Visual)",
+      "url": "https://www.youtube.com/watch?v=tflhHGLqneA",
+      "thumbnail": "https://i.ytimg.com/vi/tflhHGLqneA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDvwwcPSPfW1ge7Cn6amLAULPW49w",
+      "isLive": false,
+      "duration": 189,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Kid Yugi - Davide e Golia (Visual)",
+      "url": "https://www.youtube.com/watch?v=Js8id4uGlNc",
+      "thumbnail": "https://i.ytimg.com/vi/Js8id4uGlNc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHL_HZxyIH-ynXKEpX4M2JufpWsw",
+      "isLive": false,
+      "duration": 226,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    }
+  ],
+  "users": {
+    "704006042819756083": {
+      "playlists": {
+        "Generale": [],
+        "Kid Yugi": [
+          {
+            "title": "Hybris",
+            "url": "https://www.youtube.com/watch?v=r0jbG9r2v6Q",
+            "thumbnail": "https://i.ytimg.com/vi/r0jbG9r2v6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDuGw2izlf0JK0ROdAVXhXPm1kkYg",
+            "isLive": false,
+            "duration": 117,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kabuki",
+            "url": "https://www.youtube.com/watch?v=qMc0eVNaTlA",
+            "thumbnail": "https://i.ytimg.com/vi/qMc0eVNaTlA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAdo4M0V1JrZMJIDWvgutGHVO4ZxQ",
+            "isLive": false,
+            "duration": 181,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "No Gimmick",
+            "url": "https://www.youtube.com/watch?v=ihH560xz1c4",
+            "thumbnail": "https://i.ytimg.com/vi/ihH560xz1c4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDSZ78cz-PaxyhwnjaDNiam3Dfqig",
+            "isLive": false,
+            "duration": 176,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "GRAMMELOT",
+            "url": "https://www.youtube.com/watch?v=vimWnTfENko",
+            "thumbnail": "https://i.ytimg.com/vi/vimWnTfENko/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAvVumNAznyYnvOPi0RSRqC2tkUvw",
+            "isLive": false,
+            "duration": 97,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Yung 3p 3",
+            "url": "https://www.youtube.com/watch?v=DbWqfUPVoOo",
+            "thumbnail": "https://i.ytimg.com/vi/DbWqfUPVoOo/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBC3CwT_DnysAiJYStC9s2n6GNCJg",
+            "isLive": false,
+            "duration": 118,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "KID YUGI  - STURM UND DRANG",
+            "url": "https://www.youtube.com/watch?v=DwYtU_Q-1_k",
+            "thumbnail": "https://i.ytimg.com/vi/DwYtU_Q-1_k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDKBHYkYUtdY4vg7dBunSSpOa8hSg",
+            "isLive": false,
+            "duration": 113,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Back n' Forth",
+            "url": "https://www.youtube.com/watch?v=H6iXz-v2hRQ",
+            "thumbnail": "https://i.ytimg.com/vi/H6iXz-v2hRQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD4Kgf0DPFfhwPfLl9InSLs6T7wuQ",
+            "isLive": false,
+            "duration": 146,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "KID YUGI - KING LEAR feat. SOSA PRIORITY",
+            "url": "https://www.youtube.com/watch?v=A0r1FezpUy0",
+            "thumbnail": "https://i.ytimg.com/vi/A0r1FezpUy0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBsIE7HyirI4hfrqHSyjQn_Cap1Qg",
+            "isLive": false,
+            "duration": 153,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "KID YUGI - DEM feat. TONY BOY & ARTIE 5IVE (Prod. DOD)",
+            "url": "https://www.youtube.com/watch?v=xDT1-35FE3I",
+            "thumbnail": "https://i.ytimg.com/vi/xDT1-35FE3I/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC1HA-TFzBpToaF9sIW1hY61uV_VQ",
+            "isLive": false,
+            "duration": 244,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Paradise Now",
+            "url": "https://www.youtube.com/watch?v=8lYvCxQAxBY",
+            "thumbnail": "https://i.ytimg.com/vi/8lYvCxQAxBY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB6P2urB1PH9k1Q1zuADhKl2Hza_Q",
+            "isLive": false,
+            "duration": 201,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Il Filmografo",
+            "url": "https://www.youtube.com/watch?v=bQ40dbIvFkI",
+            "thumbnail": "https://i.ytimg.com/vi/bQ40dbIvFkI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCzvTXNg7oHhcEIAJ3HewVpgsWMug",
+            "isLive": false,
+            "duration": 147,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Il Ferro di Čechov",
+            "url": "https://www.youtube.com/watch?v=I6WnvAyMg9c",
+            "thumbnail": "https://i.ytimg.com/vi/I6WnvAyMg9c/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCkhg_erLrVYadjpQ7lMMSZkrmkrQ",
+            "isLive": false,
+            "duration": 197,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny - Massafghanistan",
+            "url": "https://www.youtube.com/watch?v=qpCh76f7JNk",
+            "thumbnail": "https://i.ytimg.com/vi/qpCh76f7JNk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB28X1ZuLpMDVwzQKNtCPhv8fbKnA",
+            "isLive": false,
+            "duration": 153,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Quarto di Bue",
+            "url": "https://www.youtube.com/watch?v=BmYh-G9nb_U",
+            "thumbnail": "https://i.ytimg.com/vi/BmYh-G9nb_U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA-5Y7vHv-9CivYDyRPRBKVLpy65Q",
+            "isLive": false,
+            "duration": 107,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny, Guè - Steppers (Visual)",
+            "url": "https://www.youtube.com/watch?v=icdh9LvBFCw",
+            "thumbnail": "https://i.ytimg.com/vi/icdh9LvBFCw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHZYL-WJRvXKDWTSK_hqgOsRvnQg",
+            "isLive": false,
+            "duration": 167,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny, Tony Boy - Sintetico (Visual)",
+            "url": "https://www.youtube.com/watch?v=umdg7hCEGI8",
+            "thumbnail": "https://i.ytimg.com/vi/umdg7hCEGI8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB3CvZmIpYCf_BU5qg_-ky2ROu9uw",
+            "isLive": false,
+            "duration": 152,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny, Artie 5ive - Porto il Commerciale (Visual)",
+            "url": "https://www.youtube.com/watch?v=3ejrcBMxXIE",
+            "thumbnail": "https://i.ytimg.com/vi/3ejrcBMxXIE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAb0QEBcAVBH6yKOq9tA3ez0-CDRw",
+            "isLive": false,
+            "duration": 146,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny, Astro - Lo Faccio per Me",
+            "url": "https://www.youtube.com/watch?v=wW9vv9B9LM8",
+            "thumbnail": "https://i.ytimg.com/vi/wW9vv9B9LM8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAoQAPagkJTVeLsayNP7sDJ3GXagQ",
+            "isLive": false,
+            "duration": 160,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Night Skinny - Ce Je (Visual)",
+            "url": "https://www.youtube.com/watch?v=aKO0OH8nF4o",
+            "thumbnail": "https://i.ytimg.com/vi/aKO0OH8nF4o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPFFgG5zaIgAdaU1j7Jt5XZzq3Zg",
+            "isLive": false,
+            "duration": 203,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Massimo Pericolo - 6SEI6 (Visual)",
+            "url": "https://www.youtube.com/watch?v=w4yzBi4Qezs",
+            "thumbnail": "https://i.ytimg.com/vi/w4yzBi4Qezs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD98p6wsSH5VBhDyjXy1TLrsDntLw",
+            "isLive": false,
+            "duration": 196,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Donna",
+            "url": "https://www.youtube.com/watch?v=TCe_5FuG9sA",
+            "thumbnail": "https://i.ytimg.com/vi/TCe_5FuG9sA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBImxetB924pdJjml0ILzQFhhhDDQ",
+            "isLive": false,
+            "duration": 186,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - S.X.S.I.C. (Visual)",
+            "url": "https://www.youtube.com/watch?v=BYML-pYUu6Q",
+            "thumbnail": "https://i.ytimg.com/vi/BYML-pYUu6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCIjq0UxlKTcR32JeeUsTinCXrADQ",
+            "isLive": false,
+            "duration": 202,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Modalità Demonio (Visual)",
+            "url": "https://www.youtube.com/watch?v=1_SOEciu7LQ",
+            "thumbnail": "https://i.ytimg.com/vi/1_SOEciu7LQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDztAr0sWBSFRSNvVvgodgcHmcFyA",
+            "isLive": false,
+            "duration": 177,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Glocky - Diablo (Visual)",
+            "url": "https://www.youtube.com/watch?v=Q_CeZob_794",
+            "thumbnail": "https://i.ytimg.com/vi/Q_CeZob_794/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7Egi7r6Gp4htpJPRDZA4M9hp3ZQ",
+            "isLive": false,
+            "duration": 146,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Loki (Visual)",
+            "url": "https://www.youtube.com/watch?v=UqPsPPKN7aA",
+            "thumbnail": "https://i.ytimg.com/vi/UqPsPPKN7aA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxy6BBj6UFocDU6qsekTyMgBeDRA",
+            "isLive": false,
+            "duration": 173,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Ex Angelo (Original Version) (Visual)",
+            "url": "https://www.youtube.com/watch?v=QusbW2guOFI",
+            "thumbnail": "https://i.ytimg.com/vi/QusbW2guOFI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDdNiy5jN0ztG6PjcI_DVOug4fS-A",
+            "isLive": false,
+            "duration": 204,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "64 BARRE DA CENSURA (Red Bull 64 Bars)",
+            "url": "https://www.youtube.com/watch?v=bfe3p7StXBM",
+            "thumbnail": "https://i.ytimg.com/vi/bfe3p7StXBM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBwsrf2AxXGwVUeI73aHFYrBW_0EQ",
+            "isLive": false,
+            "duration": 195,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - L'Anticristo",
+            "url": "https://www.youtube.com/watch?v=eWKwOac6p4g",
+            "thumbnail": "https://i.ytimg.com/vi/eWKwOac6p4g/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCQ3wdwxC6NtS9C5UQuSNsr5B53Yg",
+            "isLive": false,
+            "duration": 146,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Tony Boy, Artie 5ive - Capra a tre Teste (Visual)",
+            "url": "https://www.youtube.com/watch?v=uX7PYIZ7CJ8",
+            "thumbnail": "https://i.ytimg.com/vi/uX7PYIZ7CJ8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDV1eA2Dp1-I2jqzVKmDgteRvnmg",
+            "isLive": false,
+            "duration": 197,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Tedua, Junior K - Eva (Visual)",
+            "url": "https://www.youtube.com/watch?v=mKvMFlBPin8",
+            "thumbnail": "https://i.ytimg.com/vi/mKvMFlBPin8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHHEyZLGaddQHVT_cFVO1uNaR_mQ",
+            "isLive": false,
+            "duration": 161,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Papa V, Noyz Narcos - Servizio (Visual)",
+            "url": "https://www.youtube.com/watch?v=26amTQOcK7M",
+            "thumbnail": "https://i.ytimg.com/vi/26amTQOcK7M/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBRJSjTR99lyKa7LU6tmNBYZNgiQQ",
+            "isLive": false,
+            "duration": 207,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Il Signore delle Mosche (Visual)",
+            "url": "https://www.youtube.com/watch?v=6ErZMhyuVN4",
+            "thumbnail": "https://i.ytimg.com/vi/6ErZMhyuVN4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD9QclsuuCV9RBjXonHRwGfFqoaKQ",
+            "isLive": false,
+            "duration": 195,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Lilith (Visual)",
+            "url": "https://www.youtube.com/watch?v=Vq5F6zj1MX4",
+            "thumbnail": "https://i.ytimg.com/vi/Vq5F6zj1MX4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC4g49sbPNUmPZikt4gtZV6o-xXhA",
+            "isLive": false,
+            "duration": 165,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Ernia - Nemico (Visual)",
+            "url": "https://www.youtube.com/watch?v=1lfsgzDBaTc",
+            "thumbnail": "https://i.ytimg.com/vi/1lfsgzDBaTc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDkKKui-iNVr37Ael2XUlA_BAg0rA",
+            "isLive": false,
+            "duration": 186,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Simba La Rue - Denaro (Visual)",
+            "url": "https://www.youtube.com/watch?v=seeofUsSRJc",
+            "thumbnail": "https://i.ytimg.com/vi/seeofUsSRJc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCBI5U7K5Mpy0rKjkArXLgipzz5Qg",
+            "isLive": false,
+            "duration": 144,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Yung 3p 4 (Visual)",
+            "url": "https://www.youtube.com/watch?v=OALaaMfjFdE",
+            "thumbnail": "https://i.ytimg.com/vi/OALaaMfjFdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCsYBqHGzzVQwclRn04HWHnt8Ivmg",
+            "isLive": false,
+            "duration": 186,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Geolier - Terr1 (Visual)",
+            "url": "https://www.youtube.com/watch?v=TU72BbShdQ0",
+            "thumbnail": "https://i.ytimg.com/vi/TU72BbShdQ0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBVMrapi9Y_GlVwzFPHriQYoodc0g",
+            "isLive": false,
+            "duration": 186,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Fido Guido - Ilva (Fume scure rmx - Visual)",
+            "url": "https://www.youtube.com/watch?v=4htQRfUl4A8",
+            "thumbnail": "https://i.ytimg.com/vi/4htQRfUl4A8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCUB-DdAfu54FTPO0_7Qkg5hNC2DQ",
+            "isLive": false,
+            "duration": 189,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Paganini",
+            "url": "https://www.youtube.com/watch?v=9alkA8SYQQQ",
+            "thumbnail": "https://i.ytimg.com/vi/9alkA8SYQQQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB6Lv-GBrg35f6w_9ZdIbzloa4tsw",
+            "isLive": false,
+            "duration": 179,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Sfera Ebbasta, Shablo - Ex Angelo (Visual)",
+            "url": "https://www.youtube.com/watch?v=iNzylCe3ZnQ",
+            "thumbnail": "https://i.ytimg.com/vi/iNzylCe3ZnQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDr3gaa4NH2kHWlYDXgAuzfrfxN2Q",
+            "isLive": false,
+            "duration": 179,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Lucifero (Visual)",
+            "url": "https://www.youtube.com/watch?v=3F0LppqS6AU",
+            "thumbnail": "https://i.ytimg.com/vi/3F0LppqS6AU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5QTx17n_tS9zMgm6nHdHR6kmWwg",
+            "isLive": false,
+            "duration": 180,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - L'ultimo a Cadere (Visual)",
+            "url": "https://www.youtube.com/watch?v=dl8Iu6Djw6Q",
+            "thumbnail": "https://i.ytimg.com/vi/dl8Iu6Djw6Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCHwvRGmJX3hWAEefAT0ZsmCLqEjQ",
+            "isLive": false,
+            "duration": 163,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Shiva - La Violenza Necessaria (Visual)",
+            "url": "https://www.youtube.com/watch?v=LjjBJLszC20",
+            "thumbnail": "https://i.ytimg.com/vi/LjjBJLszC20/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDg6Qi6eyEzVdFFu_ndSAzE-kb7Q",
+            "isLive": false,
+            "duration": 164,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Tutti Fenomeni - Eroina (Visual)",
+            "url": "https://www.youtube.com/watch?v=QLbyNOY819k",
+            "thumbnail": "https://i.ytimg.com/vi/QLbyNOY819k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMFfLcpbdQmhUJNDetnmEz6gU0tg",
+            "isLive": false,
+            "duration": 199,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Jolly (Visual)",
+            "url": "https://www.youtube.com/watch?v=P5_n2llQo4E",
+            "thumbnail": "https://i.ytimg.com/vi/P5_n2llQo4E/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBBJbdBBS-MMCbWaNZSQzeg7eh1SA",
+            "isLive": false,
+            "duration": 175,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Tony Boy - Mostro (Visual)",
+            "url": "https://www.youtube.com/watch?v=VbsdxQa1UC0",
+            "thumbnail": "https://i.ytimg.com/vi/VbsdxQa1UC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC4eve9izK4vbyrGEpwylnbE7DWnQ",
+            "isLive": false,
+            "duration": 190,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Ill Santo, FT Kings - Berserker",
+            "url": "https://www.youtube.com/watch?v=cs4kdWEK7JI",
+            "thumbnail": "https://i.ytimg.com/vi/cs4kdWEK7JI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBa83T_ujqogPXORmYYHEWqpy4N1Q",
+            "isLive": false,
+            "duration": 144,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, ANNA - Push It",
+            "url": "https://www.youtube.com/watch?v=61Ogxw9YYTE",
+            "thumbnail": "https://i.ytimg.com/vi/61Ogxw9YYTE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCLv_XbFvVv3TW061WPytcmtWRKzQ",
+            "isLive": false,
+            "duration": 178,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Amelie (Visual)",
+            "url": "https://www.youtube.com/watch?v=XoD_CAcor2o",
+            "thumbnail": "https://i.ytimg.com/vi/XoD_CAcor2o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBH_tiCxFh_f0RKjwiwzdkBXwBgtA",
+            "isLive": false,
+            "duration": 185,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Gilgamesh (Visual)",
+            "url": "https://www.youtube.com/watch?v=bAcA47cJM4k",
+            "thumbnail": "https://i.ytimg.com/vi/bAcA47cJM4k/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCJmQ_fKakHLkB3gm2y2vk-DDNAsg",
+            "isLive": false,
+            "duration": 162,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Papa V, RRARI DAL TACCO - Chuck Norris (Visual) ft. Nerissima Serpe",
+            "url": "https://www.youtube.com/watch?v=I0y3ERjZo_o",
+            "thumbnail": "https://i.ytimg.com/vi/I0y3ERjZo_o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCgsmzlWMrs52-sOypUmTu5TRWdFw",
+            "isLive": false,
+            "duration": 204,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Tristano e Isotta (Visual)",
+            "url": "https://www.youtube.com/watch?v=hHpGfKYjOEw",
+            "thumbnail": "https://i.ytimg.com/vi/hHpGfKYjOEw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBtOLrwvqBBUfe8nz3SS58_VYCLlg",
+            "isLive": false,
+            "duration": 218,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Simba La Rue, FT Kings - Mu' Ammar Gheddafi (Visual)",
+            "url": "https://www.youtube.com/watch?v=dKXgUs2icDI",
+            "thumbnail": "https://i.ytimg.com/vi/dKXgUs2icDI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBXlh4srioAJ_0T6yDgPbql2jNOUw",
+            "isLive": false,
+            "duration": 150,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi, Artie 5ive - Bullet Ballet (Visual)",
+            "url": "https://www.youtube.com/watch?v=a787umVy4jc",
+            "thumbnail": "https://i.ytimg.com/vi/a787umVy4jc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDpxrpGyAhvlRj3E7a-aFJSxx_ufw",
+            "isLive": false,
+            "duration": 212,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Per il Sangue Versato (Visual)",
+            "url": "https://www.youtube.com/watch?v=VT4FmaPOE3E",
+            "thumbnail": "https://i.ytimg.com/vi/VT4FmaPOE3E/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD9YPlH5J75V5dFr4sL7B_fBf4_cQ",
+            "isLive": false,
+            "duration": 206,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Per te che Lotto (Visual)",
+            "url": "https://www.youtube.com/watch?v=tflhHGLqneA",
+            "thumbnail": "https://i.ytimg.com/vi/tflhHGLqneA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDvwwcPSPfW1ge7Cn6amLAULPW49w",
+            "isLive": false,
+            "duration": 189,
+            "requester": "704006042819756083"
+          },
+          {
+            "title": "Kid Yugi - Davide e Golia (Visual)",
+            "url": "https://www.youtube.com/watch?v=Js8id4uGlNc",
+            "thumbnail": "https://i.ytimg.com/vi/Js8id4uGlNc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBHL_HZxyIH-ynXKEpX4M2JufpWsw",
+            "isLive": false,
+            "duration": 226,
+            "requester": "704006042819756083"
+          }
+        ]
+      },
+      "activePlaylist": "Kid Yugi"
+    },
+    "717842969331367986": {
+      "playlists": {
+        "Generale": [],
+        "Travis Scott TypeShi": [
+          {
+            "title": "HYAENA",
+            "url": "https://music.youtube.com/watch?v=qS6ozdhzSVQ",
+            "thumbnail": "https://i.ytimg.com/vi/qS6ozdhzSVQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAsHe7lQpGcijnSdDG5rzUSGJOzcw",
+            "isLive": false,
+            "duration": 223,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "THANK GOD",
+            "url": "https://music.youtube.com/watch?v=kPpm2p_xQ40",
+            "thumbnail": "https://i.ytimg.com/vi/kPpm2p_xQ40/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCa-agh3oGnHKKFBT47O-U2XKYkuA",
+            "isLive": false,
+            "duration": 185,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "MODERN JAM",
+            "url": "https://music.youtube.com/watch?v=DEN41y8EcTQ",
+            "thumbnail": "https://i.ytimg.com/vi/DEN41y8EcTQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBj9TGXdSoxRzIJFOI8xEND1ZOgrw",
+            "isLive": false,
+            "duration": 256,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "MY EYES",
+            "url": "https://music.youtube.com/watch?v=yhohHPdPczQ",
+            "thumbnail": "https://i.ytimg.com/vi/yhohHPdPczQ/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCtFWyLBKPOu_NHuZGLHacjMBqcPg",
+            "isLive": false,
+            "duration": 252,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "GOD'S COUNTRY",
+            "url": "https://music.youtube.com/watch?v=V5aG6wBnzXs",
+            "thumbnail": "https://i.ytimg.com/vi/V5aG6wBnzXs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLByP3qvofv2gCW2hMFZ4eYposqnVw",
+            "isLive": false,
+            "duration": 128,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "SIRENS",
+            "url": "https://music.youtube.com/watch?v=cW4cpK5XYVs",
+            "thumbnail": "https://i.ytimg.com/vi/cW4cpK5XYVs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCDnY-zPlhKuET6BFjnW5w0mfi90A",
+            "isLive": false,
+            "duration": 205,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "MELTDOWN",
+            "url": "https://music.youtube.com/watch?v=qOwogdsFvbY",
+            "thumbnail": "https://i.ytimg.com/vi/qOwogdsFvbY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDrGmPWKOsNEJRsL7GD613GsZfFFQ",
+            "isLive": false,
+            "duration": 247,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "FE!N",
+            "url": "https://music.youtube.com/watch?v=2nR1zrNzgcY",
+            "thumbnail": "https://i.ytimg.com/vi/2nR1zrNzgcY/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDaYAKV2CEdCsZO85rP6SOG0foaVw",
+            "isLive": false,
+            "duration": 192,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "I KNOW ?",
+            "url": "https://music.youtube.com/watch?v=l-Z8PWbAveU",
+            "thumbnail": "https://i.ytimg.com/vi/l-Z8PWbAveU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAL8wOla_kUg9-ehmb_d27g3k38ew",
+            "isLive": false,
+            "duration": 212,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "TOPIA TWINS",
+            "url": "https://music.youtube.com/watch?v=qCwf0lrlVXc",
+            "thumbnail": "https://i.ytimg.com/vi/qCwf0lrlVXc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDBhqBH6yHYXX7zrtQkWct117uI2A",
+            "isLive": false,
+            "duration": 224,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "SKITZO",
+            "url": "https://music.youtube.com/watch?v=e74FMh7wEy4",
+            "thumbnail": "https://i.ytimg.com/vi/e74FMh7wEy4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD08LpKNEnoZAJIminkIXyQLxZzCg",
+            "isLive": false,
+            "duration": 367,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "LOST FOREVER",
+            "url": "https://music.youtube.com/watch?v=fd-xDxnmZPc",
+            "thumbnail": "https://i.ytimg.com/vi/fd-xDxnmZPc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCJ92R9eSwFjHzywVP0mW2cf8uGgQ",
+            "isLive": false,
+            "duration": 164,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "LOOOVE",
+            "url": "https://music.youtube.com/watch?v=LpmC9WbZXI4",
+            "thumbnail": "https://i.ytimg.com/vi/LpmC9WbZXI4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD7Bo1n4zMhsE34MoI2SB8eFbKLDA",
+            "isLive": false,
+            "duration": 227,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "K-POP",
+            "url": "https://music.youtube.com/watch?v=ukiaSGya_CA",
+            "thumbnail": "https://i.ytimg.com/vi/ukiaSGya_CA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7GNhSK5ne7okq1CieRbbnhGgMHw",
+            "isLive": false,
+            "duration": 186,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "TELEKINESIS",
+            "url": "https://music.youtube.com/watch?v=zIuZhdJVWIs",
+            "thumbnail": "https://i.ytimg.com/vi/zIuZhdJVWIs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDQE1xTWOTiwUm75d9VX5ffv9NcLQ",
+            "isLive": false,
+            "duration": 354,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "TIL FURTHER NOTICE",
+            "url": "https://music.youtube.com/watch?v=Fl2BBVSniGA",
+            "thumbnail": "https://i.ytimg.com/vi/Fl2BBVSniGA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAasRY_PrXaWh4ce4pWUysOysAIhQ",
+            "isLive": false,
+            "duration": 315,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "STARGAZING",
+            "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
+            "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
+            "isLive": false,
+            "duration": 271,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "CAROUSEL",
+            "url": "https://music.youtube.com/watch?v=V3nTOpabmMI",
+            "thumbnail": "https://i.ytimg.com/vi/V3nTOpabmMI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDrWiKjuElO0gOBWJE0StXgHg-Gew",
+            "isLive": false,
+            "duration": 181,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "SICKO MODE",
+            "url": "https://music.youtube.com/watch?v=NQbkGDoD7B0",
+            "thumbnail": "https://i.ytimg.com/vi/NQbkGDoD7B0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBmVndqi2TJNWxbokcb-CXxfL4apg",
+            "isLive": false,
+            "duration": 313,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "R.I.P. SCREW",
+            "url": "https://music.youtube.com/watch?v=2-ZPWON1bbs",
+            "thumbnail": "https://i.ytimg.com/vi/2-ZPWON1bbs/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCGCPcGT6NSShaHMplqnZjcsoyq-g",
+            "isLive": false,
+            "duration": 186,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "STOP TRYING TO BE GOD",
+            "url": "https://music.youtube.com/watch?v=vH68UJG1Qfg",
+            "thumbnail": "https://i.ytimg.com/vi/vH68UJG1Qfg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC3xeQDsuzvWmsfWd3VWT11TWMA2w",
+            "isLive": false,
+            "duration": 339,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "NO BYSTANDERS",
+            "url": "https://music.youtube.com/watch?v=IjZso16Glss",
+            "thumbnail": "https://i.ytimg.com/vi/IjZso16Glss/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLArJ4uwQCVEPLjnkMI5k-DkOlrRZA",
+            "isLive": false,
+            "duration": 219,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "SKELETONS",
+            "url": "https://music.youtube.com/watch?v=u3eEtCr2CJk",
+            "thumbnail": "https://i.ytimg.com/vi/u3eEtCr2CJk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLATJrSiy7aaEx1fhrwfgLdG-egJRg",
+            "isLive": false,
+            "duration": 146,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "WAKE UP",
+            "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+            "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+            "isLive": false,
+            "duration": 232,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "5% TINT",
+            "url": "https://music.youtube.com/watch?v=L9MemVs7-wg",
+            "thumbnail": "https://i.ytimg.com/vi/L9MemVs7-wg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2PozQC3mCGJC7gZGsfTpOPn2awg",
+            "isLive": false,
+            "duration": 197,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "NC-17",
+            "url": "https://music.youtube.com/watch?v=LTiNm5yUu7o",
+            "thumbnail": "https://i.ytimg.com/vi/LTiNm5yUu7o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZful06ynGewyXx7qJUqA9AzMr8A",
+            "isLive": false,
+            "duration": 157,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "ASTROTHUNDER",
+            "url": "https://music.youtube.com/watch?v=nZo1pPyNExo",
+            "thumbnail": "https://i.ytimg.com/vi/nZo1pPyNExo/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxPW9sd_13_5FTdD7m76tAMBGEdA",
+            "isLive": false,
+            "duration": 143,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "YOSEMITE",
+            "url": "https://music.youtube.com/watch?v=9dm6HKE_7KI",
+            "thumbnail": "https://i.ytimg.com/vi/9dm6HKE_7KI/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAmpywr9plSq4GurOqm2V6CiUPXig",
+            "isLive": false,
+            "duration": 151,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "CAN'T SAY",
+            "url": "https://music.youtube.com/watch?v=4Lk6xbu-W2w",
+            "thumbnail": "https://i.ytimg.com/vi/4Lk6xbu-W2w/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAyyl7m15hCtKaoZ3Z-Vq9YPKGTzw",
+            "isLive": false,
+            "duration": 199,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "WHO? WHAT!",
+            "url": "https://music.youtube.com/watch?v=Ykzk5erqQnM",
+            "thumbnail": "https://i.ytimg.com/vi/Ykzk5erqQnM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDhzikGj_BnB8UT9r1UdTQeJE_X3A",
+            "isLive": false,
+            "duration": 177,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "BUTTERFLY EFFECT",
+            "url": "https://music.youtube.com/watch?v=k2pwvr8p4vM",
+            "thumbnail": "https://i.ytimg.com/vi/k2pwvr8p4vM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD6k_8e1sFewnoXoqUizahDiJt5kg",
+            "isLive": false,
+            "duration": 191,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "HOUSTONFORNICATION",
+            "url": "https://music.youtube.com/watch?v=R-7BWkAf2vM",
+            "thumbnail": "https://i.ytimg.com/vi/R-7BWkAf2vM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBIumuFuB-_6PM4OBuJtHXBTtXRgw",
+            "isLive": false,
+            "duration": 218,
+            "requester": "717842969331367986"
+          },
+          {
+            "title": "COFFEE BEAN",
+            "url": "https://music.youtube.com/watch?v=1o0iCmOPcTA",
+            "thumbnail": "https://i.ytimg.com/vi/1o0iCmOPcTA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDoZEpzOmwJXG0xNLpEcpZe_jIVyg",
+            "isLive": false,
+            "duration": 210,
+            "requester": "717842969331367986"
+          }
+        ]
+      },
+      "activePlaylist": "Travis Scott TypeShi"
+    }
+  }
+}
