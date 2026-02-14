@@ -31,8 +31,17 @@ jobs:
         run: |
           git fetch origin main
           mkdir -p wrap
-          git show origin/main:data/stats.json > wrap/stats.json
-          git show origin/main:data/playlists.json > wrap/playlists.json
+          # Prova a copiare i file da main, con fallback ai file locali se non esiste su main
+          if git show origin/main:data/stats.json > wrap/stats.json 2>/dev/null; then
+            echo "✓ stats.json copied from origin/main"
+          else
+            echo "⚠ stats.json not found on origin/main, skipping"
+          fi
+          if git show origin/main:data/playlists.json > wrap/playlists.json 2>/dev/null; then
+            echo "✓ playlists.json copied from origin/main"
+          else
+            echo "⚠ playlists.json not found on origin/main, skipping"
+          fi
 
       - name: Configure Git
         run: |
@@ -41,10 +50,17 @@ jobs:
 
       - name: Commit and push wrap data
         run: |
-          git add wrap/stats.json wrap/playlists.json
-          if git diff --cached --quiet; then
-            echo "No changes to wrap"
+          git add wrap/stats.json wrap/playlists.json 2>/dev/null || true
+          # Verifica se ci sono file effettivi nella cartella wrap
+          if [ -f wrap/stats.json ] && [ -s wrap/stats.json ]; then
+            if git diff --cached --quiet; then
+              echo "✓ No new changes to wrap files"
+            else
+              git commit -m "Monthly wrap for $(date +%B-%Y)"
+              git push origin wrap-data
+              echo "✅ Monthly wrap committed and pushed"
+            fi
           else
-            git commit -m "Monthly wrap for $(date +%B-%Y)"
-            git push origin wrap-data
+            echo "❌ No valid wrap files to commit"
+            exit 1
           fi

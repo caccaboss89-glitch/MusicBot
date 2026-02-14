@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Script per pushare stats.json su GitHub
+ * Script per pushare stats.json e playlists.json su GitHub
  * Esegui: node scripts/push-stats.js
- * Chiamato automaticamente il 1° del mese alle 10:00 Roma time
+ * Chiamato automaticamente il 1° del mese dalle 10:00 in poi
  */
 
 const fs = require('fs');
@@ -11,7 +11,7 @@ const { execSync } = require('child_process');
 
 const STATS_FILE = './data/stats.json';
 const PLAYLIST_FILE = './data/playlists.json';
-const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot Stats Auto-Pusher';
+const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 
 function pushStats() {
@@ -26,7 +26,7 @@ function pushStats() {
             return false;
         }
 
-        // Configura git
+        // Configura git con le variabili d'ambiente se disponibili
         try {
             execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { stdio: 'pipe' });
             execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { stdio: 'pipe' });
@@ -34,36 +34,52 @@ function pushStats() {
             // Potrebbe già essere configurato
         }
 
+        // Controlla se il branch attuale è 'main'
+        const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+        if (currentBranch !== 'main') {
+            console.log(`⚠️ Not on main branch (current: ${currentBranch}), skipping push`);
+            return false;
+        }
+
         // Aggiungi i file
         execSync('git add data/stats.json data/playlists.json', { stdio: 'pipe' });
 
-        // Controlla se ci sono cambiamenti
+        // Controlla lo status dei file
         const status = execSync('git status --porcelain data/stats.json data/playlists.json', { encoding: 'utf-8' });
         
         if (!status.trim()) {
-            console.log('✓ Stats file is already up to date on GitHub');
+            console.log('ℹ️ Stats and playlists are already up to date on GitHub');
             return true;
         }
 
-        // Fai il commit
+        // Log delle modifiche
+        console.log('📝 Files to be committed:');
+        console.log(status);
+
+        // Fai il commit con timestamp per tracciabilità
         const timestamp = new Date().toISOString();
         const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric' });
-        execSync(`git commit -m "Monthly stats update - ${monthYear} [${timestamp}]"`, { stdio: 'pipe' });
+        const commitMsg = `Monthly stats update - ${monthYear}\n\nTimestamp: ${timestamp}`;
+        
+        execSync(`git commit -m "${commitMsg}"`, { stdio: 'pipe' });
+        console.log('✅ Commit created successfully');
 
         // Fai il push
         execSync('git push origin main', { stdio: 'pipe' });
-        console.log('✅ Stats and playlist backup pushed to GitHub successfully');
+        console.log('✅ Stats and playlists pushed to GitHub successfully');
         return true;
 
     } catch (e) {
         console.error('❌ Error pushing stats:', e.message);
+        console.error('Stack:', e.stack);
         return false;
     }
 }
 
 // Esegui se chiamato direttamente
 if (require.main === module) {
-    pushStats();
+    const success = pushStats();
+    process.exit(success ? 0 : 1);
 }
 
 module.exports = { pushStats };

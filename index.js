@@ -95,24 +95,30 @@ client.on('guildDelete', (guild) => {
 client.once('clientReady', () => {
     console.log(`Logged in as ${client.user?.tag}`);
     
-    // ── AUTO-PUSH STATS (1° del mese alle 10:00 Roma time) ────────────────────────────────────────────
-    // Controlla ogni minuto se è il momento di pushare
+    // ── AUTO-PUSH STATS (Daily check per garantire push il 1° del mese) ────────────────────────────────────────────
+    // Controlla ogni ora se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
     const { pushStats } = require('./scripts/push-stats');
+    let lastPushDate = null; // Traccia l'ultima volta che ha fatto push per evitare duplicati
+    
     setInterval(() => {
         const now = new Date();
         // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
         const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
         const day = romaTime.getDate();
         const hour = romaTime.getHours();
-        const minute = romaTime.getMinutes();
+        const dateKey = `${day}-${romaTime.getMonth()}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
         
-        // Controlla se è il 1° del mese tra le 10:00 e le 10:59
-        if (day === 1 && hour === 10 && minute === 0) {
-            console.log('📤 [STATS-PUSH] Pushin stats del mese...');
+        // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
+        if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
+            console.log('📤 [STATS-PUSH] Pushing stats del mese...');
             try {
-                pushStats();
+                const success = pushStats();
+                if (success) {
+                    lastPushDate = dateKey; // Segna che ha fatto push
+                    console.log('✅ [STATS-PUSH] Stats pushed successfully to GitHub');
+                }
             } catch (e) {
-                console.warn('⚠️ [STATS-PUSH] Errore:', e.message);
+                console.warn('⚠️ [STATS-PUSH] Errore durante push:', e.message);
             }
         }
     }, 60 * 1000); // Controlla ogni minuto
