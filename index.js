@@ -101,25 +101,27 @@ client.once('clientReady', () => {
     let lastPushDate = null; // Traccia l'ultima volta che ha fatto push per evitare duplicati
     
     setInterval(() => {
-        const now = new Date();
-        // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
-        const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
-        const day = romaTime.getDate();
-        const hour = romaTime.getHours();
-        const dateKey = `${day}-${romaTime.getMonth()}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
-        
-        // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
-        if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
-            console.log('📤 [STATS-PUSH] Pushing stats del mese...');
-            try {
+        try {
+            const now = new Date();
+            // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
+            const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
+            const day = romaTime.getDate();
+            const hour = romaTime.getHours();
+            const dateKey = `${day}-${romaTime.getMonth()}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
+            
+            // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
+            if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
+                console.log('📤 [STATS-PUSH] Pushing stats del mese alle', romaTime.toLocaleTimeString('it-IT'));
                 const success = pushStats();
                 if (success) {
                     lastPushDate = dateKey; // Segna che ha fatto push
                     console.log('✅ [STATS-PUSH] Stats pushed successfully to GitHub');
+                } else {
+                    console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
                 }
-            } catch (e) {
-                console.warn('⚠️ [STATS-PUSH] Errore durante push:', e.message);
             }
+        } catch (e) {
+            console.error('❌ [STATS-PUSH] Errore durante interval check:', e.message);
         }
     }, 60 * 1000); // Controlla ogni minuto
 });

@@ -28,10 +28,10 @@ function pushStats() {
 
         // Configura git con le variabili d'ambiente se disponibili
         try {
-            execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { stdio: 'pipe' });
-            execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { stdio: 'pipe' });
+            execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { encoding: 'utf-8' });
+            execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { encoding: 'utf-8' });
         } catch (e) {
-            // Potrebbe già essere configurato
+            console.warn('⚠️ Git config may be already set:', e.message);
         }
 
         // Controlla se il branch attuale è 'main'
@@ -42,7 +42,7 @@ function pushStats() {
         }
 
         // Aggiungi i file
-        execSync('git add data/stats.json data/playlists.json', { stdio: 'pipe' });
+        execSync('git add data/stats.json data/playlists.json', { encoding: 'utf-8' });
 
         // Controlla lo status dei file
         const status = execSync('git status --porcelain data/stats.json data/playlists.json', { encoding: 'utf-8' });
@@ -59,19 +59,20 @@ function pushStats() {
         // Fai il commit con timestamp per tracciabilità
         const timestamp = new Date().toISOString();
         const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric' });
-        const commitMsg = `Monthly stats update - ${monthYear}\n\nTimestamp: ${timestamp}`;
+        const commitMsg = `Monthly stats update - ${monthYear}`;
         
-        execSync(`git commit -m "${commitMsg}"`, { stdio: 'pipe' });
+        execSync(`git commit -m "${commitMsg}"`, { encoding: 'utf-8' });
         console.log('✅ Commit created successfully');
 
         // Fai il push
-        execSync('git push origin main', { stdio: 'pipe' });
+        execSync('git push origin main', { encoding: 'utf-8' });
         console.log('✅ Stats and playlists pushed to GitHub successfully');
         return true;
 
     } catch (e) {
         console.error('❌ Error pushing stats:', e.message);
-        console.error('Stack:', e.stack);
+        if (e.stderr) console.error('Stderr:', e.stderr.toString());
+        if (e.stdout) console.error('Stdout:', e.stdout.toString());
         return false;
     }
 }
