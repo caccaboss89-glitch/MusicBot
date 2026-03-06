@@ -1,46 +1,90 @@
 {
   "users": {
     "717842969331367986": {
-      "listeningTimeMs": 17962848,
-      "serverPlaylistAdds": 51,
-      "personalPlaylistAdds": 33,
+      "listeningTimeMs": 79412972,
+      "serverPlaylistAdds": 118,
+      "personalPlaylistAdds": 113,
       "username": "alex_the_real",
       "global_name": "Lil Alex",
       "avatar": "98f6b206d11cc9d759ab66494df3cd7c",
       "discriminator": "0"
     },
     "704006042819756083": {
-      "listeningTimeMs": 20979552,
-      "serverPlaylistAdds": 59,
-      "personalPlaylistAdds": 59
+      "listeningTimeMs": 97090316,
+      "serverPlaylistAdds": 148,
+      "personalPlaylistAdds": 143,
+      "username": "caccaboss89",
+      "global_name": "抜刀隊",
+      "avatar": "602acfadc35915254bf45d2f2bdeaa48",
+      "discriminator": "0"
     },
     "1439293517276119224": {
-      "listeningTimeMs": 884543,
+      "listeningTimeMs": 33228151,
       "serverPlaylistAdds": 0,
-      "personalPlaylistAdds": 0
+      "personalPlaylistAdds": 0,
+      "username": "lorenzo_dsz08",
+      "global_name": "Lorenzo419",
+      "avatar": null,
+      "discriminator": "0"
     },
     "1444313159182712924": {
-      "listeningTimeMs": 2181055,
+      "listeningTimeMs": 13295613,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0,
       "username": "sdrogo_21",
       "global_name": "Caick",
-      "avatar": "7f9f1dfd9a876f51809606c7f4110a89",
+      "avatar": "14d624578f272813fad78bf978825d56",
       "discriminator": "0"
     },
     "1098245111177031751": {
-      "listeningTimeMs": 7411471,
+      "listeningTimeMs": 19762076,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0,
       "username": "pain197585",
       "global_name": "Pain19",
       "avatar": "c82b3fa769ed6e6ffdea579381ed5f5c",
       "discriminator": "0"
+    },
+    "894275339495297024": {
+      "listeningTimeMs": 3853318,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "niky09.",
+      "global_name": null,
+      "avatar": "b56d7b3256c6990756d31573cc283988",
+      "discriminator": "0"
+    },
+    "1066462518903570503": {
+      "listeningTimeMs": 58882869,
+      "serverPlaylistAdds": 1,
+      "personalPlaylistAdds": 9,
+      "username": "tedescoduro",
+      "global_name": "TEDESCODURO",
+      "avatar": "7d055e5389315159d48942a3f94a6a40",
+      "discriminator": "0"
+    },
+    "1373779309877006482": {
+      "listeningTimeMs": 15322750,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "lil_nga0542_15301",
+      "global_name": "Lil_NGA",
+      "avatar": null,
+      "discriminator": "0"
+    },
+    "1213391637460426753": {
+      "listeningTimeMs": 1739004,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0,
+      "username": "galis0460",
+      "global_name": "Galis",
+      "avatar": null,
+      "discriminator": "0"
     }
   },
   "global": {
-    "songsStarted": 153,
-    "songsCompleted": 114
+    "songsStarted": 708,
+    "songsCompleted": 603
   },
-  "lastUpdated": "2026-02-14T03:41:47.769Z"
+  "lastUpdated": "2026-03-02T22:27:00.319Z"
 }
