@@ -2,7 +2,7 @@ const { queue } = require('../state/globals');
 const { createAudioPlayer, joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
 const { loadQueueBackup } = require('../queue/persistence');
-const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS } = require('../../config');
+const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } = require('../../config');
 const { safeReply } = require('../utils/discord');
 
 async function ensureBotConnection(interaction) {
@@ -163,7 +163,7 @@ async function connectToVoice(serverQueue, interaction) {
         } catch (e) {}
         try { serverQueue.connection.subscribe(serverQueue.player); } catch(e){}
         try {
-            await entersState(connection, VoiceConnectionStatus.Ready, 10000);
+            await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
         } catch (e) {
             console.error('Connessione vocale fallita:', e);
             try { connection.destroy(); } catch(e){}

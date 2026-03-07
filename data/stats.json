@@ -10,7 +10,7 @@
       "discriminator": "0"
     },
     "704006042819756083": {
-      "listeningTimeMs": 97090316,
+      "listeningTimeMs": 97140326,
       "serverPlaylistAdds": 148,
       "personalPlaylistAdds": 143,
       "username": "caccaboss89",
@@ -55,7 +55,7 @@
       "discriminator": "0"
     },
     "1066462518903570503": {
-      "listeningTimeMs": 58882869,
+      "listeningTimeMs": 58932879,
       "serverPlaylistAdds": 1,
       "personalPlaylistAdds": 9,
       "username": "tedescoduro",
@@ -83,8 +83,8 @@
     }
   },
   "global": {
-    "songsStarted": 708,
+    "songsStarted": 709,
     "songsCompleted": 603
   },
-  "lastUpdated": "2026-03-02T22:27:00.319Z"
+  "lastUpdated": "2026-03-07T21:52:17.240Z"
 }

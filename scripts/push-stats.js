@@ -11,8 +11,54 @@ const { execSync } = require('child_process');
 
 const STATS_FILE = './data/stats.json';
 const PLAYLIST_FILE = './data/playlists.json';
+const MONTHLY_STATS_DIR = './data/monthly-stats';
 const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
+
+/**
+ * Archiva le statistiche del mese precedente e resetta stats.json
+ */
+function archiveMonthlyStats() {
+    try {
+        // Leggi le stat correnti
+        const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
+        const statsData = JSON.parse(statsContent);
+
+        // Calcola la data del mese precedente (primo del mese corrente = ultimo giorno del mese precedente)
+        const now = new Date();
+        const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        
+        const yearMonth = previousMonth.getFullYear() + '-' + 
+                         String(previousMonth.getMonth() + 1).padStart(2, '0');
+        const dateStr = lastDayOfPreviousMonth.getFullYear() + '-' + 
+                       String(lastDayOfPreviousMonth.getMonth() + 1).padStart(2, '0') + '-' +
+                       String(lastDayOfPreviousMonth.getDate()).padStart(2, '0');
+
+        // Crea la cartella monthly-stats/YYYY-MM se non esiste
+        const monthDir = path.join(MONTHLY_STATS_DIR, yearMonth);
+        if (!fs.existsSync(monthDir)) {
+            fs.mkdirSync(monthDir, { recursive: true });
+            console.log(`📁 Created directory: ${monthDir}`);
+        }
+
+        // Salva le statistiche del mese precedente
+        const backupFileName = `stats-${dateStr}.json`;
+        const backupFilePath = path.join(monthDir, backupFileName);
+        fs.writeFileSync(backupFilePath, JSON.stringify(statsData, null, 2), 'utf-8');
+        console.log(`📊 Archived monthly stats to: ${backupFilePath}`);
+
+        // Resetta stats.json con struttura vuota
+        const emptyStats = { users: {} };
+        fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
+        console.log('🧹 Stats file cleared and reset for new month');
+
+        return true;
+    } catch (e) {
+        console.error('❌ Error archiving monthly stats:', e.message);
+        return false;
+    }
+}
 
 function pushStats() {
     try {
@@ -67,6 +113,13 @@ function pushStats() {
         // Fai il push
         execSync('git push origin main', { encoding: 'utf-8' });
         console.log('✅ Stats and playlists pushed to GitHub successfully');
+
+        // Dopo il push riuscito, archiva le stats mensuali e resetta il file
+        const archiveSuccess = archiveMonthlyStats();
+        if (!archiveSuccess) {
+            console.warn('⚠️ Archiving stats completed with warnings, but push was successful');
+        }
+
         return true;
 
     } catch (e) {

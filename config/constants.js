@@ -22,6 +22,7 @@ const RESTART_COOLDOWN_MS = 5000;         // Cooldown tra restart consecutivi
 const MIN_SONG_PLAY_TIME_MS = 30000;      // Minimo tempo riproduzione prima di accettare 'end' (30 sec)
 
 // --- COSTANTI TEMPORALI (TIMEOUT) ---
+const VOICE_CONNECTION_TIMEOUT_MS = 20000; // Timeout per stabilire connessione vocale (20 sec) - permette al Rust engine di avviarsi
 const VIDEO_DURATION_TIMEOUT_MS = 15000;  // Timeout per getVideoDuration()
 const VIDEO_INFO_TIMEOUT_MS = 120000;     // Timeout per getVideoInfo()
 const BG_FETCH_TIMEOUT_MS = 30000;        // Timeout per background fetch durata
@@ -54,6 +55,7 @@ module.exports = {
     MIN_SONG_PLAY_TIME_MS,
     
     // Timeout
+    VOICE_CONNECTION_TIMEOUT_MS,
     VIDEO_DURATION_TIMEOUT_MS,
     VIDEO_INFO_TIMEOUT_MS,
     BG_FETCH_TIMEOUT_MS,
