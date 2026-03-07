@@ -9,9 +9,11 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const STATS_FILE = './data/stats.json';
-const PLAYLIST_FILE = './data/playlists.json';
-const MONTHLY_STATS_DIR = './data/monthly-stats';
+// Usa percorsi assoluti basati sulla directory dello script per funzionare da qualsiasi directory
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+const STATS_FILE = path.join(PROJECT_ROOT, 'data', 'stats.json');
+const PLAYLIST_FILE = path.join(PROJECT_ROOT, 'data', 'playlists.json');
+const MONTHLY_STATS_DIR = path.join(PROJECT_ROOT, 'data', 'monthly-stats');
 const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 
@@ -60,8 +62,11 @@ function archiveMonthlyStats() {
     }
 }
 
-function pushStats() {
+function pushStats(forceArchive = false) {
     try {
+        // Cambia directory alla radice del progetto per git
+        process.chdir(PROJECT_ROOT);
+        
         if (!fs.existsSync(STATS_FILE)) {
             console.log('❌ Stats file not found:', STATS_FILE);
             return false;
@@ -95,6 +100,11 @@ function pushStats() {
         
         if (!status.trim()) {
             console.log('ℹ️ Stats and playlists are already up to date on GitHub');
+            // Se forceArchive è true, esegui comunque l'archivio
+            if (forceArchive) {
+                console.log('📦 Force archiving stats...');
+                archiveMonthlyStats();
+            }
             return true;
         }
 
@@ -132,7 +142,11 @@ function pushStats() {
 
 // Esegui se chiamato direttamente
 if (require.main === module) {
-    const success = pushStats();
+    const forceArchive = process.argv.includes('--force') || process.argv.includes('--archive');
+    if (forceArchive) {
+        console.log('📦 Force archive mode enabled');
+    }
+    const success = pushStats(forceArchive);
     process.exit(success ? 0 : 1);
 }
 
