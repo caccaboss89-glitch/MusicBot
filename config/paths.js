@@ -13,6 +13,7 @@ const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
 const DEFAULT_YTDLP_PROXY_URL = IS_WINDOWS ? '' : 'socks5h://127.0.0.1:5040';
+const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:client=ANDROID_MUSIC,ANDROID,WEB';
 
 // --- PERCORSI FILE DATI ---
 const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
@@ -42,11 +43,13 @@ function getYtDlpCommand(additionalArgs = []) {
     const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
     const proxyUrl = (process.env.YTDLP_PROXY_URL ?? DEFAULT_YTDLP_PROXY_URL).trim();
     const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
+    const extractorArgsValue = (process.env.YTDLP_EXTRACTOR_ARGS ?? DEFAULT_YTDLP_EXTRACTOR_ARGS).trim();
+    const extractorArgs = extractorArgsValue ? ['--extractor-args', extractorArgsValue] : [];
 
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
         cmd: PYTHON_BIN,
-        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...additionalArgs]
+        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...extractorArgs, ...additionalArgs]
     };
 }
 

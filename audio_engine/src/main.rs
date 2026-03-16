@@ -145,6 +145,18 @@ fn get_ytdlp_proxy_url() -> Option<String> {
     }
 }
 
+fn get_ytdlp_extractor_args() -> Option<String> {
+    if let Ok(raw) = env::var("YTDLP_EXTRACTOR_ARGS") {
+        let trimmed = raw.trim().to_string();
+        if !trimmed.is_empty() {
+            return Some(trimmed);
+        }
+        return None;
+    }
+
+    Some("youtube:client=ANDROID_MUSIC,ANDROID,WEB".to_string())
+}
+
 fn get_download_watchdog_secs() -> u64 {
     if let Ok(raw) = env::var("YTDLP_WATCHDOG_SECS") {
         if let Ok(parsed) = raw.trim().parse::<u64>() {
@@ -353,6 +365,11 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     if let Some(cookie_file) = get_ytdlp_cookie_file() {
         send_log("info", &format!("yt-dlp cookies attivi: {}", cookie_file));
         yt_dlp_cmd.arg("--cookies").arg(cookie_file);
+    }
+
+    if let Some(extractor_args) = get_ytdlp_extractor_args() {
+        send_log("info", &format!("yt-dlp extractor-args attivi: {}", extractor_args));
+        yt_dlp_cmd.arg("--extractor-args").arg(extractor_args);
     }
 
     let mut yt_dlp_child = yt_dlp_cmd
