@@ -53,8 +53,24 @@ fn find_python_executable() -> Result<String> {
         // Su Windows moderno, 'python' dovrebbe risolvere dal PATH di sistema
         Ok("python".to_string())
     } else {
-        // Su Unix/Linux, usa semplicemente 'python3' o 'python'
-        Ok("python".to_string())
+        if let Ok(python_bin) = env::var("PYTHON_BIN") {
+            return Ok(python_bin);
+        }
+
+        for candidate in ["python3", "python"] {
+            if let Ok(status) = ProcessCommand::new(candidate)
+                .arg("--version")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+            {
+                if status.success() {
+                    return Ok(candidate.to_string());
+                }
+            }
+        }
+
+        Err(anyhow!("Python non trovato: installa python3/yt-dlp o imposta PYTHON_BIN"))
     }
 }
 

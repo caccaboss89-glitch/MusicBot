@@ -9,6 +9,8 @@ const fs = require('fs');
 
 // Root del progetto (una directory sopra config/)
 const ROOT_DIR = path.join(__dirname, '..');
+const IS_WINDOWS = process.platform === 'win32';
+const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 
 // --- PERCORSI FILE DATI ---
 const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
@@ -19,7 +21,8 @@ const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
 // yt-dlp viene lanciato tramite Python (python -m yt_dlp)
 // Supporta sia il comando diretto che il ripiego tramite Python
 const YT_DLP_PATH = 'yt-dlp';  // Comando diretto (ripiego a python -m yt_dlp se non trovato)
-const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', 'discord_audio_mixer.exe');
+const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
+const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
 
 // --- PERCORSI DIRECTORY ---
 const LOCAL_TEMP_DIR = path.join(ROOT_DIR, 'temp');
@@ -33,10 +36,9 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
-    // Usa `python -m yt_dlp` come comando più robusto su Windows
-    // Questo funziona se Python è nel PATH (che è il caso quando è installato)
+    // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
-        cmd: 'python',
+        cmd: PYTHON_BIN,
         args: ['-m', 'yt_dlp', ...additionalArgs]
     };
 }

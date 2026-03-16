@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Script per pushare stats.json e playlists.json su GitHub
+ * Script per versionare i file dati persistenti su GitHub.
  * Esegui: node scripts/push-stats.js
- * Chiamato automaticamente il 1° del mese dalle 10:00 in poi
+ * Chiamato automaticamente il 1° del mese dalle 10:00 in poi.
  */
 
 const fs = require('fs');
@@ -16,6 +16,10 @@ const PLAYLIST_FILE = path.join(PROJECT_ROOT, 'data', 'playlists.json');
 const MONTHLY_STATS_DIR = path.join(PROJECT_ROOT, 'data', 'monthly-stats');
 const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
+
+function shouldArchiveMonthlyStats(now = new Date()) {
+    return now.getDate() === 1;
+}
 
 /**
  * Archiva le statistiche del mese precedente e resetta stats.json
@@ -77,6 +81,8 @@ function pushStats(forceArchive = false) {
             return false;
         }
 
+        const shouldArchive = forceArchive || shouldArchiveMonthlyStats();
+
         // Configura git con le variabili d'ambiente se disponibili
         try {
             execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { encoding: 'utf-8' });
@@ -92,19 +98,23 @@ function pushStats(forceArchive = false) {
             return false;
         }
 
-        // Aggiungi i file
-        execSync('git add data/stats.json data/playlists.json', { encoding: 'utf-8' });
+        if (shouldArchive) {
+            console.log('📦 Archiviazione mensile delle stats in corso...');
+            const archiveSuccess = archiveMonthlyStats();
+            if (!archiveSuccess) {
+                console.log('❌ Archiviazione mensile fallita, push annullato');
+                return false;
+            }
+        }
+
+        // Aggiungi tutti i file dati persistenti aggiornati dal bot.
+        execSync('git add data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
 
         // Controlla lo status dei file
-        const status = execSync('git status --porcelain data/stats.json data/playlists.json', { encoding: 'utf-8' });
+        const status = execSync('git status --porcelain data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
         
         if (!status.trim()) {
-            console.log('ℹ️ Stats and playlists are already up to date on GitHub');
-            // Se forceArchive è true, esegui comunque l'archivio
-            if (forceArchive) {
-                console.log('📦 Force archiving stats...');
-                archiveMonthlyStats();
-            }
+            console.log('ℹ️ Nessun file dati persistente da sincronizzare su GitHub');
             return true;
         }
 
@@ -114,21 +124,18 @@ function pushStats(forceArchive = false) {
 
         // Fai il commit con timestamp per tracciabilità
         const timestamp = new Date().toISOString();
-        const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric' });
-        const commitMsg = `Monthly stats update - ${monthYear}`;
+        const now = new Date();
+        const monthYear = now.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
+        const commitMsg = shouldArchive
+            ? `Monthly data snapshot - ${monthYear}`
+            : `Data update - ${monthYear}`;
         
         execSync(`git commit -m "${commitMsg}"`, { encoding: 'utf-8' });
         console.log('✅ Commit created successfully');
 
         // Fai il push
         execSync('git push origin main', { encoding: 'utf-8' });
-        console.log('✅ Stats and playlists pushed to GitHub successfully');
-
-        // Dopo il push riuscito, archiva le stats mensuali e resetta il file
-        const archiveSuccess = archiveMonthlyStats();
-        if (!archiveSuccess) {
-            console.warn('⚠️ Archiving stats completed with warnings, but push was successful');
-        }
+        console.log('✅ File dati persistenti pushati su GitHub con successo');
 
         return true;
 
