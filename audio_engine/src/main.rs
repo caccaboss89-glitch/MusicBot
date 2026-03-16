@@ -109,6 +109,51 @@ fn send_log(event: &str, data: &str) {
     if let Ok(json) = serde_json::to_string(&msg) { eprintln!("{}", json); }
 }
 
+fn get_ytdlp_cookie_file() -> Option<String> {
+    use std::path::Path;
+
+    if let Ok(cookie_file) = env::var("YTDLP_COOKIES_FILE") {
+        if !cookie_file.trim().is_empty() {
+            if Path::new(&cookie_file).exists() {
+                return Some(cookie_file);
+            }
+            send_log("warn", &format!("YTDLP_COOKIES_FILE non trovato: {}", cookie_file));
+        }
+    }
+
+    let fallback = format!("{}/youtube-cookies.txt", get_base_path());
+    if Path::new(&fallback).exists() {
+        return Some(fallback);
+    }
+
+    None
+}
+
+fn get_ytdlp_proxy_url() -> Option<String> {
+    if let Ok(proxy_url) = env::var("YTDLP_PROXY_URL") {
+        let trimmed = proxy_url.trim().to_string();
+        if !trimmed.is_empty() {
+            return Some(trimmed);
+        }
+        return None;
+    }
+
+    if cfg!(windows) {
+        None
+    } else {
+        Some("socks5h://127.0.0.1:5040".to_string())
+    }
+}
+
+fn get_download_watchdog_secs() -> u64 {
+    if let Ok(raw) = env::var("YTDLP_WATCHDOG_SECS") {
+        if let Ok(parsed) = raw.trim().parse::<u64>() {
+            return parsed.clamp(10, 300);
+        }
+    }
+    60
+}
+
 
 
 struct Deck {
@@ -288,14 +333,29 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Lancia yt-dlp tramite Python
     // 🔥 CRITICO FIX: Forza esplicitamente formato 140 (m4a/AAC) che ha SEMPRE container headers
     // Evita completamente il problema Opus packet header
-    let mut yt_dlp_child = ProcessCommand::new(&python_path)
+    let mut yt_dlp_cmd = ProcessCommand::new(&python_path);
+    yt_dlp_cmd
         .arg("-m")
         .arg("yt_dlp")
-        .arg("-f").arg("140")                   // 🔥 FORCE: m4a/AAC 128kbps (format code 140)
+        // Preferisci tracce audio compatibili con ffmpeg, ma con fallback su bestaudio/best
+        // per i video dove il formato 140 non è disponibile.
+        .arg("-f").arg("bestaudio[acodec^=mp4a]/bestaudio/best")
         .arg("--force-ipv4")
         .arg("-q")
         .arg("--no-warnings")
-        .arg("-o").arg("-")
+        .arg("-o").arg("-");
+
+    if let Some(proxy_url) = get_ytdlp_proxy_url() {
+        send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
+        yt_dlp_cmd.arg("--proxy").arg(proxy_url);
+    }
+
+    if let Some(cookie_file) = get_ytdlp_cookie_file() {
+        send_log("info", &format!("yt-dlp cookies attivi: {}", cookie_file));
+        yt_dlp_cmd.arg("--cookies").arg(cookie_file);
+    }
+
+    let mut yt_dlp_child = yt_dlp_cmd
         .arg(url)
         .stdin(Stdio::null())                   // 🔥 CRITICO: Evita che yt-dlp si blocchi aspettando stdin
         .stdout(Stdio::piped())
@@ -370,16 +430,19 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     let first_data_wd = first_data_arrived.clone();
     let deck_name_wd = deck_name.to_string();
     thread::spawn(move || {
-        // Controlla ogni 500ms per 30 secondi
-        for _ in 0..60 {
+        let watchdog_secs = get_download_watchdog_secs();
+        send_log("info", &format!("Download watchdog attivo: {}s", watchdog_secs));
+        // Controlla ogni 500ms fino al timeout configurato.
+        let checks = watchdog_secs.saturating_mul(2);
+        for _ in 0..checks {
             std::thread::sleep(std::time::Duration::from_millis(500));
             if first_data_wd.load(Ordering::Relaxed) || cancel_wd.load(Ordering::Relaxed) {
                 return; // Dati arrivati o download cancellato: watchdog non serve
             }
         }
-        // 30 secondi senza dati → kill processi bloccati
-        send_log("error", &format!("⏰ [Deck {}] Download watchdog: 30s senza dati, killing yt-dlp (PID {}) + ffmpeg (PID {})",
-            deck_name_wd, yt_dlp_pid, ffmpeg_pid));
+        // Timeout senza dati → kill processi bloccati
+        send_log("error", &format!("⏰ [Deck {}] Download watchdog: {}s senza dati, killing yt-dlp (PID {}) + ffmpeg (PID {})",
+            deck_name_wd, watchdog_secs, yt_dlp_pid, ffmpeg_pid));
         #[cfg(windows)]
         {
             // /F = force, /T = tree (uccide anche sotto-processi)

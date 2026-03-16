@@ -13,6 +13,7 @@
     "dotenv": "^16.4.5",
     "libsodium-wrappers": "^0.7.16",
     "opusscript": "^0.0.8",
+    "socks-proxy-agent": "^8.0.5",
     "tslib": "^2.6.0"
   },
   "engines": {

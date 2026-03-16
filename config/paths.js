@@ -11,6 +11,8 @@ const fs = require('fs');
 const ROOT_DIR = path.join(__dirname, '..');
 const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
+const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
+const DEFAULT_YTDLP_PROXY_URL = IS_WINDOWS ? '' : 'socks5h://127.0.0.1:5040';
 
 // --- PERCORSI FILE DATI ---
 const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
@@ -36,10 +38,15 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
+    const cookieFile = process.env.YTDLP_COOKIES_FILE || DEFAULT_YTDLP_COOKIES_FILE;
+    const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
+    const proxyUrl = (process.env.YTDLP_PROXY_URL ?? DEFAULT_YTDLP_PROXY_URL).trim();
+    const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
+
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
         cmd: PYTHON_BIN,
-        args: ['-m', 'yt_dlp', ...additionalArgs]
+        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...additionalArgs]
     };
 }
 
