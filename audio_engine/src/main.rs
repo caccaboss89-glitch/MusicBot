@@ -12,7 +12,6 @@ use std::env;
 #[cfg(unix)]
 use libc;
 
-const YTDLP_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const DEFAULT_YTDLP_PROXY_URL: &str = "socks5h://127.0.0.1:5040";
 const DEFAULT_YTDLP_EXTRACTOR_ARGS: &str = "youtube:client=ANDROID_MUSIC,ANDROID,WEB";
 
@@ -354,18 +353,16 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Trova il percorso di Python dinamicamente
     let python_path = find_python_executable()?;
 
-    // Lancia yt-dlp tramite Python
-    // 🔥 CRITICO FIX: Forza esplicitamente formato 140 (m4a/AAC) che ha SEMPRE container headers
-    // Evita completamente il problema Opus packet header
+    // Lancia yt-dlp tramite Python.
+    // Mantieni la selezione formato aderente al comando manuale che funziona sul server,
+    // evitando preferenze aggressive verso client/formati specifici che possono restituire 403.
     let mut yt_dlp_cmd = ProcessCommand::new(&python_path);
     yt_dlp_cmd
         .arg("-m")
         .arg("yt_dlp")
-        // Preferisci tracce audio compatibili con ffmpeg, ma con fallback su bestaudio/best
-        // per i video dove il formato 140 non è disponibile.
-        .arg("-f").arg("bestaudio[acodec^=mp4a]/bestaudio/best")
+        .arg("--no-update")
+        .arg("-f").arg("bestaudio/best")
         .arg("--force-ipv4")
-        .arg("--user-agent").arg(YTDLP_USER_AGENT)
         .arg("-q")
         .arg("--no-warnings")
         .arg("-o").arg("-");
