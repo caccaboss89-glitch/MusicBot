@@ -12,8 +12,9 @@ const ROOT_DIR = path.join(__dirname, '..');
 const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
-const DEFAULT_YTDLP_PROXY_URL = IS_WINDOWS ? '' : 'socks5h://127.0.0.1:5040';
+const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
 const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:client=ANDROID_MUSIC,ANDROID,WEB';
+const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // --- PERCORSI FILE DATI ---
 const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
@@ -41,18 +42,22 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
 function getYtDlpCommand(additionalArgs = []) {
     const cookieFile = process.env.YTDLP_COOKIES_FILE || DEFAULT_YTDLP_COOKIES_FILE;
     const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
-    const proxyUrl = (process.env.YTDLP_PROXY_URL ?? DEFAULT_YTDLP_PROXY_URL).trim();
+    const rawProxyUrl = process.env.YTDLP_PROXY_URL;
+    const proxyUrl = (rawProxyUrl && rawProxyUrl.trim())
+        ? rawProxyUrl.trim()
+        : DEFAULT_YTDLP_PROXY_URL;
     const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
     const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
     const extractorArgsValue = (rawExtractorArgs && rawExtractorArgs.trim())
         ? rawExtractorArgs.trim()
         : DEFAULT_YTDLP_EXTRACTOR_ARGS;
     const extractorArgs = extractorArgsValue ? ['--extractor-args', extractorArgsValue] : [];
+    const userAgentArgs = ['--user-agent', DEFAULT_YTDLP_USER_AGENT];
 
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
         cmd: PYTHON_BIN,
-        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...extractorArgs, ...additionalArgs]
+        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
     };
 }
 

@@ -12,6 +12,10 @@ use std::env;
 #[cfg(unix)]
 use libc;
 
+const YTDLP_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const DEFAULT_YTDLP_PROXY_URL: &str = "socks5h://127.0.0.1:5040";
+const DEFAULT_YTDLP_EXTRACTOR_ARGS: &str = "youtube:client=ANDROID_MUSIC,ANDROID,WEB";
+
 // --- CONFIGURAZIONE PERCORSI ---
 #[allow(dead_code)]
 fn get_base_path() -> String {
@@ -53,20 +57,32 @@ fn find_python_executable() -> Result<String> {
         // Su Windows moderno, 'python' dovrebbe risolvere dal PATH di sistema
         Ok("python".to_string())
     } else {
-        if let Ok(python_bin) = env::var("PYTHON_BIN") {
-            return Ok(python_bin);
+        if let Ok(status) = ProcessCommand::new("python3")
+            .arg("--version")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+        {
+            if status.success() {
+                return Ok("python3".to_string());
+            }
         }
 
-        for candidate in ["python3", "python"] {
-            if let Ok(status) = ProcessCommand::new(candidate)
-                .arg("--version")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-            {
-                if status.success() {
-                    return Ok(candidate.to_string());
-                }
+        if let Ok(python_bin) = env::var("PYTHON_BIN") {
+            let trimmed = python_bin.trim();
+            if !trimmed.is_empty() {
+                return Ok(trimmed.to_string());
+            }
+        }
+
+        if let Ok(status) = ProcessCommand::new("python")
+            .arg("--version")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+        {
+            if status.success() {
+                return Ok("python".to_string());
             }
         }
 
@@ -135,14 +151,10 @@ fn get_ytdlp_proxy_url() -> Option<String> {
         if !trimmed.is_empty() {
             return Some(trimmed);
         }
-        return None;
+        send_log("warn", "YTDLP_PROXY_URL vuoto: uso proxy di default socks5h://127.0.0.1:5040");
     }
 
-    if cfg!(windows) {
-        None
-    } else {
-        Some("socks5h://127.0.0.1:5040".to_string())
-    }
+    Some(DEFAULT_YTDLP_PROXY_URL.to_string())
 }
 
 fn get_ytdlp_extractor_args() -> Option<String> {
@@ -154,7 +166,7 @@ fn get_ytdlp_extractor_args() -> Option<String> {
         send_log("warn", "YTDLP_EXTRACTOR_ARGS vuoto: uso default mobile clients");
     }
 
-    Some("youtube:client=ANDROID_MUSIC,ANDROID,WEB".to_string())
+    Some(DEFAULT_YTDLP_EXTRACTOR_ARGS.to_string())
 }
 
 fn get_download_watchdog_secs() -> u64 {
@@ -353,6 +365,7 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
         // per i video dove il formato 140 non è disponibile.
         .arg("-f").arg("bestaudio[acodec^=mp4a]/bestaudio/best")
         .arg("--force-ipv4")
+        .arg("--user-agent").arg(YTDLP_USER_AGENT)
         .arg("-q")
         .arg("--no-warnings")
         .arg("-o").arg("-");
