@@ -151,7 +151,7 @@ fn get_ytdlp_extractor_args() -> Option<String> {
         if !trimmed.is_empty() {
             return Some(trimmed);
         }
-        return None;
+        send_log("warn", "YTDLP_EXTRACTOR_ARGS vuoto: uso default mobile clients");
     }
 
     Some("youtube:client=ANDROID_MUSIC,ANDROID,WEB".to_string())

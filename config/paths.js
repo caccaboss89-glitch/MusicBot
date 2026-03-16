@@ -43,7 +43,10 @@ function getYtDlpCommand(additionalArgs = []) {
     const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
     const proxyUrl = (process.env.YTDLP_PROXY_URL ?? DEFAULT_YTDLP_PROXY_URL).trim();
     const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
-    const extractorArgsValue = (process.env.YTDLP_EXTRACTOR_ARGS ?? DEFAULT_YTDLP_EXTRACTOR_ARGS).trim();
+    const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
+    const extractorArgsValue = (rawExtractorArgs && rawExtractorArgs.trim())
+        ? rawExtractorArgs.trim()
+        : DEFAULT_YTDLP_EXTRACTOR_ARGS;
     const extractorArgs = extractorArgsValue ? ['--extractor-args', extractorArgsValue] : [];
 
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
