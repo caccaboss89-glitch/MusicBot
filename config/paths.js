@@ -13,7 +13,7 @@ const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
 const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
-const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:client=ANDROID_MUSIC,ANDROID,WEB';
+const DEFAULT_YTDLP_EXTRACTOR_ARGS = '';
 const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // --- PERCORSI FILE DATI ---
@@ -24,7 +24,7 @@ const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
 // --- PERCORSI BINARI ---
 // yt-dlp viene lanciato tramite Python (python -m yt_dlp)
 // Supporta sia il comando diretto che il ripiego tramite Python
-const YT_DLP_PATH = 'yt-dlp';  // Comando diretto (ripiego a python -m yt_dlp se non trovato)
+const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Binario precompilato yt-dlp (ARM64 Linux)
 const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
 const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
 

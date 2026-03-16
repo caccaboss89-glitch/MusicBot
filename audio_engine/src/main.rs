@@ -12,9 +12,6 @@ use std::env;
 #[cfg(unix)]
 use libc;
 
-const DEFAULT_YTDLP_PROXY_URL: &str = "socks5h://127.0.0.1:5040";
-const DEFAULT_YTDLP_EXTRACTOR_ARGS: &str = "youtube:client=ANDROID_MUSIC,ANDROID,WEB";
-
 // --- CONFIGURAZIONE PERCORSI ---
 #[allow(dead_code)]
 fn get_base_path() -> String {
@@ -27,67 +24,6 @@ fn get_base_path() -> String {
     })
 }
 
-// --- FUNZIONE PER TROVARE PYTHON ---
-/**
- * Trova il percorso di python.exe
- * Prova prima i percorsi comuni su Windows, poi il comando dal PATH
- */
-fn find_python_executable() -> Result<String> {
-    use std::path::Path;
-    
-    if cfg!(windows) {
-        // Prova i percorsi comuni su Windows
-        let common_paths = [
-            "C:\\Users\\Amministratore\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
-            "C:\\Users\\Amministratore\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-            "C:\\Program Files\\Python313\\python.exe",
-            "C:\\Program Files\\Python312\\python.exe",
-            "C:\\Program Files (x86)\\Python313\\python.exe",
-            "C:\\Program Files (x86)\\Python312\\python.exe",
-        ];
-        
-        for path_str in &common_paths {
-            if Path::new(path_str).exists() {
-                return Ok(path_str.to_string());
-            }
-        }
-        
-        // Ripiego: usa il comando 'python' dal PATH
-        // Su Windows moderno, 'python' dovrebbe risolvere dal PATH di sistema
-        Ok("python".to_string())
-    } else {
-        if let Ok(status) = ProcessCommand::new("python3")
-            .arg("--version")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-        {
-            if status.success() {
-                return Ok("python3".to_string());
-            }
-        }
-
-        if let Ok(python_bin) = env::var("PYTHON_BIN") {
-            let trimmed = python_bin.trim();
-            if !trimmed.is_empty() {
-                return Ok(trimmed.to_string());
-            }
-        }
-
-        if let Ok(status) = ProcessCommand::new("python")
-            .arg("--version")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-        {
-            if status.success() {
-                return Ok("python".to_string());
-            }
-        }
-
-        Err(anyhow!("Python non trovato: installa python3/yt-dlp o imposta PYTHON_BIN"))
-    }
-}
 
 const SAMPLE_RATE: usize = 48000;
 const CHANNELS: usize = 2;
@@ -124,50 +60,6 @@ fn send_log(event: &str, data: &str) {
     if let Ok(json) = serde_json::to_string(&msg) { eprintln!("{}", json); }
 }
 
-fn get_ytdlp_cookie_file() -> Option<String> {
-    use std::path::Path;
-
-    if let Ok(cookie_file) = env::var("YTDLP_COOKIES_FILE") {
-        if !cookie_file.trim().is_empty() {
-            if Path::new(&cookie_file).exists() {
-                return Some(cookie_file);
-            }
-            send_log("warn", &format!("YTDLP_COOKIES_FILE non trovato: {}", cookie_file));
-        }
-    }
-
-    let fallback = format!("{}/youtube-cookies.txt", get_base_path());
-    if Path::new(&fallback).exists() {
-        return Some(fallback);
-    }
-
-    None
-}
-
-fn get_ytdlp_proxy_url() -> Option<String> {
-    if let Ok(proxy_url) = env::var("YTDLP_PROXY_URL") {
-        let trimmed = proxy_url.trim().to_string();
-        if !trimmed.is_empty() {
-            return Some(trimmed);
-        }
-        send_log("warn", "YTDLP_PROXY_URL vuoto: uso proxy di default socks5h://127.0.0.1:5040");
-    }
-
-    Some(DEFAULT_YTDLP_PROXY_URL.to_string())
-}
-
-fn get_ytdlp_extractor_args() -> Option<String> {
-    if let Ok(raw) = env::var("YTDLP_EXTRACTOR_ARGS") {
-        let trimmed = raw.trim().to_string();
-        if !trimmed.is_empty() {
-            return Some(trimmed);
-        }
-        send_log("warn", "YTDLP_EXTRACTOR_ARGS vuoto: uso default mobile clients");
-    }
-
-    Some(DEFAULT_YTDLP_EXTRACTOR_ARGS.to_string())
-}
-
 fn get_download_watchdog_secs() -> u64 {
     if let Ok(raw) = env::var("YTDLP_WATCHDOG_SECS") {
         if let Ok(parsed) = raw.trim().parse::<u64>() {
@@ -176,8 +68,6 @@ fn get_download_watchdog_secs() -> u64 {
     }
     60
 }
-
-
 
 struct Deck {
     name: String,
@@ -343,48 +233,49 @@ impl Drop for Deck {
 }
 
 fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<AtomicBool>, deck_name: &str) -> Result<()> {
-    // LANCIO DIRETTO:
-    // 1. Lancia yt-dlp tramite Python (python -m yt_dlp)
-    // 2. Collega stdout di yt-dlp a stdin di ffmpeg via pipe
-    // 3. ffmpeg processa e restituisce PCM
+    // Flusso di streaming diretto:
+    // 1. yt-dlp scarica/streamma l'audio su stdout
+    // 2. stdout di yt-dlp e' collegato a stdin di ffmpeg
+    // 3. ffmpeg decodifica e restituisce PCM
     
     send_log("info", &format!("Streaming: {}", &url[..url.len().min(60)]));
 
-    // Trova il percorso di Python dinamicamente
-    let python_path = find_python_executable()?;
+    // Usa il binario yt-dlp precompilato (ARM64 Linux)
+    let yt_dlp_binary = "/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp";
 
-    // Lancia yt-dlp tramite Python.
-    // Mantieni la selezione formato aderente al comando manuale che funziona sul server,
-    // evitando preferenze aggressive verso client/formati specifici che possono restituire 403.
-    let mut yt_dlp_cmd = ProcessCommand::new(&python_path);
+    let mut yt_dlp_cmd = ProcessCommand::new(yt_dlp_binary);
     yt_dlp_cmd
-        .arg("-m")
-        .arg("yt_dlp")
         .arg("--no-update")
         .arg("-f").arg("bestaudio/best")
         .arg("--force-ipv4")
+        .arg("--user-agent").arg("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+        .arg("-o").arg("-")
         .arg("-q")
         .arg("--no-warnings")
-        .arg("-o").arg("-");
+        .arg("--js-runtimes").arg("node")
+        .arg("--impersonate").arg("chrome");
 
-    if let Some(proxy_url) = get_ytdlp_proxy_url() {
-        send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
-        yt_dlp_cmd.arg("--proxy").arg(proxy_url);
-    }
+    yt_dlp_cmd.env("PATH", env::var("PATH").unwrap_or_default());
 
-    if let Some(cookie_file) = get_ytdlp_cookie_file() {
-        send_log("info", &format!("yt-dlp cookies attivi: {}", cookie_file));
-        yt_dlp_cmd.arg("--cookies").arg(cookie_file);
-    }
+    let proxy_url = "socks5h://127.0.0.1:5040";
+    send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
+    yt_dlp_cmd.arg("--proxy").arg(proxy_url);
 
-    if let Some(extractor_args) = get_ytdlp_extractor_args() {
-        send_log("info", &format!("yt-dlp extractor-args attivi: {}", extractor_args));
-        yt_dlp_cmd.arg("--extractor-args").arg(extractor_args);
-    }
+    let cookie_file = if cfg!(windows) {
+        format!("{}/youtube-cookies.txt", get_base_path())
+    } else {
+        "/home/ubuntu/DiscordBots/DiscordMusicBot/youtube-cookies.txt".to_string()
+    };
+    send_log("info", &format!("yt-dlp cookies attivi: {}", cookie_file));
+    yt_dlp_cmd.arg("--cookies").arg(&cookie_file);
+
+    let extractor_args = "youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web";
+    send_log("info", &format!("yt-dlp extractor-args attivi: {}", extractor_args));
+    yt_dlp_cmd.arg("--extractor-args").arg(extractor_args);
 
     let mut yt_dlp_child = yt_dlp_cmd
         .arg(url)
-        .stdin(Stdio::null())                   // 🔥 CRITICO: Evita che yt-dlp si blocchi aspettando stdin
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -393,14 +284,15 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     let yt_dlp_stdout = yt_dlp_child.stdout.take().ok_or(anyhow!("Failed to open yt-dlp stdout"))?;
     let yt_dlp_stderr = yt_dlp_child.stderr.take().ok_or(anyhow!("Failed to open yt-dlp stderr"))?;
 
-    // Log errori di yt-dlp in un thread separato
     thread::spawn(move || {
         let reader = BufReader::new(yt_dlp_stderr);
         for line in reader.lines() {
             if let Ok(l) = line {
                 let trimmed = l.trim();
-                if !trimmed.is_empty() && trimmed.to_lowercase().contains("error") {
-                    send_log("error", &format!("[yt-dlp] {}", trimmed));
+                if !trimmed.is_empty() {
+                    if trimmed.to_lowercase().contains("error") {
+                        send_log("error", &format!("[yt-dlp] {}", trimmed));
+                    }
                 }
             }
         }
@@ -409,19 +301,18 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Usa ffmpeg dal PATH di sistema
     let ffmpeg_path = "ffmpeg";
 
-    // Lancia ffmpeg e collega stdin a stdout di yt-dlp
-    // 🔧 IMPORTANTE: Aggiunti flag per resilienza verso Opus e corrupted streams
+    // Lancia ffmpeg sullo stream grezzo fornito da yt-dlp.
     let mut ffmpeg_child = ProcessCommand::new(ffmpeg_path)
         .arg("-loglevel").arg("error")
         .arg("-hide_banner")
-        .arg("-fflags").arg("+discardcorrupt")  // 🔥 Salta frame corrotti
+        .arg("-fflags").arg("+discardcorrupt")
         .arg("-i").arg("pipe:0")
-        .arg("-vn")                              // Disabilita video (solo audio)
-        .arg("-ac").arg("2")                     // 2 canali stereo
-        .arg("-ar").arg("48000")                 // 48kHz sample rate
-        .arg("-af").arg("aformat=s16:48000")     // 🔥 Forza output audio format
-        .arg("-f").arg("s16le")                  // Formato output: 16-bit little endian PCM
-        .arg("-acodec").arg("pcm_s16le")         // Codec output
+        .arg("-vn")
+        .arg("-ac").arg("2")
+        .arg("-ar").arg("48000")
+        .arg("-af").arg("aformat=s16:48000")
+        .arg("-f").arg("s16le")
+        .arg("-acodec").arg("pcm_s16le")
         .arg("-")
         .stdin(yt_dlp_stdout)
         .stdout(Stdio::piped())
@@ -474,18 +365,18 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
         {
             // /F = force, /T = tree (uccide anche sotto-processi)
             let _ = ProcessCommand::new("taskkill")
-                .args(["/F", "/T", "/PID", &ffmpeg_pid.to_string()])
+                .args(["/F", "/T", "/PID", &yt_dlp_pid.to_string()])
                 .stdout(Stdio::null()).stderr(Stdio::null())
                 .status();
             let _ = ProcessCommand::new("taskkill")
-                .args(["/F", "/T", "/PID", &yt_dlp_pid.to_string()])
+                .args(["/F", "/T", "/PID", &ffmpeg_pid.to_string()])
                 .stdout(Stdio::null()).stderr(Stdio::null())
                 .status();
         }
         #[cfg(not(windows))]
         unsafe {
-            libc::kill(ffmpeg_pid as i32, libc::SIGKILL);
             libc::kill(yt_dlp_pid as i32, libc::SIGKILL);
+            libc::kill(ffmpeg_pid as i32, libc::SIGKILL);
         }
     });
 
@@ -573,8 +464,8 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Se cancellato, killa immediatamente i processi per liberare risorse e
     // evitare che download concorrenti dello stesso URL si blocchino a vicenda
     if cancelled {
-        let _ = ffmpeg_child.kill();
         let _ = yt_dlp_child.kill();
+        let _ = ffmpeg_child.kill();
     } else {
         // Invia ultimi dati rimasti solo se NON cancellato
         if !buffer.is_empty() {
@@ -582,9 +473,9 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
         }
     }
     
-    // Attendi che i processi terminino (dopo kill sono immediati)
-    let _ = ffmpeg_child.wait();
+    // Attendi che i processi terminino (dopo kill e' immediato)
     let _ = yt_dlp_child.wait();
+    let _ = ffmpeg_child.wait();
     
     Ok(())
 }
