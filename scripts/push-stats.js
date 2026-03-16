@@ -30,6 +30,15 @@ function archiveMonthlyStats() {
         const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
         const statsData = JSON.parse(statsContent);
 
+        // Calcola le top 5 canzoni del mese prima di archiviare
+        try {
+            const { computeTopSongs } = require('../src/database/stats');
+            computeTopSongs(statsData, 5);
+            console.log('🏆 Top songs calcolate e aggiunte al backup mensile');
+        } catch (e) {
+            console.warn('⚠️ Errore nel calcolo top songs:', e.message);
+        }
+
         // Calcola la data del mese precedente (primo del mese corrente = ultimo giorno del mese precedente)
         const now = new Date();
         const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -55,7 +64,10 @@ function archiveMonthlyStats() {
         console.log(`📊 Archived monthly stats to: ${backupFilePath}`);
 
         // Resetta stats.json con struttura vuota
-        const emptyStats = { users: {} };
+        const emptyStats = {
+            users: {},
+            global: { songsStarted: 0, songsCompleted: 0, songPlays: {} }
+        };
         fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
         console.log('🧹 Stats file cleared and reset for new month');
 

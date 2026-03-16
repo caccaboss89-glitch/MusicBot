@@ -25,7 +25,8 @@ function getDefaultStats() {
         users: {},
         global: {
             songsStarted: 0,
-            songsCompleted: 0
+            songsCompleted: 0,
+            songPlays: {}
         },
         lastUpdated: null
     };
@@ -41,6 +42,7 @@ function loadStats() {
             if (!data.global) data.global = { songsStarted: 0, songsCompleted: 0 };
             if (!data.global.songsStarted) data.global.songsStarted = 0;
             if (!data.global.songsCompleted) data.global.songsCompleted = 0;
+            if (!data.global.songPlays) data.global.songPlays = {};
             return data;
         }
     } catch (e) {
@@ -75,6 +77,7 @@ function ensureUser(data, userId, discordUser = null) {
     if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
     if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
     if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
+    if (!u.songPlays) u.songPlays = {};
     
     // Aggiungi info Discord se fornite
     if (discordUser) {
@@ -217,6 +220,79 @@ function flushAllGuildsAndSave() {
     }
 }
 
+// ─── Tracciamento riproduzioni canzoni ────────────────────────
+
+/**
+ * Registra la riproduzione di una canzone globalmente e per ogni ascoltatore
+ * nel canale vocale (usato per calcolare le top 5 canzoni del mese).
+ * @param {string} guildId
+ * @param {{ url: string, title: string, thumbnail?: string }} songInfo
+ * @param {object|null} voiceChannel - Canale vocale Discord (con .members)
+ */
+function recordSongPlay(guildId, songInfo, voiceChannel = null) {
+    try {
+        if (!songInfo || !songInfo.url) return;
+        const url = songInfo.url;
+        const entry = {
+            title: songInfo.title || 'Unknown',
+            url,
+            thumbnail: songInfo.thumbnail || null
+        };
+
+        const data = loadStats();
+
+        // ── Globale ──
+        if (!data.global.songPlays[url]) {
+            data.global.songPlays[url] = { ...entry, count: 0 };
+        }
+        data.global.songPlays[url].count++;
+        data.global.songPlays[url].title = entry.title;
+        if (entry.thumbnail) data.global.songPlays[url].thumbnail = entry.thumbnail;
+
+        // ── Per utente: tutti nel canale vocale ──
+        if (voiceChannel && voiceChannel.members) {
+            voiceChannel.members.forEach(member => {
+                if (member.user.bot) return;
+                const userId = member.user.id;
+                ensureUser(data, userId, member.user);
+                if (!data.users[userId].songPlays[url]) {
+                    data.users[userId].songPlays[url] = { ...entry, count: 0 };
+                }
+                data.users[userId].songPlays[url].count++;
+                data.users[userId].songPlays[url].title = entry.title;
+                if (entry.thumbnail) data.users[userId].songPlays[url].thumbnail = entry.thumbnail;
+            });
+        }
+
+        saveStats(data);
+    } catch (e) {
+        console.error('⚠️ [STATS] Errore recordSongPlay:', e.message);
+    }
+}
+
+/**
+ * Calcola le top N canzoni globali e per ogni utente, aggiungendo i campi
+ * `topSongs` al data object. Da chiamare prima dell'archiviazione mensile.
+ * @param {object} data - Stats data (mutato in-place)
+ * @param {number} limit - Numero di canzoni top da conservare (default: 5)
+ * @returns {object} data con topSongs aggiunti
+ */
+function computeTopSongs(data, limit = 5) {
+    const sortByCounts = plays =>
+        Object.values(plays || {})
+            .sort((a, b) => b.count - a.count)
+            .slice(0, limit)
+            .map(({ title, url, thumbnail, count }) => ({ title, url, thumbnail, count }));
+
+    data.global.topSongs = sortByCounts(data.global.songPlays);
+
+    for (const userData of Object.values(data.users || {})) {
+        userData.topSongs = sortByCounts(userData.songPlays);
+    }
+
+    return data;
+}
+
 // ─── Contatori globali canzoni ──────────────────────────────
 
 function incrementSongsStarted() {
@@ -321,6 +397,10 @@ module.exports = {
     
     // Info Discord
     updateUserDiscordInfo,
+
+    // Tracciamento canzoni
+    recordSongPlay,
+    computeTopSongs,
 
     // Debug
     getActiveListenersDebug

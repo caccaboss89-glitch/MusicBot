@@ -244,7 +244,11 @@ async function performTransition(guildId, targetIndex, reason) {
         sq._lastTransitionTime = Date.now();
 
         // ── STATS: nuova canzone avviata (transizione) ──
-        try { require('../database/stats').incrementSongsStarted(); } catch (e) {}
+        try {
+            const stats = require('../database/stats');
+            stats.incrementSongsStarted();
+            stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
+        } catch (e) {}
 
         // Incrementa versione dopo tutte le mutazioni
         stateVersion.incrementVersion('skip_complete', {

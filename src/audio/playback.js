@@ -283,11 +283,12 @@ async function playSong(guildId, interaction = null) {
         const PlaybackEngine = require('./PlaybackEngine');
         PlaybackEngine.onSongStart(guildId);
 
-        // ── STATS: canzone avviata + timer ascolto ──
+        // ── STATS: canzone avviata + timer ascolto + registra play ──
         try {
             const stats = require('../database/stats');
             stats.incrementSongsStarted();
             stats.startAllListeners(guildId, serverQueue.voiceChannel);
+            stats.recordSongPlay(guildId, song, serverQueue.voiceChannel);
         } catch (e) { console.warn('⚠️ [STATS] Errore in playSong:', e.message); }
     }
 }

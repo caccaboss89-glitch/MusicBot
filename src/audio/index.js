@@ -207,7 +207,11 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         sq._lastTransitionTime = Date.now();
 
         // ── STATS: nuova canzone avviata (auto-gapless) ──
-        try { require('../database/stats').incrementSongsStarted(); } catch (e) {}
+        try {
+            const stats = require('../database/stats');
+            stats.incrementSongsStarted();
+            stats.recordSongPlay(guildId, nextSong, sq.voiceChannel);
+        } catch (e) {}
 
         // Salva stato e aggiorna UI
         const { saveQueueState } = require('../queue/persistence');
