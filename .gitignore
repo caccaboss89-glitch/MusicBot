@@ -5,6 +5,4 @@ temp/
 audio_engine/target/
 data/queue_backup.json
 youtube-cookies.txt
-data/playlists.json
-data/stats.json
-data/monthly-stats/
+data/
