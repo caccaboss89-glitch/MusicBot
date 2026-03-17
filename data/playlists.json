@@ -4157,6 +4157,15 @@
       "duration": 165,
       "requester": "1373779309877006482",
       "addedBy": "717842969331367986"
+    },
+    {
+      "title": "LILCR - CI RISIAMO (Official Video)",
+      "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
+      "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
+      "isLive": false,
+      "duration": 94,
+      "requester": "1373779309877006482",
+      "addedBy": "1373779309877006482"
     }
   ],
   "users": {
@@ -4322,6 +4331,14 @@
             "isLive": false,
             "requester": "704006042819756083",
             "duration": 165
+          },
+          {
+            "title": "STARGAZING",
+            "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
+            "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
+            "isLive": false,
+            "requester": "704006042819756083",
+            "duration": 271
           }
         ],
         "Kid Yugi": [
@@ -5359,7 +5376,7 @@
           }
         ]
       },
-      "activePlaylist": "Artie 5ive"
+      "activePlaylist": "Generale"
     },
     "717842969331367986": {
       "playlists": {

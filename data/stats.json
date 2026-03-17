@@ -1,9 +1,9 @@
 {
   "users": {
     "704006042819756083": {
-      "listeningTimeMs": 67698914,
+      "listeningTimeMs": 68732823,
       "serverPlaylistAdds": 171,
-      "personalPlaylistAdds": 26,
+      "personalPlaylistAdds": 28,
       "username": "caccaboss89",
       "global_name": "抜刀隊",
       "avatar": "602acfadc35915254bf45d2f2bdeaa48",
@@ -661,7 +661,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 1
+          "count": 2
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -1705,20 +1705,27 @@
           "title": "STARGAZING",
           "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
           "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
-          "count": 3
+          "count": 5
         },
         "https://www.youtube.com/watch?v=i-Mdkt7L2mw": {
           "title": "Tony Boy - Ansia 162",
           "url": "https://www.youtube.com/watch?v=i-Mdkt7L2mw",
           "thumbnail": "https://i.ytimg.com/vi/i-Mdkt7L2mw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBhZ50P8Sm5Sak2dqp4Vry9JnhGwA",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=2a8PgqWrc_4": {
+          "title": "Travis Scott - STARGAZING (Audio)",
+          "url": "https://www.youtube.com/watch?v=2a8PgqWrc_4",
+          "thumbnail": "https://i.ytimg.com/vi/2a8PgqWrc_4/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBOCbaVwN_xxZ3TfnFUWd0Od-HiqQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=22Nh1jj_FQM": {
+          "title": "LILCR - CI RISIAMO (Official Video)",
+          "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
+          "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
+          "count": 1
         }
       }
-    },
-    "894275339495297024": {
-      "listeningTimeMs": 3147900,
-      "serverPlaylistAdds": 0,
-      "personalPlaylistAdds": 0
     },
     "1439293517276119224": {
       "listeningTimeMs": 44579996,
@@ -2326,7 +2333,7 @@
       }
     },
     "1066462518903570503": {
-      "listeningTimeMs": 32869321,
+      "listeningTimeMs": 33903230,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0,
       "username": "tedescoduro",
@@ -2830,7 +2837,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 1
+          "count": 2
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -3803,12 +3810,30 @@
           "url": "https://music.youtube.com/watch?v=_1JucZ9Q22A",
           "thumbnail": "https://i.ytimg.com/vi/_1JucZ9Q22A/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCgA-dw3-AykAh1ChqHV_IaRESFvw",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=2a8PgqWrc_4": {
+          "title": "Travis Scott - STARGAZING (Audio)",
+          "url": "https://www.youtube.com/watch?v=2a8PgqWrc_4",
+          "thumbnail": "https://i.ytimg.com/vi/2a8PgqWrc_4/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBOCbaVwN_xxZ3TfnFUWd0Od-HiqQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9i8etMz0BdE": {
+          "title": "STARGAZING",
+          "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
+          "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
+          "count": 2
+        },
+        "https://www.youtube.com/watch?v=22Nh1jj_FQM": {
+          "title": "LILCR - CI RISIAMO (Official Video)",
+          "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
+          "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
+          "count": 1
         }
       }
     },
     "1373779309877006482": {
-      "listeningTimeMs": 59988773,
-      "serverPlaylistAdds": 0,
+      "listeningTimeMs": 60936841,
+      "serverPlaylistAdds": 1,
       "personalPlaylistAdds": 0,
       "username": "lil_nga0542_15301",
       "global_name": "Lil_NGA",
@@ -4311,7 +4336,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 1
+          "count": 2
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -5337,12 +5362,18 @@
           "title": "STARGAZING",
           "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
           "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
-          "count": 3
+          "count": 4
         },
         "https://www.youtube.com/watch?v=i-Mdkt7L2mw": {
           "title": "Tony Boy - Ansia 162",
           "url": "https://www.youtube.com/watch?v=i-Mdkt7L2mw",
           "thumbnail": "https://i.ytimg.com/vi/i-Mdkt7L2mw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBhZ50P8Sm5Sak2dqp4Vry9JnhGwA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=22Nh1jj_FQM": {
+          "title": "LILCR - CI RISIAMO (Official Video)",
+          "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
+          "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
           "count": 1
         }
       }
@@ -6415,8 +6446,8 @@
     }
   },
   "global": {
-    "songsStarted": 628,
-    "songsCompleted": 410,
+    "songsStarted": 638,
+    "songsCompleted": 416,
     "songPlays": {
       "https://www.youtube.com/watch?v=_rWrnS3-2Bs": {
         "title": "Shiva - Gotham feat. Kid Yugi (Audio)",
@@ -7070,7 +7101,7 @@
         "title": "Samsung",
         "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
         "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-        "count": 1
+        "count": 2
       },
       "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
         "title": "Sex Appeal",
@@ -8114,15 +8145,27 @@
         "title": "STARGAZING",
         "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
         "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
-        "count": 3
+        "count": 5
       },
       "https://www.youtube.com/watch?v=i-Mdkt7L2mw": {
         "title": "Tony Boy - Ansia 162",
         "url": "https://www.youtube.com/watch?v=i-Mdkt7L2mw",
         "thumbnail": "https://i.ytimg.com/vi/i-Mdkt7L2mw/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBhZ50P8Sm5Sak2dqp4Vry9JnhGwA",
         "count": 1
+      },
+      "https://www.youtube.com/watch?v=2a8PgqWrc_4": {
+        "title": "Travis Scott - STARGAZING (Audio)",
+        "url": "https://www.youtube.com/watch?v=2a8PgqWrc_4",
+        "thumbnail": "https://i.ytimg.com/vi/2a8PgqWrc_4/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBOCbaVwN_xxZ3TfnFUWd0Od-HiqQ",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=22Nh1jj_FQM": {
+        "title": "LILCR - CI RISIAMO (Official Video)",
+        "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
+        "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
+        "count": 1
       }
     }
   },
-  "lastUpdated": "2026-03-17T17:59:29.462Z"
+  "lastUpdated": "2026-03-17T19:59:47.260Z"
 }
