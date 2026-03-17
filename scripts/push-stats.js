@@ -120,7 +120,8 @@ function pushStats(forceArchive = false) {
         }
 
         // Aggiungi tutti i file dati persistenti aggiornati dal bot.
-        execSync('git add data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
+        // Usa --force per aggiungere i file anche se sono nel .gitignore
+        execSync('git add --force data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
 
         // Controlla lo status dei file
         const status = execSync('git status --porcelain data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });

@@ -1124,10 +1124,12 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         if !has_audio && !crossfading && is_playing && pending_transition.is_none() && auto_gapless_stall.is_none() {
             let should_handle_end = if active_deck == "A" {
                 deck_a.has_ended && deck_a.receiver.is_none() &&
-                deck_a.samples_played >= MIN_SAMPLES_PLAYED_FOR_END && !end_sent_a
+                deck_a.samples_played >= MIN_SAMPLES_PLAYED_FOR_END && !end_sent_a &&
+                deck_a.samples.is_empty() // Buffer vuoto = vera fine traccia (non silenzio mid-song)
             } else {
                 deck_b.has_ended && deck_b.receiver.is_none() &&
-                deck_b.samples_played >= MIN_SAMPLES_PLAYED_FOR_END && !end_sent_b
+                deck_b.samples_played >= MIN_SAMPLES_PLAYED_FOR_END && !end_sent_b &&
+                deck_b.samples.is_empty() // Buffer vuoto = vera fine traccia (non silenzio mid-song)
             };
             
             if should_handle_end {
