@@ -120,7 +120,14 @@ function pushStats(forceArchive = false) {
         }
 
         // Aggiungi tutti i file dati persistenti aggiornati dal bot.
-        // Usa --force per aggiungere i file anche se sono nel .gitignore
+        // Prima rimuovi dal git cache - questo forza git a ritrackare i file anche se nel .gitignore
+        try {
+            execSync('git rm --cached data/stats.json data/playlists.json 2>/dev/null || true', { encoding: 'utf-8' });
+        } catch (e) {
+            // Ignora errore se file non è tracciato
+        }
+        
+        // Poi aggiungili forzatamente
         execSync('git add --force data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
 
         // Controlla lo status dei file
