@@ -1,0 +1,19 @@
+{
+  "users": {
+    "704006042819756083": {
+      "listeningTimeMs": 731709,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0
+    },
+    "1066462518903570503": {
+      "listeningTimeMs": 6038,
+      "serverPlaylistAdds": 0,
+      "personalPlaylistAdds": 0
+    }
+  },
+  "global": {
+    "songsStarted": 7,
+    "songsCompleted": 4
+  },
+  "lastUpdated": "2026-03-12T17:59:17.973Z"
+}
