@@ -57,6 +57,13 @@ function handleBufferReady(guildId, deck) {
         });
         
         console.log(`✅ [BUFFER-READY] Deck ${deck} pronto per riproduzione`);
+
+            // Se c'è una transizione differita in attesa di questo deck, eseguila ora
+            if (sq.pendingTransition && sq.pendingTransition.targetDeck === deck) {
+                SkipManager.completePendingTransition(guildId).catch(e => {
+                    console.error('❌ [BUFFER-READY] Errore completePendingTransition:', e);
+                });
+            }
     } catch (e) { 
         console.error(`❌ [BUFFER-READY] Errore:`, e);
     }
@@ -99,6 +106,15 @@ function handleRustEvent(guildId, log) {
                 const { getNextSong } = require('../queue/QueueManager');
                 const nextSong = getNextSong(sq);
                 
+                // Se c'è già una pending transition, non avviare un altro auto-skip:
+                // completePendingTransition() gestirà il cambio quando il buffer è pronto.
+                // Tollera solo se scaduta (> 25s), in quel caso procedi normalmente.
+                const ptAge = sq.pendingTransition ? (Date.now() - sq.pendingTransition.startTime) : Infinity;
+                if (sq.pendingTransition && ptAge < 25000) {
+                    console.log(`⏳ [APPROACHING-END] Transizione differita in corso (${Math.round(ptAge/1000)}s) – skip auto-crossfade`);
+                    return;
+                }
+
                 if (fadeEnabled && nextSong) {
                     // Fade attivo + c'è una canzone successiva: avvia crossfade automatico
                     console.log('🎚️  [APPROACHING-END] 3s prima della fine – crossfade automatico');
@@ -185,6 +201,16 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         // ── STATS: canzone completata (gapless auto-switch) ──
         try { require('../database/stats').incrementSongsCompleted(); } catch (e) {}
 
+        // Se c'è una transizione differita per questo deck (utente aveva già premuto skip
+        // mentre il deck era in download), lascia che completePendingTransition gestisca
+        // il tutto: conosce l'indice corretto (potrebbe essere ≠ nextIndex).
+        if (sq.pendingTransition && sq.pendingTransition.targetDeck === newDeck) {
+            console.log(`⚡ [AUTO-GAPLESS] Deck ${newDeck} ha pending transition – delego completePendingTransition`);
+            sq.currentDeck = newDeck; // aggiorna currentDeck per riflettere realtà Rust
+            await SkipManager.completePendingTransition(guildId, true /* alreadySwitched */);
+            return;
+        }
+
         const nextIndex = (sq.playIndex || 0) + 1;
 
         // Se non ci sono più canzoni, termina la coda
@@ -226,7 +252,6 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         console.error('❌ [AUTO-GAPLESS] Errore handleAutoEndSwitch:', e);
     }
 }
-
 /**
  * Rust ha riavviato automaticamente il deck corrente (loop mode).
  * Aggiorna solo i timestamp e avvia un nuovo ciclo di preload.

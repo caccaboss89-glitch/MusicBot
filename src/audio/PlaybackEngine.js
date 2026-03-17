@@ -18,6 +18,7 @@ const { DEFAULT_SONG_DURATION_S, CROSSFADE_DURATION_MS } = require('../../config
 const { isMixerAlive } = require('../queue/QueueManager');
 
 const PRELOAD_DELAY_MS = 5000; // Precarica 5 secondi dopo l'inizio della canzone (per dare tempo ai chunk audio iniziali)
+const PRELOAD_RETRY_MIN_DELAY_MS = 250;
 
 // ─── State ──────────────────────────────────────────────────
 
@@ -50,6 +51,19 @@ function clearAllTimers(guildId) {
         clearTimeout(state.preloadTimer);
     }
     timers.delete(guildId);
+}
+
+function schedulePreloadRetry(guildId, delayMs) {
+    const safeDelay = Math.max(PRELOAD_RETRY_MIN_DELAY_MS, delayMs || PRELOAD_RETRY_MIN_DELAY_MS);
+    const state = timers.get(guildId) || {};
+    if (state.preloadTimer) clearTimeout(state.preloadTimer);
+
+    state.preloadTimer = setTimeout(() => {
+        preloadNextSong(guildId);
+    }, safeDelay);
+
+    timers.set(guildId, state);
+    console.log(`⏳ [PRELOAD] Retry programmato tra ${safeDelay}ms`);
 }
 
 // ─── Core ───────────────────────────────────────────────────
@@ -137,20 +151,19 @@ function preloadNextSong(guildId) {
         if (sq.isCrossfading || (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS)) {
             if (sq.isCrossfading) {
                 console.warn(`⚠️  [PRELOAD] Skip: crossfade in corso (flag=true), aspetto fine crossfade prima del preload`);
+                schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS);
             } else {
                 const timeElapsed = Date.now() - sq.crossfadeStartTime;
                 console.warn(`⚠️  [PRELOAD] Skip: crossfade completato da soli ${timeElapsed}ms (< ${CROSSFADE_DURATION_MS}ms), aspetto ancora`);
+                const remainingMs = CROSSFADE_DURATION_MS - timeElapsed + 150;
+                schedulePreloadRetry(guildId, remainingMs);
             }
             return;
         }
 
-        // ⚠️  Stoppa il deck che NON sarà usato per il preload
-        // MA: solo se c'è stato un crossfade recente (entro gli ultimi CROSSFADE_DURATION_MS)
-        // Durante il caricamento iniziale, non c'è stato un crossfade, quindi non stoppa i deck
-        if (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS * 1.5) {
-            const oldDeck = (nextDeck === 'A') ? 'B' : 'A';
-            try { sq.mixer.stopDeck(oldDeck); } catch (e) { /* ignora */ }
-        }
+        // IMPORTANT: durante il preload non fermare mai l'altro deck.
+        // Dopo un crossfade il deck "old" può essere quello attualmente in riproduzione;
+        // stopparlo qui causa silenzio immediato (es: traccia parte e si ferma dopo pochi secondi).
 
         // Cattura lo stato della coda PRIMA del preload
         const playIndexBefore = sq.playIndex || 0;
@@ -219,6 +232,13 @@ async function handleTrackEnd(guildId) {
     const SkipManager = require('./SkipManager');
     if (SkipManager.hasSkipInProgress(guildId)) {
         console.log('⏳ [TRACK-END] Skip già in corso, ignoro');
+        return;
+    }
+
+    // Se c'è una transizione differita in attesa del buffer, lasciala completare
+    // (handleBufferReady o handleAutoEndSwitch la gestiranno)
+    if (sq.pendingTransition) {
+        console.log('⏳ [TRACK-END] Pending transition in corso – aspetto buffer');
         return;
     }
 
