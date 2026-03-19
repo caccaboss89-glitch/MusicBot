@@ -317,6 +317,19 @@ function performDisconnectCleanup(serverQueue) {
 function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_MS) {
     if (!serverQueue || !serverQueue.guildId) return false;
     const gid = serverQueue.guildId;
+
+    // Immediate cleanup request (e.g. bot disconnesso/espulso)
+    // bypassa i controlli sul canale e chiama direttamente il cleanup.
+    if (timeoutMs === 0) {
+        // Se c'è un timer già schedulato, annullalo.
+        if (disconnectTimers.has(gid)) {
+            try { clearTimeout(disconnectTimers.get(gid)); } catch (e) {}
+            disconnectTimers.delete(gid);
+        }
+        performDisconnectCleanup(serverQueue);
+        return true;
+    }
+
     // Se non è solo, assicurati di cancellare qualsiasi timer precedente
     if (!isBotAloneInChannel(serverQueue)) {
         if (disconnectTimers.has(gid)) {

@@ -207,15 +207,24 @@ async function performTransition(guildId, targetIndex, reason) {
             }
 
             const pendingStartTime = Date.now();
+            const timeoutMs = sq.isPaused ? 2000 : 30000;
             const cleanupTimer = setTimeout(() => {
                 const sq2 = queue.get(guildId);
-                if (sq2 && sq2.pendingTransition && sq2.pendingTransition.startTime === pendingStartTime) {
-                    console.warn(`⚠️  [SKIP] Pending transition scaduta (30s) – annullo`);
+                if (!sq2 || !sq2.pendingTransition || sq2.pendingTransition.startTime !== pendingStartTime) return;
+
+                if (sq2.isPaused) {
+                    console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) in pausa – forzo transizione`);
+                    // Forza la transizione anche se non abbiamo ricevuto buffer_ready dal Rust.
+                    completePendingTransition(guildId).catch(e => {
+                        console.error(`❌ [SKIP] Errore forzando completePendingTransition:`, e);
+                    });
+                } else {
+                    console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
                     sq2.pendingTransition = null;
                     sq2.loadingFooter = null;
                     try { require('./index').refreshDashboard(sq2); } catch (e) {}
                 }
-            }, 30000);
+            }, timeoutMs);
 
             sq.pendingTransition = {
                 targetIndex,

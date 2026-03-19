@@ -21,7 +21,9 @@ module.exports = (client) => {
                 if (!botChannel) {
                     // Il bot è stato disconnesso/espulso - ferma tutti i timer ascolto
                     try { stats.stopAllListeners(guildId); } catch (e) {}
-                    // forza cleanup immediato
+                    // Aggiorna lo stato della coda per riflettere l'assenza di canale
+                    serverQueue.voiceChannel = null;
+                    // Forza cleanup immediato
                     scheduleDisconnectIfAlone(serverQueue, 0);
                     return;
                 } else {
