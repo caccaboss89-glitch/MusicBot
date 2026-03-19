@@ -1,8 +1,8 @@
 {
   "users": {
     "704006042819756083": {
-      "listeningTimeMs": 68732823,
-      "serverPlaylistAdds": 171,
+      "listeningTimeMs": 75258332,
+      "serverPlaylistAdds": 172,
       "personalPlaylistAdds": 28,
       "username": "caccaboss89",
       "global_name": "抜刀隊",
@@ -67,7 +67,7 @@
           "title": "Tony Boy - Nn so se (feat. Kid Yugi)",
           "url": "https://www.youtube.com/watch?v=lMqG7YfXu6s",
           "thumbnail": "https://i.ytimg.com/vi/lMqG7YfXu6s/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIGEoQDAP&rs=AOn4CLBnuTFupTLx7APONOqPouuabC_4BA",
-          "count": 1
+          "count": 2
         },
         "https://music.youtube.com/watch?v=5VoR_I_f0io": {
           "title": "BIG CEO",
@@ -97,7 +97,7 @@
           "title": "Night Skinny, Tony Boy, Kid Yugi, Capo Plaza - Entro nel posto (Visual)",
           "url": "https://www.youtube.com/watch?v=8f1GfvVI2IE",
           "thumbnail": "https://i.ytimg.com/vi/8f1GfvVI2IE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8LuOvh8FfDQXLdUXus1I88ObhIQ",
-          "count": 1
+          "count": 3
         },
         "https://www.youtube.com/watch?v=FGrCZVWCNO8": {
           "title": "NON NE VALI LA PENA",
@@ -661,7 +661,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 2
+          "count": 8
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -1724,11 +1724,125 @@
           "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
           "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
           "count": 1
+        },
+        "https://music.youtube.com/watch?v=4Iuo_edrgC0": {
+          "title": "WAKE UP",
+          "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+          "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=VrLwRDOVQ6U": {
+          "title": "E85",
+          "url": "https://music.youtube.com/watch?v=VrLwRDOVQ6U",
+          "thumbnail": "https://i.ytimg.com/vi/VrLwRDOVQ6U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxhR-jaHoR8WPsMJst-v8nmdkFqQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=JiNxvNtlBPM": {
+          "title": "Body",
+          "url": "https://music.youtube.com/watch?v=JiNxvNtlBPM",
+          "thumbnail": "https://i.ytimg.com/vi/JiNxvNtlBPM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDLJLLqmT6OnyIjMAsPR_XjDB57vQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=yjjKEjEpHRc": {
+          "title": "Rendezvous (feat. Yeat)",
+          "url": "https://music.youtube.com/watch?v=yjjKEjEpHRc",
+          "thumbnail": "https://i.ytimg.com/vi/yjjKEjEpHRc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDjSM9eKJVD99Gc9y4y2s68UXbNjg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=zKSaL0bJJvc": {
+          "title": "Secondhand (feat. Rema)",
+          "url": "https://music.youtube.com/watch?v=zKSaL0bJJvc",
+          "thumbnail": "https://i.ytimg.com/vi/zKSaL0bJJvc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDwQNFw9U29-qjgS8cmXEHvoNg07A",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=_pqiY9FbWd8": {
+          "title": "Tiramisu",
+          "url": "https://music.youtube.com/watch?v=_pqiY9FbWd8",
+          "thumbnail": "https://i.ytimg.com/vi/_pqiY9FbWd8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB1veB9JbGUaxe89aEdkXtnRTspoA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=afLW6svh-8U": {
+          "title": "ATM",
+          "url": "https://music.youtube.com/watch?v=afLW6svh-8U",
+          "thumbnail": "https://i.ytimg.com/vi/afLW6svh-8U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAz1ge_vT6rjlSWF8VcDdv27PgXMA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wwOk_UPqcZk": {
+          "title": "Long Way To Calabasas",
+          "url": "https://music.youtube.com/watch?v=wwOk_UPqcZk",
+          "thumbnail": "https://i.ytimg.com/vi/wwOk_UPqcZk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7pVgzLnIypR--8IDU0FHqvqZftw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=Ppa3f4X8qQg": {
+          "title": "Rosary (feat. Travis Scott)",
+          "url": "https://music.youtube.com/watch?v=Ppa3f4X8qQg",
+          "thumbnail": "https://i.ytimg.com/vi/Ppa3f4X8qQg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBPjL-zFc6WNGkwn_-USj0sC9Y5FA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=LHxR-hl-F_8": {
+          "title": "All The Signs (feat. Teezo Touchdown)",
+          "url": "https://music.youtube.com/watch?v=LHxR-hl-F_8",
+          "thumbnail": "https://i.ytimg.com/vi/LHxR-hl-F_8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB2ZdMkn0ASctiP8DlMoBqddeqJ6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=dlLdnd3VF-0": {
+          "title": "Call Back",
+          "url": "https://music.youtube.com/watch?v=dlLdnd3VF-0",
+          "thumbnail": "https://i.ytimg.com/vi/dlLdnd3VF-0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZ-0AdI3gTZJRpXFLh1OUiSM1jlw",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=AVa8HsLz1Ps": {
+          "title": "Tuition",
+          "url": "https://music.youtube.com/watch?v=AVa8HsLz1Ps",
+          "thumbnail": "https://i.ytimg.com/vi/AVa8HsLz1Ps/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA_6vDv83FiUG4i4isjGG8qsla7dA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=UbDH5bZPyh0": {
+          "title": "K9 (feat. SahBabii)",
+          "url": "https://music.youtube.com/watch?v=UbDH5bZPyh0",
+          "thumbnail": "https://i.ytimg.com/vi/UbDH5bZPyh0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMvKlYFRi1qhxLcQO_ygi55GRSFg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9aEmqlZ8uEg": {
+          "title": "Excavator",
+          "url": "https://music.youtube.com/watch?v=9aEmqlZ8uEg",
+          "thumbnail": "https://i.ytimg.com/vi/9aEmqlZ8uEg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPO5d8OyEOkkYudBvJmjAx7gmC1g",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=DUCmK5px7vU": {
+          "title": "Gemstone",
+          "url": "https://music.youtube.com/watch?v=DUCmK5px7vU",
+          "thumbnail": "https://i.ytimg.com/vi/DUCmK5px7vU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCXpJHFmzt4am0HHYl8-_BqJmgQnA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9vav7wGQH2Q": {
+          "title": "OPPOSITE",
+          "url": "https://music.youtube.com/watch?v=9vav7wGQH2Q",
+          "thumbnail": "https://i.ytimg.com/vi/9vav7wGQH2Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5ul3GklB42QACRK6VuEstmwbWiA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wGffa1nXFg4": {
+          "title": "TMU",
+          "url": "https://music.youtube.com/watch?v=wGffa1nXFg4",
+          "thumbnail": "https://i.ytimg.com/vi/wGffa1nXFg4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD-p_9mEDYhyvp5bWrcwNp-hQ9giw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=NGS655KAf8o": {
+          "title": "Pleasure’s Mine",
+          "url": "https://music.youtube.com/watch?v=NGS655KAf8o",
+          "thumbnail": "https://i.ytimg.com/vi/NGS655KAf8o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2OLbpG_W2w-kCUWNR_1803l6y6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=mS7xDOmw14A": {
+          "title": "Sweet Home",
+          "url": "https://music.youtube.com/watch?v=mS7xDOmw14A",
+          "thumbnail": "https://i.ytimg.com/vi/mS7xDOmw14A/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLARecm-4ux7MPMSy9sFHpHb1e_DfA",
+          "count": 3
         }
       }
     },
     "1439293517276119224": {
-      "listeningTimeMs": 44579996,
+      "listeningTimeMs": 45721451,
       "serverPlaylistAdds": 40,
       "personalPlaylistAdds": 54,
       "username": "lorenzo_dsz08",
@@ -2329,11 +2443,47 @@
           "url": "https://music.youtube.com/watch?v=Z54mcLT6b6w",
           "thumbnail": "https://i.ytimg.com/vi/Z54mcLT6b6w/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD0H_JksIIO8CLyPNvRt5nBK07h_A",
           "count": 1
+        },
+        "https://music.youtube.com/watch?v=jML_xQQ8Yjc": {
+          "title": "Samsung",
+          "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
+          "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
+          "count": 3
+        },
+        "https://music.youtube.com/watch?v=4Iuo_edrgC0": {
+          "title": "WAKE UP",
+          "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+          "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=VrLwRDOVQ6U": {
+          "title": "E85",
+          "url": "https://music.youtube.com/watch?v=VrLwRDOVQ6U",
+          "thumbnail": "https://i.ytimg.com/vi/VrLwRDOVQ6U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxhR-jaHoR8WPsMJst-v8nmdkFqQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=JiNxvNtlBPM": {
+          "title": "Body",
+          "url": "https://music.youtube.com/watch?v=JiNxvNtlBPM",
+          "thumbnail": "https://i.ytimg.com/vi/JiNxvNtlBPM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDLJLLqmT6OnyIjMAsPR_XjDB57vQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=yjjKEjEpHRc": {
+          "title": "Rendezvous (feat. Yeat)",
+          "url": "https://music.youtube.com/watch?v=yjjKEjEpHRc",
+          "thumbnail": "https://i.ytimg.com/vi/yjjKEjEpHRc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDjSM9eKJVD99Gc9y4y2s68UXbNjg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=zKSaL0bJJvc": {
+          "title": "Secondhand (feat. Rema)",
+          "url": "https://music.youtube.com/watch?v=zKSaL0bJJvc",
+          "thumbnail": "https://i.ytimg.com/vi/zKSaL0bJJvc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDwQNFw9U29-qjgS8cmXEHvoNg07A",
+          "count": 1
         }
       }
     },
     "1066462518903570503": {
-      "listeningTimeMs": 33903230,
+      "listeningTimeMs": 34135442,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0,
       "username": "tedescoduro",
@@ -2837,7 +2987,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 2
+          "count": 3
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -3832,8 +3982,8 @@
       }
     },
     "1373779309877006482": {
-      "listeningTimeMs": 60936841,
-      "serverPlaylistAdds": 1,
+      "listeningTimeMs": 64419608,
+      "serverPlaylistAdds": 2,
       "personalPlaylistAdds": 0,
       "username": "lil_nga0542_15301",
       "global_name": "Lil_NGA",
@@ -4336,7 +4486,7 @@
           "title": "Samsung",
           "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
           "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-          "count": 2
+          "count": 4
         },
         "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
           "title": "Sex Appeal",
@@ -5375,13 +5525,133 @@
           "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
           "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
           "count": 1
+        },
+        "https://music.youtube.com/watch?v=VrLwRDOVQ6U": {
+          "title": "E85",
+          "url": "https://music.youtube.com/watch?v=VrLwRDOVQ6U",
+          "thumbnail": "https://i.ytimg.com/vi/VrLwRDOVQ6U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxhR-jaHoR8WPsMJst-v8nmdkFqQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=JiNxvNtlBPM": {
+          "title": "Body",
+          "url": "https://music.youtube.com/watch?v=JiNxvNtlBPM",
+          "thumbnail": "https://i.ytimg.com/vi/JiNxvNtlBPM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDLJLLqmT6OnyIjMAsPR_XjDB57vQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=yjjKEjEpHRc": {
+          "title": "Rendezvous (feat. Yeat)",
+          "url": "https://music.youtube.com/watch?v=yjjKEjEpHRc",
+          "thumbnail": "https://i.ytimg.com/vi/yjjKEjEpHRc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDjSM9eKJVD99Gc9y4y2s68UXbNjg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=zKSaL0bJJvc": {
+          "title": "Secondhand (feat. Rema)",
+          "url": "https://music.youtube.com/watch?v=zKSaL0bJJvc",
+          "thumbnail": "https://i.ytimg.com/vi/zKSaL0bJJvc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDwQNFw9U29-qjgS8cmXEHvoNg07A",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=_pqiY9FbWd8": {
+          "title": "Tiramisu",
+          "url": "https://music.youtube.com/watch?v=_pqiY9FbWd8",
+          "thumbnail": "https://i.ytimg.com/vi/_pqiY9FbWd8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB1veB9JbGUaxe89aEdkXtnRTspoA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=afLW6svh-8U": {
+          "title": "ATM",
+          "url": "https://music.youtube.com/watch?v=afLW6svh-8U",
+          "thumbnail": "https://i.ytimg.com/vi/afLW6svh-8U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAz1ge_vT6rjlSWF8VcDdv27PgXMA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wwOk_UPqcZk": {
+          "title": "Long Way To Calabasas",
+          "url": "https://music.youtube.com/watch?v=wwOk_UPqcZk",
+          "thumbnail": "https://i.ytimg.com/vi/wwOk_UPqcZk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7pVgzLnIypR--8IDU0FHqvqZftw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=Ppa3f4X8qQg": {
+          "title": "Rosary (feat. Travis Scott)",
+          "url": "https://music.youtube.com/watch?v=Ppa3f4X8qQg",
+          "thumbnail": "https://i.ytimg.com/vi/Ppa3f4X8qQg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBPjL-zFc6WNGkwn_-USj0sC9Y5FA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=LHxR-hl-F_8": {
+          "title": "All The Signs (feat. Teezo Touchdown)",
+          "url": "https://music.youtube.com/watch?v=LHxR-hl-F_8",
+          "thumbnail": "https://i.ytimg.com/vi/LHxR-hl-F_8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB2ZdMkn0ASctiP8DlMoBqddeqJ6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=dlLdnd3VF-0": {
+          "title": "Call Back",
+          "url": "https://music.youtube.com/watch?v=dlLdnd3VF-0",
+          "thumbnail": "https://i.ytimg.com/vi/dlLdnd3VF-0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZ-0AdI3gTZJRpXFLh1OUiSM1jlw",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=AVa8HsLz1Ps": {
+          "title": "Tuition",
+          "url": "https://music.youtube.com/watch?v=AVa8HsLz1Ps",
+          "thumbnail": "https://i.ytimg.com/vi/AVa8HsLz1Ps/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA_6vDv83FiUG4i4isjGG8qsla7dA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=UbDH5bZPyh0": {
+          "title": "K9 (feat. SahBabii)",
+          "url": "https://music.youtube.com/watch?v=UbDH5bZPyh0",
+          "thumbnail": "https://i.ytimg.com/vi/UbDH5bZPyh0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMvKlYFRi1qhxLcQO_ygi55GRSFg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9aEmqlZ8uEg": {
+          "title": "Excavator",
+          "url": "https://music.youtube.com/watch?v=9aEmqlZ8uEg",
+          "thumbnail": "https://i.ytimg.com/vi/9aEmqlZ8uEg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPO5d8OyEOkkYudBvJmjAx7gmC1g",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=DUCmK5px7vU": {
+          "title": "Gemstone",
+          "url": "https://music.youtube.com/watch?v=DUCmK5px7vU",
+          "thumbnail": "https://i.ytimg.com/vi/DUCmK5px7vU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCXpJHFmzt4am0HHYl8-_BqJmgQnA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9vav7wGQH2Q": {
+          "title": "OPPOSITE",
+          "url": "https://music.youtube.com/watch?v=9vav7wGQH2Q",
+          "thumbnail": "https://i.ytimg.com/vi/9vav7wGQH2Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5ul3GklB42QACRK6VuEstmwbWiA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wGffa1nXFg4": {
+          "title": "TMU",
+          "url": "https://music.youtube.com/watch?v=wGffa1nXFg4",
+          "thumbnail": "https://i.ytimg.com/vi/wGffa1nXFg4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD-p_9mEDYhyvp5bWrcwNp-hQ9giw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=NGS655KAf8o": {
+          "title": "Pleasure’s Mine",
+          "url": "https://music.youtube.com/watch?v=NGS655KAf8o",
+          "thumbnail": "https://i.ytimg.com/vi/NGS655KAf8o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2OLbpG_W2w-kCUWNR_1803l6y6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=mS7xDOmw14A": {
+          "title": "Sweet Home",
+          "url": "https://music.youtube.com/watch?v=mS7xDOmw14A",
+          "thumbnail": "https://i.ytimg.com/vi/mS7xDOmw14A/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLARecm-4ux7MPMSy9sFHpHb1e_DfA",
+          "count": 3
+        },
+        "https://www.youtube.com/watch?v=8f1GfvVI2IE": {
+          "title": "Night Skinny, Tony Boy, Kid Yugi, Capo Plaza - Entro nel posto (Visual)",
+          "url": "https://www.youtube.com/watch?v=8f1GfvVI2IE",
+          "thumbnail": "https://i.ytimg.com/vi/8f1GfvVI2IE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8LuOvh8FfDQXLdUXus1I88ObhIQ",
+          "count": 2
+        },
+        "https://www.youtube.com/watch?v=lMqG7YfXu6s": {
+          "title": "Tony Boy - Nn so se (feat. Kid Yugi)",
+          "url": "https://www.youtube.com/watch?v=lMqG7YfXu6s",
+          "thumbnail": "https://i.ytimg.com/vi/lMqG7YfXu6s/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIGEoQDAP&rs=AOn4CLBnuTFupTLx7APONOqPouuabC_4BA",
+          "count": 1
         }
       }
     },
     "717842969331367986": {
-      "listeningTimeMs": 28594995,
-      "serverPlaylistAdds": 5,
-      "personalPlaylistAdds": 5,
+      "listeningTimeMs": 32376631,
+      "serverPlaylistAdds": 21,
+      "personalPlaylistAdds": 23,
       "username": "alex_the_real",
       "global_name": "Lil Alex",
       "avatar": "98f6b206d11cc9d759ab66494df3cd7c",
@@ -6382,6 +6652,138 @@
           "url": "https://music.youtube.com/watch?v=9i8etMz0BdE",
           "thumbnail": "https://i.ytimg.com/vi/9i8etMz0BdE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCjqFTvau02zAMpXdWXQgbFY9urrg",
           "count": 1
+        },
+        "https://music.youtube.com/watch?v=jML_xQQ8Yjc": {
+          "title": "Samsung",
+          "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
+          "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
+          "count": 4
+        },
+        "https://music.youtube.com/watch?v=4Iuo_edrgC0": {
+          "title": "WAKE UP",
+          "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+          "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=VrLwRDOVQ6U": {
+          "title": "E85",
+          "url": "https://music.youtube.com/watch?v=VrLwRDOVQ6U",
+          "thumbnail": "https://i.ytimg.com/vi/VrLwRDOVQ6U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxhR-jaHoR8WPsMJst-v8nmdkFqQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=JiNxvNtlBPM": {
+          "title": "Body",
+          "url": "https://music.youtube.com/watch?v=JiNxvNtlBPM",
+          "thumbnail": "https://i.ytimg.com/vi/JiNxvNtlBPM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDLJLLqmT6OnyIjMAsPR_XjDB57vQ",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=yjjKEjEpHRc": {
+          "title": "Rendezvous (feat. Yeat)",
+          "url": "https://music.youtube.com/watch?v=yjjKEjEpHRc",
+          "thumbnail": "https://i.ytimg.com/vi/yjjKEjEpHRc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDjSM9eKJVD99Gc9y4y2s68UXbNjg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=zKSaL0bJJvc": {
+          "title": "Secondhand (feat. Rema)",
+          "url": "https://music.youtube.com/watch?v=zKSaL0bJJvc",
+          "thumbnail": "https://i.ytimg.com/vi/zKSaL0bJJvc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDwQNFw9U29-qjgS8cmXEHvoNg07A",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=_pqiY9FbWd8": {
+          "title": "Tiramisu",
+          "url": "https://music.youtube.com/watch?v=_pqiY9FbWd8",
+          "thumbnail": "https://i.ytimg.com/vi/_pqiY9FbWd8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB1veB9JbGUaxe89aEdkXtnRTspoA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=afLW6svh-8U": {
+          "title": "ATM",
+          "url": "https://music.youtube.com/watch?v=afLW6svh-8U",
+          "thumbnail": "https://i.ytimg.com/vi/afLW6svh-8U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAz1ge_vT6rjlSWF8VcDdv27PgXMA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wwOk_UPqcZk": {
+          "title": "Long Way To Calabasas",
+          "url": "https://music.youtube.com/watch?v=wwOk_UPqcZk",
+          "thumbnail": "https://i.ytimg.com/vi/wwOk_UPqcZk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7pVgzLnIypR--8IDU0FHqvqZftw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=Ppa3f4X8qQg": {
+          "title": "Rosary (feat. Travis Scott)",
+          "url": "https://music.youtube.com/watch?v=Ppa3f4X8qQg",
+          "thumbnail": "https://i.ytimg.com/vi/Ppa3f4X8qQg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBPjL-zFc6WNGkwn_-USj0sC9Y5FA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=LHxR-hl-F_8": {
+          "title": "All The Signs (feat. Teezo Touchdown)",
+          "url": "https://music.youtube.com/watch?v=LHxR-hl-F_8",
+          "thumbnail": "https://i.ytimg.com/vi/LHxR-hl-F_8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB2ZdMkn0ASctiP8DlMoBqddeqJ6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=dlLdnd3VF-0": {
+          "title": "Call Back",
+          "url": "https://music.youtube.com/watch?v=dlLdnd3VF-0",
+          "thumbnail": "https://i.ytimg.com/vi/dlLdnd3VF-0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZ-0AdI3gTZJRpXFLh1OUiSM1jlw",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=AVa8HsLz1Ps": {
+          "title": "Tuition",
+          "url": "https://music.youtube.com/watch?v=AVa8HsLz1Ps",
+          "thumbnail": "https://i.ytimg.com/vi/AVa8HsLz1Ps/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA_6vDv83FiUG4i4isjGG8qsla7dA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=UbDH5bZPyh0": {
+          "title": "K9 (feat. SahBabii)",
+          "url": "https://music.youtube.com/watch?v=UbDH5bZPyh0",
+          "thumbnail": "https://i.ytimg.com/vi/UbDH5bZPyh0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMvKlYFRi1qhxLcQO_ygi55GRSFg",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9aEmqlZ8uEg": {
+          "title": "Excavator",
+          "url": "https://music.youtube.com/watch?v=9aEmqlZ8uEg",
+          "thumbnail": "https://i.ytimg.com/vi/9aEmqlZ8uEg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPO5d8OyEOkkYudBvJmjAx7gmC1g",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=DUCmK5px7vU": {
+          "title": "Gemstone",
+          "url": "https://music.youtube.com/watch?v=DUCmK5px7vU",
+          "thumbnail": "https://i.ytimg.com/vi/DUCmK5px7vU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCXpJHFmzt4am0HHYl8-_BqJmgQnA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=9vav7wGQH2Q": {
+          "title": "OPPOSITE",
+          "url": "https://music.youtube.com/watch?v=9vav7wGQH2Q",
+          "thumbnail": "https://i.ytimg.com/vi/9vav7wGQH2Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5ul3GklB42QACRK6VuEstmwbWiA",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=wGffa1nXFg4": {
+          "title": "TMU",
+          "url": "https://music.youtube.com/watch?v=wGffa1nXFg4",
+          "thumbnail": "https://i.ytimg.com/vi/wGffa1nXFg4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD-p_9mEDYhyvp5bWrcwNp-hQ9giw",
+          "count": 1
+        },
+        "https://music.youtube.com/watch?v=NGS655KAf8o": {
+          "title": "Pleasure’s Mine",
+          "url": "https://music.youtube.com/watch?v=NGS655KAf8o",
+          "thumbnail": "https://i.ytimg.com/vi/NGS655KAf8o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2OLbpG_W2w-kCUWNR_1803l6y6Q",
+          "count": 2
+        },
+        "https://music.youtube.com/watch?v=mS7xDOmw14A": {
+          "title": "Sweet Home",
+          "url": "https://music.youtube.com/watch?v=mS7xDOmw14A",
+          "thumbnail": "https://i.ytimg.com/vi/mS7xDOmw14A/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLARecm-4ux7MPMSy9sFHpHb1e_DfA",
+          "count": 3
+        },
+        "https://www.youtube.com/watch?v=8f1GfvVI2IE": {
+          "title": "Night Skinny, Tony Boy, Kid Yugi, Capo Plaza - Entro nel posto (Visual)",
+          "url": "https://www.youtube.com/watch?v=8f1GfvVI2IE",
+          "thumbnail": "https://i.ytimg.com/vi/8f1GfvVI2IE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8LuOvh8FfDQXLdUXus1I88ObhIQ",
+          "count": 2
+        },
+        "https://www.youtube.com/watch?v=lMqG7YfXu6s": {
+          "title": "Tony Boy - Nn so se (feat. Kid Yugi)",
+          "url": "https://www.youtube.com/watch?v=lMqG7YfXu6s",
+          "thumbnail": "https://i.ytimg.com/vi/lMqG7YfXu6s/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIGEoQDAP&rs=AOn4CLBnuTFupTLx7APONOqPouuabC_4BA",
+          "count": 1
         }
       }
     },
@@ -6446,8 +6848,8 @@
     }
   },
   "global": {
-    "songsStarted": 638,
-    "songsCompleted": 416,
+    "songsStarted": 689,
+    "songsCompleted": 450,
     "songPlays": {
       "https://www.youtube.com/watch?v=_rWrnS3-2Bs": {
         "title": "Shiva - Gotham feat. Kid Yugi (Audio)",
@@ -6507,7 +6909,7 @@
         "title": "Tony Boy - Nn so se (feat. Kid Yugi)",
         "url": "https://www.youtube.com/watch?v=lMqG7YfXu6s",
         "thumbnail": "https://i.ytimg.com/vi/lMqG7YfXu6s/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIGEoQDAP&rs=AOn4CLBnuTFupTLx7APONOqPouuabC_4BA",
-        "count": 1
+        "count": 2
       },
       "https://music.youtube.com/watch?v=5VoR_I_f0io": {
         "title": "BIG CEO",
@@ -6537,7 +6939,7 @@
         "title": "Night Skinny, Tony Boy, Kid Yugi, Capo Plaza - Entro nel posto (Visual)",
         "url": "https://www.youtube.com/watch?v=8f1GfvVI2IE",
         "thumbnail": "https://i.ytimg.com/vi/8f1GfvVI2IE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8LuOvh8FfDQXLdUXus1I88ObhIQ",
-        "count": 1
+        "count": 3
       },
       "https://www.youtube.com/watch?v=FGrCZVWCNO8": {
         "title": "NON NE VALI LA PENA",
@@ -7101,7 +7503,7 @@
         "title": "Samsung",
         "url": "https://music.youtube.com/watch?v=jML_xQQ8Yjc",
         "thumbnail": "https://i.ytimg.com/vi/jML_xQQ8Yjc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDzUSS-oENTFY13o5GEqLfu1iO2qg",
-        "count": 2
+        "count": 8
       },
       "https://music.youtube.com/watch?v=VxBBg5HdaCg": {
         "title": "Sex Appeal",
@@ -8164,8 +8566,122 @@
         "url": "https://www.youtube.com/watch?v=22Nh1jj_FQM",
         "thumbnail": "https://i.ytimg.com/vi/22Nh1jj_FQM/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBp3bGLnsAWSPjsg3c6IowC1j7osA",
         "count": 1
+      },
+      "https://music.youtube.com/watch?v=4Iuo_edrgC0": {
+        "title": "WAKE UP",
+        "url": "https://music.youtube.com/watch?v=4Iuo_edrgC0",
+        "thumbnail": "https://i.ytimg.com/vi/4Iuo_edrgC0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC8XdbonIfRPLdQp21EMoNhfW9eWQ",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=VrLwRDOVQ6U": {
+        "title": "E85",
+        "url": "https://music.youtube.com/watch?v=VrLwRDOVQ6U",
+        "thumbnail": "https://i.ytimg.com/vi/VrLwRDOVQ6U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBxhR-jaHoR8WPsMJst-v8nmdkFqQ",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=JiNxvNtlBPM": {
+        "title": "Body",
+        "url": "https://music.youtube.com/watch?v=JiNxvNtlBPM",
+        "thumbnail": "https://i.ytimg.com/vi/JiNxvNtlBPM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDLJLLqmT6OnyIjMAsPR_XjDB57vQ",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=yjjKEjEpHRc": {
+        "title": "Rendezvous (feat. Yeat)",
+        "url": "https://music.youtube.com/watch?v=yjjKEjEpHRc",
+        "thumbnail": "https://i.ytimg.com/vi/yjjKEjEpHRc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDjSM9eKJVD99Gc9y4y2s68UXbNjg",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=zKSaL0bJJvc": {
+        "title": "Secondhand (feat. Rema)",
+        "url": "https://music.youtube.com/watch?v=zKSaL0bJJvc",
+        "thumbnail": "https://i.ytimg.com/vi/zKSaL0bJJvc/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDwQNFw9U29-qjgS8cmXEHvoNg07A",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=_pqiY9FbWd8": {
+        "title": "Tiramisu",
+        "url": "https://music.youtube.com/watch?v=_pqiY9FbWd8",
+        "thumbnail": "https://i.ytimg.com/vi/_pqiY9FbWd8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB1veB9JbGUaxe89aEdkXtnRTspoA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=afLW6svh-8U": {
+        "title": "ATM",
+        "url": "https://music.youtube.com/watch?v=afLW6svh-8U",
+        "thumbnail": "https://i.ytimg.com/vi/afLW6svh-8U/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAz1ge_vT6rjlSWF8VcDdv27PgXMA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=wwOk_UPqcZk": {
+        "title": "Long Way To Calabasas",
+        "url": "https://music.youtube.com/watch?v=wwOk_UPqcZk",
+        "thumbnail": "https://i.ytimg.com/vi/wwOk_UPqcZk/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLC7pVgzLnIypR--8IDU0FHqvqZftw",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=Ppa3f4X8qQg": {
+        "title": "Rosary (feat. Travis Scott)",
+        "url": "https://music.youtube.com/watch?v=Ppa3f4X8qQg",
+        "thumbnail": "https://i.ytimg.com/vi/Ppa3f4X8qQg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLBPjL-zFc6WNGkwn_-USj0sC9Y5FA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=LHxR-hl-F_8": {
+        "title": "All The Signs (feat. Teezo Touchdown)",
+        "url": "https://music.youtube.com/watch?v=LHxR-hl-F_8",
+        "thumbnail": "https://i.ytimg.com/vi/LHxR-hl-F_8/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB2ZdMkn0ASctiP8DlMoBqddeqJ6Q",
+        "count": 2
+      },
+      "https://music.youtube.com/watch?v=dlLdnd3VF-0": {
+        "title": "Call Back",
+        "url": "https://music.youtube.com/watch?v=dlLdnd3VF-0",
+        "thumbnail": "https://i.ytimg.com/vi/dlLdnd3VF-0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAZ-0AdI3gTZJRpXFLh1OUiSM1jlw",
+        "count": 2
+      },
+      "https://music.youtube.com/watch?v=AVa8HsLz1Ps": {
+        "title": "Tuition",
+        "url": "https://music.youtube.com/watch?v=AVa8HsLz1Ps",
+        "thumbnail": "https://i.ytimg.com/vi/AVa8HsLz1Ps/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLA_6vDv83FiUG4i4isjGG8qsla7dA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=UbDH5bZPyh0": {
+        "title": "K9 (feat. SahBabii)",
+        "url": "https://music.youtube.com/watch?v=UbDH5bZPyh0",
+        "thumbnail": "https://i.ytimg.com/vi/UbDH5bZPyh0/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCMvKlYFRi1qhxLcQO_ygi55GRSFg",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=9aEmqlZ8uEg": {
+        "title": "Excavator",
+        "url": "https://music.youtube.com/watch?v=9aEmqlZ8uEg",
+        "thumbnail": "https://i.ytimg.com/vi/9aEmqlZ8uEg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCPO5d8OyEOkkYudBvJmjAx7gmC1g",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=DUCmK5px7vU": {
+        "title": "Gemstone",
+        "url": "https://music.youtube.com/watch?v=DUCmK5px7vU",
+        "thumbnail": "https://i.ytimg.com/vi/DUCmK5px7vU/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLCXpJHFmzt4am0HHYl8-_BqJmgQnA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=9vav7wGQH2Q": {
+        "title": "OPPOSITE",
+        "url": "https://music.youtube.com/watch?v=9vav7wGQH2Q",
+        "thumbnail": "https://i.ytimg.com/vi/9vav7wGQH2Q/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLB5ul3GklB42QACRK6VuEstmwbWiA",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=wGffa1nXFg4": {
+        "title": "TMU",
+        "url": "https://music.youtube.com/watch?v=wGffa1nXFg4",
+        "thumbnail": "https://i.ytimg.com/vi/wGffa1nXFg4/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD-p_9mEDYhyvp5bWrcwNp-hQ9giw",
+        "count": 1
+      },
+      "https://music.youtube.com/watch?v=NGS655KAf8o": {
+        "title": "Pleasure’s Mine",
+        "url": "https://music.youtube.com/watch?v=NGS655KAf8o",
+        "thumbnail": "https://i.ytimg.com/vi/NGS655KAf8o/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLD2OLbpG_W2w-kCUWNR_1803l6y6Q",
+        "count": 2
+      },
+      "https://music.youtube.com/watch?v=mS7xDOmw14A": {
+        "title": "Sweet Home",
+        "url": "https://music.youtube.com/watch?v=mS7xDOmw14A",
+        "thumbnail": "https://i.ytimg.com/vi/mS7xDOmw14A/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLARecm-4ux7MPMSy9sFHpHb1e_DfA",
+        "count": 3
       }
     }
   },
-  "lastUpdated": "2026-03-17T19:59:47.260Z"
+  "lastUpdated": "2026-03-19T14:32:16.079Z"
 }
