@@ -105,10 +105,13 @@ client.once('clientReady', () => {
         try {
             const now = new Date();
             // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
-            const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
+            // Usa toLocaleString('en-US') per avere un formato parsabile in modo consistente in Node
+            const romaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
             const day = romaTime.getDate();
             const hour = romaTime.getHours();
-            const dateKey = `${day}-${romaTime.getMonth() + 1}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
+            const month = romaTime.getMonth() + 1;
+            const year = romaTime.getFullYear();
+            const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // Per evitare push multipli lo stesso giorno
 
             // Debug sulla schedulazione
             console.log(`🔁 [STATS-PUSH] Check: Rome date=${romaTime.toLocaleString('it-IT')} day=${day} hour=${hour} dateKey=${dateKey}`);
