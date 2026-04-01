@@ -41,6 +41,26 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
 });
 
+// ─── AUTO-PUSH STATS STATE MANAGEMENT ─────────────────────────────────────
+const PUSH_STATE_FILE = path.join('./data', 'pushState.json');
+
+function loadPushState() {
+    if (!fs.existsSync(PUSH_STATE_FILE)) {
+        return { lastPushDate: null };
+    }
+    try {
+        return JSON.parse(fs.readFileSync(PUSH_STATE_FILE, 'utf-8'));
+    } catch {
+        return { lastPushDate: null };
+    }
+}
+
+function savePushState(state) {
+    const dir = path.dirname(PUSH_STATE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PUSH_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+}
+
 // Punto di ingresso minimo: crea client, registra handler e fai login
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages] });
 
@@ -99,7 +119,6 @@ client.once('clientReady', () => {
     // Controlla ogni minuto se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
     const { pushStats } = require('./scripts/push-stats');
     const { flushAllGuildsAndSave } = require('./src/database/stats');
-    let lastPushDate = null; // Traccia l'ultima volta che ha fatto push per evitare duplicati
 
     const tryPushStats = () => {
         try {
@@ -113,8 +132,10 @@ client.once('clientReady', () => {
             const year = romaTime.getFullYear();
             const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // Per evitare push multipli lo stesso giorno
 
+            const pushState = loadPushState();
+
             // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
-            if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
+            if (day === 1 && hour >= 10 && pushState.lastPushDate !== dateKey) {
                 // Flush eventuali dati in memoria su disco prima del push (altrimenti non include i listener attivi)
                 try {
                     flushAllGuildsAndSave();
@@ -125,7 +146,8 @@ client.once('clientReady', () => {
                 console.log('📤 [STATS-PUSH] Pushing stats del mese alle', romaTime.toLocaleTimeString('it-IT'));
                 const success = pushStats();
                 if (success) {
-                    lastPushDate = dateKey; // Segna che ha fatto push
+                    pushState.lastPushDate = dateKey; // Segna che ha fatto push
+                    savePushState(pushState); // Salva su disco
                     console.log('✅ [STATS-PUSH] Stats pushed successfully to GitHub');
                 } else {
                     console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
