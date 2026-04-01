@@ -4391,6 +4391,24 @@
       "duration": 106,
       "requester": "704006042819756083",
       "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Fall out",
+      "url": "https://www.youtube.com/watch?v=mOXoAke26ug",
+      "thumbnail": "https://i.ytimg.com/vi_webp/mOXoAke26ug/maxresdefault.webp",
+      "isLive": false,
+      "duration": 140,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Dorian Gray",
+      "url": "https://www.youtube.com/watch?v=TiodMDDDL3M",
+      "thumbnail": "https://i.ytimg.com/vi_webp/TiodMDDDL3M/maxresdefault.webp",
+      "isLive": false,
+      "duration": 136,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
     }
   ],
   "users": {
@@ -5062,6 +5080,14 @@
             "isLive": false,
             "duration": 165,
             "requester": "704006042819756083"
+          },
+          {
+            "title": "Fall out",
+            "url": "https://www.youtube.com/watch?v=mOXoAke26ug",
+            "thumbnail": "https://i.ytimg.com/vi_webp/mOXoAke26ug/maxresdefault.webp",
+            "isLive": false,
+            "duration": 140,
+            "requester": "704006042819756083"
           }
         ],
         "Artie 5ive": [
@@ -5609,7 +5635,7 @@
           }
         ]
       },
-      "activePlaylist": "Generale"
+      "activePlaylist": "Kid Yugi"
     },
     "717842969331367986": {
       "playlists": {
