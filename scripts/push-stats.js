@@ -158,8 +158,20 @@ function pushStats(forceArchive = false) {
         console.log('✅ Commit created successfully');
 
         // Fai il push sul branch corrente per ridurre errori di branch mismatch
-        execSync('git push origin HEAD', { encoding: 'utf-8' });
-        console.log('✅ File dati persistenti pushati su GitHub con successo');
+        try {
+            execSync('git push origin HEAD', { encoding: 'utf-8' });
+            console.log('✅ File dati persistenti pushati su GitHub con successo');
+        } catch (pushErr) {
+            console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
+            try {
+                execSync('git pull --rebase origin main', { encoding: 'utf-8' });
+                execSync('git push origin HEAD', { encoding: 'utf-8' });
+                console.log('✅ Push riuscito dopo rebase');
+            } catch (rebaseErr) {
+                console.error('❌ [STATS-PUSH] Ritento push fallito:', rebaseErr.message);
+                return false;
+            }
+        }
 
         // Se era un archiving mensile, resetta stats.json DOPO il push riuscito
         if (shouldArchive) {
