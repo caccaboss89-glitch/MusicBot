@@ -22,7 +22,8 @@ function shouldArchiveMonthlyStats(now = new Date()) {
 }
 
 /**
- * Archiva le statistiche del mese precedente e resetta stats.json
+ * Archiva le statistiche del mese precedente (crea backup in monthly-stats/)
+ * NON resetta stats.json — il reset avviene DOPO il push riuscito
  */
 function archiveMonthlyStats() {
     try {
@@ -63,17 +64,28 @@ function archiveMonthlyStats() {
         fs.writeFileSync(backupFilePath, JSON.stringify(statsData, null, 2), 'utf-8');
         console.log(`📊 Archived monthly stats to: ${backupFilePath}`);
 
-        // Resetta stats.json con struttura vuota
+        return true;
+    } catch (e) {
+        console.error('❌ Error archiving monthly stats:', e.message);
+        return false;
+    }
+}
+
+/**
+ * Resetta stats.json con struttura vuota per il nuovo mese
+ * Chiamato DOPO il push riuscito
+ */
+function resetStatsFile() {
+    try {
         const emptyStats = {
             users: {},
             global: { songsStarted: 0, songsCompleted: 0, songPlays: {} }
         };
         fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
         console.log('🧹 Stats file cleared and reset for new month');
-
         return true;
     } catch (e) {
-        console.error('❌ Error archiving monthly stats:', e.message);
+        console.error('❌ Error resetting stats file:', e.message);
         return false;
     }
 }
@@ -148,6 +160,11 @@ function pushStats(forceArchive = false) {
         // Fai il push sul branch corrente per ridurre errori di branch mismatch
         execSync('git push origin HEAD', { encoding: 'utf-8' });
         console.log('✅ File dati persistenti pushati su GitHub con successo');
+
+        // Se era un archiving mensile, resetta stats.json DOPO il push riuscito
+        if (shouldArchive) {
+            resetStatsFile();
+        }
 
         return true;
 

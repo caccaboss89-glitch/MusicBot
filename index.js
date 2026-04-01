@@ -113,9 +113,6 @@ client.once('clientReady', () => {
             const year = romaTime.getFullYear();
             const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // Per evitare push multipli lo stesso giorno
 
-            // Debug sulla schedulazione
-            console.log(`🔁 [STATS-PUSH] Check: Rome date=${romaTime.toLocaleString('it-IT')} day=${day} hour=${hour} dateKey=${dateKey}`);
-
             // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
             if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
                 // Flush eventuali dati in memoria su disco prima del push (altrimenti non include i listener attivi)
