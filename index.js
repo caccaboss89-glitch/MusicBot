@@ -98,6 +98,7 @@ client.once('clientReady', () => {
     // ── AUTO-PUSH STATS (Daily check per garantire push il 1° del mese) ────────────────────────────────────────────
     // Controlla ogni minuto se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
     const { pushStats } = require('./scripts/push-stats');
+    const { flushAllGuildsAndSave } = require('./src/database/stats');
     let lastPushDate = null; // Traccia l'ultima volta che ha fatto push per evitare duplicati
 
     const tryPushStats = () => {
@@ -107,10 +108,20 @@ client.once('clientReady', () => {
             const romaTime = new Date(now.toLocaleString('it-IT', { timeZone: 'Europe/Rome' }));
             const day = romaTime.getDate();
             const hour = romaTime.getHours();
-            const dateKey = `${day}-${romaTime.getMonth()}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
+            const dateKey = `${day}-${romaTime.getMonth() + 1}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
+
+            // Debug sulla schedulazione
+            console.log(`🔁 [STATS-PUSH] Check: Rome date=${romaTime.toLocaleString('it-IT')} day=${day} hour=${hour} dateKey=${dateKey}`);
 
             // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
             if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
+                // Flush eventuali dati in memoria su disco prima del push (altrimenti non include i listener attivi)
+                try {
+                    flushAllGuildsAndSave();
+                } catch (flushErr) {
+                    console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
+                }
+
                 console.log('📤 [STATS-PUSH] Pushing stats del mese alle', romaTime.toLocaleTimeString('it-IT'));
                 const success = pushStats();
                 if (success) {

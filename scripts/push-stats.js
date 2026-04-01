@@ -103,11 +103,10 @@ function pushStats(forceArchive = false) {
             console.warn('⚠️ Git config may be already set:', e.message);
         }
 
-        // Controlla se il branch attuale è 'main'
+        // Controlla se il branch attuale è 'main', ma non blocca il push in caso di branch diverso
         const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
         if (currentBranch !== 'main') {
-            console.log(`⚠️ Not on main branch (current: ${currentBranch}), skipping push`);
-            return false;
+            console.warn(`⚠️ Branch corrente: ${currentBranch} (non 'main'), procederò comunque con il commit/push su questo branch`);
         }
 
         if (shouldArchive) {
@@ -146,8 +145,8 @@ function pushStats(forceArchive = false) {
         execSync(`git commit -m "${commitMsg}"`, { encoding: 'utf-8' });
         console.log('✅ Commit created successfully');
 
-        // Fai il push
-        execSync('git push origin main', { encoding: 'utf-8' });
+        // Fai il push sul branch corrente per ridurre errori di branch mismatch
+        execSync('git push origin HEAD', { encoding: 'utf-8' });
         console.log('✅ File dati persistenti pushati su GitHub con successo');
 
         return true;
