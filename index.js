@@ -96,11 +96,11 @@ client.once('clientReady', () => {
     console.log(`Logged in as ${client.user?.tag}`);
     
     // ── AUTO-PUSH STATS (Daily check per garantire push il 1° del mese) ────────────────────────────────────────────
-    // Controlla ogni ora se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
+    // Controlla ogni minuto se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
     const { pushStats } = require('./scripts/push-stats');
     let lastPushDate = null; // Traccia l'ultima volta che ha fatto push per evitare duplicati
-    
-    setInterval(() => {
+
+    const tryPushStats = () => {
         try {
             const now = new Date();
             // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
@@ -108,7 +108,7 @@ client.once('clientReady', () => {
             const day = romaTime.getDate();
             const hour = romaTime.getHours();
             const dateKey = `${day}-${romaTime.getMonth()}-${romaTime.getFullYear()}`; // Per evitare push multipli lo stesso giorno
-            
+
             // Controlla se è il 1° del mese e l'ora è >= 10:00 e non ha già fatto push oggi
             if (day === 1 && hour >= 10 && dateKey !== lastPushDate) {
                 console.log('📤 [STATS-PUSH] Pushing stats del mese alle', romaTime.toLocaleTimeString('it-IT'));
@@ -123,7 +123,11 @@ client.once('clientReady', () => {
         } catch (e) {
             console.error('❌ [STATS-PUSH] Errore durante interval check:', e.message);
         }
-    }, 60 * 1000); // Controlla ogni minuto
+    };
+
+    // Esegui un primo controllo subito (utile se il bot è partito a metà mattinata)
+    tryPushStats();
+    setInterval(tryPushStats, 60 * 1000); // Controlla ogni minuto
 });
 
 // ─── GRACEFUL SHUTDOWN ───────────────────────────────────────────
