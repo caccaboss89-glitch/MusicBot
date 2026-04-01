@@ -4328,6 +4328,69 @@
       "requester": "1373779309877006482",
       "duration": 201,
       "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Melons - Man Down 2!",
+      "url": "https://www.youtube.com/watch?v=MTdk6HeGszM",
+      "thumbnail": "https://i.ytimg.com/vi/MTdk6HeGszM/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAiX5HLC-vdbnm1jevzOoOi3h7mvQ",
+      "isLive": false,
+      "duration": 118,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "MAN OF THE YEAR",
+      "url": "https://music.youtube.com/watch?v=y_6BDdzDOLg",
+      "thumbnail": "https://i.ytimg.com/vi/y_6BDdzDOLg/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDrS6tXy54wACteJk_WCdkeDfIiOw",
+      "isLive": false,
+      "duration": 184,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Nerissima Serpe - Diavoli (feat. Ernia)",
+      "url": "https://www.youtube.com/watch?v=5qz_S_Q8WFk",
+      "thumbnail": "https://i.ytimg.com/vi/5qz_S_Q8WFk/maxresdefault.jpg",
+      "isLive": false,
+      "duration": 173,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "4 Gambe",
+      "url": "https://music.youtube.com/watch?v=W-rGESY-UnA",
+      "thumbnail": "https://i.ytimg.com/vi/W-rGESY-UnA/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLDM9oXc2_hrurpnvJPeUFswdKgKQw",
+      "isLive": false,
+      "duration": 142,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "MASERATI CORRE FORTE (feat. Kid Yugi)",
+      "url": "https://www.youtube.com/watch?v=tO4QvE7eh5U",
+      "thumbnail": "https://i.ytimg.com/vi_webp/tO4QvE7eh5U/maxresdefault.webp",
+      "isLive": false,
+      "duration": 167,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
+    },
+    {
+      "title": "Bello Figo - VAI FABRI (Official Video) [prod. Tha Vanju]",
+      "url": "https://www.youtube.com/watch?v=2FV4M215DYs",
+      "thumbnail": "https://i.ytimg.com/vi/2FV4M215DYs/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBO4ssJsysy-X1U--k-o8dcG_NQpA",
+      "isLive": false,
+      "duration": 112,
+      "requester": "717842969331367986",
+      "addedBy": "717842969331367986"
+    },
+    {
+      "title": "Papa V rappa su un type beat di YG (prod. ABDXL) | ESSE TYPE BEAT",
+      "url": "https://www.youtube.com/watch?v=KqHVAvr7dKk",
+      "thumbnail": "https://i.ytimg.com/vi_webp/KqHVAvr7dKk/maxresdefault.webp",
+      "isLive": false,
+      "duration": 106,
+      "requester": "704006042819756083",
+      "addedBy": "704006042819756083"
     }
   ],
   "users": {
@@ -4501,6 +4564,14 @@
             "isLive": false,
             "requester": "704006042819756083",
             "duration": 271
+          },
+          {
+            "title": "Nerissima Serpe - Diavoli (feat. Ernia)",
+            "url": "https://www.youtube.com/watch?v=5qz_S_Q8WFk",
+            "thumbnail": "https://i.ytimg.com/vi/5qz_S_Q8WFk/maxresdefault.jpg",
+            "isLive": false,
+            "duration": 173,
+            "requester": "704006042819756083"
           }
         ],
         "Kid Yugi": [
@@ -6439,6 +6510,14 @@
             "isLive": false,
             "duration": 135,
             "requester": "717842969331367986"
+          },
+          {
+            "title": "Bello Figo - VAI FABRI (Official Video) [prod. Tha Vanju]",
+            "url": "https://www.youtube.com/watch?v=2FV4M215DYs",
+            "thumbnail": "https://i.ytimg.com/vi/2FV4M215DYs/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBO4ssJsysy-X1U--k-o8dcG_NQpA",
+            "isLive": false,
+            "duration": 112,
+            "requester": "717842969331367986"
           }
         ],
         "Sabrina TypeShit": [
@@ -6630,7 +6709,7 @@
           }
         ]
       },
-      "activePlaylist": "DonToliver TypeShit"
+      "activePlaylist": "BelloFigo TypeShit"
     },
     "1066462518903570503": {
       "playlists": {
