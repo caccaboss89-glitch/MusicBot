@@ -265,6 +265,10 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     send_log("info", "Tentativo di estrazione cookie dal browser Firefox...");
     yt_dlp_cmd.arg("--cookies-from-browser").arg("firefox");
 
+    // Abilita la cronologia
+    send_log("info", "yt-dlp mark-watched attivo: cronologia abilitata");
+    yt_dlp_cmd.arg("--mark-watched");
+
     let extractor_args = "youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web";
     send_log("info", &format!("yt-dlp extractor-args attivi: {}", extractor_args));
     yt_dlp_cmd.arg("--extractor-args").arg(extractor_args);
@@ -286,7 +290,10 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
             if let Ok(l) = line {
                 let trimmed = l.trim();
                 if !trimmed.is_empty() {
-                    if trimmed.to_lowercase().contains("error") {
+                    let lower = trimmed.to_lowercase();
+                    if lower.contains("error") || lower.contains("warning") && (lower.contains("cookies") || lower.contains("browser") || lower.contains("authenticate")) {
+                        send_log("warn", &format!("[yt-dlp] {}", trimmed));
+                    } else if lower.contains("error") {
                         send_log("error", &format!("[yt-dlp] {}", trimmed));
                     }
                 }
