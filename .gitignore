@@ -3,5 +3,6 @@ node_modules/
 logs/
 temp/
 audio_engine/target/
-youtube-cookies.txt
+audio_engine/Cargo.lock
 data/
+package-lock.json
