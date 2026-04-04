@@ -264,17 +264,22 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Estrai cookie dal browser Firefox, con fallback al file se disponibile
     send_log("info", "Configurazione cookie: provo Firefox first...");
     yt_dlp_cmd.arg("--cookies-from-browser").arg("firefox");
+    send_log("info", "[COOKIE-CHECK-START]");
     
     // Se Firefox non ha i cookie, fallback al file youtube-cookies.txt se esiste
     let cookies_file = format!("{}/youtube-cookies.txt", get_base_path());
+    send_log("info", &format!("[COOKIE-PATH]: {}", cookies_file));
+    
     let cookie_file_exists = std::path::Path::new(&cookies_file).exists();
+    send_log("info", &format!("[COOKIE-EXISTS]: {}", cookie_file_exists));
     
     if cookie_file_exists {
-        send_log("info", &format!("✅ File youtube-cookies.txt TROVATO: {}", cookies_file));
+        send_log("info", &format!("[COOKIE-USING-FILE]: yes"));
         yt_dlp_cmd.arg("--cookies").arg(&cookies_file);
     } else {
-        send_log("warn", &format!("⚠️ File youtube-cookies.txt NON TROVATO: {} | yt-dlp userà solo Firefox", cookies_file));
+        send_log("info", &format!("[COOKIE-USING-FILE]: no - firefox only"));
     }
+    send_log("info", "[COOKIE-CHECK-END]");
 
     // Abilita la cronologia
     send_log("info", "yt-dlp mark-watched attivo: cronologia abilitata");
