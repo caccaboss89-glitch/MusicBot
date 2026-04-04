@@ -1,5 +1,5 @@
 const { queue } = require('../state/globals');
-const { isBotAloneInChannel, scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
+const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
 const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS } = require('../../config');
 const stats = require('../database/stats');
 

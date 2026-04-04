@@ -3,7 +3,7 @@ const { queue } = require('../state/globals');
 const { getVideoInfo } = require('../utils/youtube');
 const { saveQueueState } = require('../queue/persistence');
 const { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished } = require('../ui');
-const { safeReply, cleanupOldMessages } = require('../utils/discord');
+const { cleanupOldMessages } = require('../utils/discord');
 const { MAX_QUEUE_SIZE } = require('../../config');
 const { clearFinishedQueue } = require('../queue/QueueManager');
 

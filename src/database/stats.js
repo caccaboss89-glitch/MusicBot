@@ -53,12 +53,14 @@ function loadStats() {
 
 function saveStats(data) {
     try {
-        // Assicura che la directory esista
         const dir = path.dirname(STATS_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
         data.lastUpdated = new Date().toISOString();
-        fs.writeFileSync(STATS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        // Scrittura atomica: scrivi su temp file, poi rinomina (previene corruzione su crash)
+        const tmpFile = STATS_FILE + '.tmp';
+        fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+        fs.renameSync(tmpFile, STATS_FILE);
     } catch (e) {
         console.error('❌ [STATS] Errore salvataggio stats:', e.message);
     }
@@ -136,6 +138,23 @@ function stopListening(guildId, userId) {
 // Buffer statico per il tempo pendente (non ancora scritto su disco)
 stopListening._pendingTime = {};
 
+const MAX_LISTENER_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+
+/**
+ * Rimuove listener orfani attivi da più di 24h (stale da crash/bug).
+ */
+function cleanupStaleListeners() {
+    const now = Date.now();
+    for (const [guildId, guildMap] of activeListeners) {
+        for (const [userId, startTime] of guildMap) {
+            if (now - startTime > MAX_LISTENER_AGE_MS) {
+                guildMap.delete(userId);
+            }
+        }
+        if (guildMap.size === 0) activeListeners.delete(guildId);
+    }
+}
+
 /**
  * Avvia il tracciamento per tutti gli umani nel canale vocale del bot.
  * Da chiamare quando il bot inizia a suonare o resume da pausa.
@@ -175,6 +194,9 @@ function stopAllListeners(guildId) {
  */
 function flushPendingAndSave() {
     try {
+        // Pulisci listener stalli (attivi da >24h sono certamente orfani)
+        cleanupStaleListeners();
+
         const pending = stopListening._pendingTime;
         if (!pending || Object.keys(pending).length === 0) return;
 

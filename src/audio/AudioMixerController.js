@@ -29,7 +29,6 @@ class AudioMixerController {
         this.hasCrashed = false;
         this.generation = getNextMixerGeneration(); // ID univoco per questo mixer
         this.logStream = null;
-        this._bufferReadyTimestamps = {}; // deck -> ms
     }
 
     start() {
@@ -75,7 +74,11 @@ class AudioMixerController {
         this.isAlive = true;
         this.stdoutClosed = false;
 
-        // Chiudi eventuale readline precedente
+        // Chiudi risorse precedenti prima di riavviare
+        if (this.logStream) {
+            try { this.logStream.end(); } catch(e) {}
+            this.logStream = null;
+        }
         if (this.stderrReadline) {
             this.stderrReadline.close();
             this.stderrReadline = null;
@@ -131,18 +134,11 @@ class AudioMixerController {
                     if (this.onLog) this.onLog(log);
                 }
                 
-                // Intercetta buffer_ready event (dedupe per deck short-term)
+                // Intercetta buffer_ready event (edge detection già nel Rust)
                 if (log.event === 'buffer_ready') {
-                    try {
-                        const deck = log.data;
-                        const now = Date.now();
-                        const last = this._bufferReadyTimestamps[deck] || 0;
-                        if (now - last >= 100) {
-                            this._bufferReadyTimestamps[deck] = now;
-                            console.log(`✅ [RUST] Buffer pronto su Deck ${deck}`);
-                            try { if (this.onBufferReady) this.onBufferReady(deck); } catch(e) { console.error('Errore handler onBufferReady', e); }
-                        }
-                    } catch(e) {}
+                    const deck = log.data;
+                    console.log(`✅ [RUST] Buffer pronto su Deck ${deck}`);
+                    try { if (this.onBufferReady) this.onBufferReady(deck); } catch(e) { console.error('Errore handler onBufferReady', e); }
                 }
 
             } catch (e) {}

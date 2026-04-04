@@ -14,7 +14,7 @@
 
 const { queue } = require('../state/globals');
 const { sanitizeTitle, areSameSong } = require('../utils/sanitize');
-const { DEFAULT_SONG_DURATION_S, CROSSFADE_DURATION_MS } = require('../../config');
+const { CROSSFADE_DURATION_MS } = require('../../config');
 const { isMixerAlive } = require('../queue/QueueManager');
 
 const PRELOAD_DELAY_MS = 5000; // Precarica 5 secondi dopo l'inizio della canzone (per dare tempo ai chunk audio iniziali)

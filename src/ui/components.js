@@ -14,7 +14,7 @@ const { EmbedBuilder } = require('discord.js');
 const { sanitizeTitle } = require('../utils/sanitize');
 const { areSameSong } = require('../utils/sanitize');
 const { getCurrentSong, isValidSong } = require('../queue/QueueManager');
-const { loadDatabase, getUserData, getUserPlaylist, getUserPlaylistNames, getActivePlaylistName } = require('../database/playlists');
+const { loadDatabase, getUserData, getUserPlaylistNames } = require('../database/playlists');
 const { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } = require('../../config');
 
 /**

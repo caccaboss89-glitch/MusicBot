@@ -65,6 +65,12 @@ class CommandQueue {
         }
 
         const commandQueue = this._getQueue(guildId);
+
+        // Limite dimensione coda per evitare OOM con mixer morto/lento
+        if (commandQueue.pending.length >= 50) {
+            return { success: false, error: new Error('Command queue full (50)') };
+        }
+
         const stateVersion = stateVersionManager.get(guildId);
 
         const commandId = `${commandName}_${Date.now()}_${Math.random()}`;
@@ -169,11 +175,14 @@ class CommandQueue {
             } catch (error) {
                 console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, error.message);
 
-                // Retry logic
+                // Retry logic con backoff esponenziale
                 if (commandEntry.retries > 0) {
                     commandEntry.retries--;
+                    commandEntry._retryCount = (commandEntry._retryCount || 0) + 1;
+                    const backoffMs = Math.min(500 * Math.pow(2, commandEntry._retryCount - 1), 5000);
+                    await new Promise(r => setTimeout(r, backoffMs));
                     commandQueue.pending.unshift(commandEntry);
-                    console.log(`⏳ [CMD-QUEUE] Retry '${commandEntry.name}' (${commandEntry.retries} left)`);
+                    console.log(`⏳ [CMD-QUEUE] Retry '${commandEntry.name}' in ${backoffMs}ms (${commandEntry.retries} left)`);
 
                     stateVersion.incrementVersion('command_retry', {
                         commandName: commandEntry.name,

@@ -13,7 +13,6 @@ const { queue } = require('../state/globals');
 const { getCurrentSong, isValidSong } = require('../queue/QueueManager');
 const { saveQueueState } = require('../queue/persistence');
 const { createCurrentSongEmbed, createDashboardComponents, updateDashboard } = require('../ui');
-const { sanitizeTitle } = require('../utils/sanitize');
 const { joinVoiceChannel, createAudioResource, StreamType, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const { safeMixerInvoke } = require('./mixer-utils');
 const { PassThrough } = require('stream');

@@ -2,10 +2,6 @@
  * Funzioni di pulizia (file temporanei, messaggi)
  */
 
-const fs = require('fs');
-const path = require('path');
-const { LOCAL_TEMP_DIR } = require('../../config');
-
 /**
  * Pulisce i vecchi messaggi del bot in un canale
  * @param {TextChannel} channel - Canale Discord

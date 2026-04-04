@@ -2,8 +2,6 @@
  * Funzioni di utilità per interazioni Discord
  */
 
-const { cleanupOldMessages } = require('./cleanup');
-
 /**
  * Risponde in modo sicuro a un'interazione Discord
  * Gestisce il caso di interazione già risposta o deferita

@@ -285,7 +285,11 @@ async function performTransition(guildId, targetIndex, reason) {
     } catch (e) {
         console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
         const sq2 = queue.get(guildId);
-        if (sq2) sq2.loadingFooter = null;
+        if (sq2) {
+            sq2.loadingFooter = null;
+            sq2.isCrossfading = false;
+            sq2.crossfadeStartTime = null;
+        }
         stateVersion.incrementVersion('skip_error', { reason, error: e.message });
         return false;
     } finally {
@@ -488,6 +492,8 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
             }
         } catch (e) {
             console.error(`❌ [SKIP] Errore comando pending transition:`, e.message);
+            sq.isCrossfading = false;
+            sq.crossfadeStartTime = null;
             sq.loadingFooter = null;
             return;
         }

@@ -5,7 +5,6 @@
 const { spawn } = require('child_process');
 const {
     LOCAL_TEMP_DIR,
-    YT_DLP_PATH,
     VIDEO_DURATION_TIMEOUT_MS,
     VIDEO_INFO_TIMEOUT_MS,
     USER_AGENT,
@@ -113,10 +112,6 @@ async function getVideoInfo(query) {
         });
         processSearch.stderr.on('data', chunk => { 
             errorData += chunk.toString(); 
-            const err = chunk.toString().toLowerCase();
-            if (err.includes('cookies') || err.includes('browser') || err.includes('warning')) {
-                console.log('[YOUTUBE] [yt-dlp stderr]', chunk.toString().trim());
-            }
         });
 
         processSearch.on('close', async () => {

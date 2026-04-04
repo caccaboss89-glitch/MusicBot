@@ -11,7 +11,6 @@ const fs = require('fs');
 const ROOT_DIR = path.join(__dirname, '..');
 const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
-const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
 const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
 const DEFAULT_YTDLP_EXTRACTOR_ARGS = '';
 const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
