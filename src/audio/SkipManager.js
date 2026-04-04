@@ -27,13 +27,7 @@ const { CROSSFADE_DURATION_MS, SKIP_THROTTLE_MS } = require('../../config');
 const { sanitizeTitle } = require('../utils/sanitize');
 const { saveQueueState } = require('../queue/persistence');
 const { isMixerAlive } = require('../queue/QueueManager');
-
-// Lazy load per evitare dipendenze circolari
-let PlaybackEngine;
-function getPlaybackEngine() {
-    if (!PlaybackEngine) PlaybackEngine = require('./PlaybackEngine');
-    return PlaybackEngine;
-}
+const bridge = require('./audio-bridge');
 
 // Throttle per prevenire spam di skip ravvicinati
 const skipThrottle = new Map();  // guildId -> timestamp
@@ -136,10 +130,8 @@ async function performTransition(guildId, targetIndex, reason) {
                          && sq.nextDeckTarget === targetDeck
                          && sq.bufferReady && sq.bufferReady[targetDeck];
 
-        const PB = getPlaybackEngine();
-
         // Pulisci timer del brano corrente (preload / end-monitor)
-        PB.clearAllTimers(guildId);
+        bridge.call('clearAllTimers', guildId);
 
         if (isPreloaded) {
             // ── FAST PATH: precaricata ──
@@ -191,7 +183,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
             if (reason !== 'auto') {
                 sq.loadingFooter = '⏳ Caricamento in corso...';
-                try { require('./index').refreshDashboard(sq); } catch (e) { /* ignora */ }
+                try { bridge.call('refreshDashboard', sq); } catch (e) { /* ignora */ }
             }
 
             // ── TRANSIZIONE DIFFERITA ──
@@ -222,7 +214,7 @@ async function performTransition(guildId, targetIndex, reason) {
                     console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
                     sq2.pendingTransition = null;
                     sq2.loadingFooter = null;
-                    try { require('./index').refreshDashboard(sq2); } catch (e) {}
+                    try { bridge.call('refreshDashboard', sq2); } catch (e) {}
                 }
             }, timeoutMs);
 
@@ -266,15 +258,14 @@ async function performTransition(guildId, targetIndex, reason) {
 
         // Salva e aggiorna UI
         saveQueueState(guildId, sq);
-        try { require('./index').refreshDashboard(sq, targetSong.requester); } catch (e) { /* ignora */ }
+        try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) { /* ignora */ }
 
         // Avvia ciclo preload + monitoraggio fine per la nuova canzone
-        PB.onSongStart(guildId);
+        bridge.call('onSongStart', guildId);
 
         // Se era in pausa durante lo skip, riprendi automaticamente
         try {
-            const playback = require('./playback');
-            await playback.resumeIfPaused(sq, guildId, targetDeck);
+            await bridge.call('resumeIfPaused', sq, guildId, targetDeck);
         } catch (e) {
             console.warn(`⚠️  [SKIP] Errore durante resumeIfPaused:`, e.message);
         }
@@ -311,8 +302,7 @@ async function skipNext(guildId) {
 
     // Loop → riavvia canzone corrente
     if (sq.loopEnabled) {
-        const playback = require('./playback');
-        await playback.restartCurrentSong(guildId);
+        await bridge.call('restartCurrentSong', guildId);
         return true;
     }
 
@@ -368,8 +358,7 @@ async function autoSkip(guildId) {
 
     // Loop → riavvia canzone corrente
     if (sq.loopEnabled) {
-        const playback = require('./playback');
-        await playback.restartCurrentSong(guildId);
+        await bridge.call('restartCurrentSong', guildId);
         return true;
     }
 
@@ -391,8 +380,7 @@ async function endQueue(guildId) {
     const sq = queue.get(guildId);
     if (!sq) return;
 
-    const PB = getPlaybackEngine();
-    PB.clearAllTimers(guildId);
+    bridge.call('clearAllTimers', guildId);
 
     // ── STATS: ferma timer ascolto e salva ──
     try {
@@ -471,7 +459,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     if (!targetSong || targetSong.url !== pt.targetUrl) {
         console.warn(`⚠️  [SKIP] Pending transition invalidata: canzone rimossa dalla coda`);
         sq.loadingFooter = null;
-        try { require('./index').refreshDashboard(sq); } catch (e) {}
+        try { bridge.call('refreshDashboard', sq); } catch (e) {}
         return;
     }
 
@@ -522,18 +510,23 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     });
 
     saveQueueState(guildId, sq);
-    try { require('./index').refreshDashboard(sq, targetSong.requester); } catch (e) {}
+    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) {}
 
-    const PB = getPlaybackEngine();
-    PB.onSongStart(guildId);
+    bridge.call('onSongStart', guildId);
 
     try {
-        const playback = require('./playback');
-        await playback.resumeIfPaused(sq, guildId, pt.targetDeck);
+        await bridge.call('resumeIfPaused', sq, guildId, pt.targetDeck);
     } catch (e) {}
 
     console.log(`✅ [SKIP] ${pt.reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${pt.targetIndex}, deck=${pt.targetDeck}, fade=${pt.fadeEnabled}, deferred)`);
 }
+
+// ─── Bridge registrations ───────────────────────────────────
+
+bridge.register('autoSkip', autoSkip);
+bridge.register('endQueue', endQueue);
+bridge.register('hasSkipInProgress', hasSkipInProgress);
+bridge.register('completePendingTransition', completePendingTransition);
 
 module.exports = {
     skipNext,

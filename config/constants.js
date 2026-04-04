@@ -7,6 +7,7 @@
 const MAX_QUEUE_SIZE = 1000;              // Massimo numero canzoni in coda
 const PLAYLIST_PAGE_SIZE = 25;            // Elementi per pagina nelle playlist
 const MAX_PLAYLIST_NAME_LENGTH = 20;      // Lunghezza massima nome playlist personale
+const MAX_PLAYLISTS_PER_USER = 25;        // Massimo numero playlist per utente
 const DEFAULT_PLAYLIST_NAME = 'Generale'; // Nome playlist personale di default
 
 // --- COSTANTI TEMPORALI (AUDIO) ---
@@ -40,6 +41,7 @@ module.exports = {
     MAX_QUEUE_SIZE,
     PLAYLIST_PAGE_SIZE,
     MAX_PLAYLIST_NAME_LENGTH,
+    MAX_PLAYLISTS_PER_USER,
     DEFAULT_PLAYLIST_NAME,
     
     // Audio

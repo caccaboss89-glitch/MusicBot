@@ -86,6 +86,13 @@ class QueueStateVersion {
      * @returns {object} - Lock con metodi release() e isExpired()
      */
     acquireLock(operationId, timeoutMs = 30000) {
+        // Lazy cleanup: rimuovi lock scaduti o rilasciati
+        for (const [lockId, existingLock] of this.locks) {
+            if (existingLock.released || existingLock.isExpired()) {
+                this.locks.delete(lockId);
+            }
+        }
+
         const lockId = `${operationId}_${Date.now()}`;
         const lock = {
             id: lockId,

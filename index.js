@@ -25,9 +25,10 @@ process.on('uncaughtException', (error) => {
     // Tenta di salvare lo stato prima di crashare
     try {
         const { queue } = require('./src/state/globals');
-        const { saveQueueState } = require('./src/queue/persistence');
+        const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
+        flushPendingSaves();
         queue.forEach((sq, guildId) => {
-            try { saveQueueState(guildId, sq); } catch (e) { /* ignore */ }
+            try { saveQueueStateImmediate(guildId, sq); } catch (e) { /* ignore */ }
         });
     } catch (e) { /* ignore */ }
     // Flush statistiche ascolto prima del crash
@@ -169,9 +170,10 @@ function gracefulShutdown(signal) {
     console.log(`\n🚫 [SHUTDOWN] Ricevuto ${signal}, salvataggio in corso...`);
     try {
         const { queue: q } = require('./src/state/globals');
-        const { saveQueueState: sqSave } = require('./src/queue/persistence');
+        const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
+        flushPendingSaves();
         q.forEach((sq, gId) => {
-            try { sqSave(gId, sq); } catch (e) { /* ignore */ }
+            try { saveQueueStateImmediate(gId, sq); } catch (e) { /* ignore */ }
         });
     } catch (e) { /* ignore */ }
     try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }

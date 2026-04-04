@@ -1,5 +1,6 @@
 const { queue } = require('../state/globals');
-const { createAudioPlayer, joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const ServerQueue = require('../state/ServerQueue');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
 const { loadQueueBackup } = require('../queue/persistence');
 const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } = require('../../config');
@@ -10,32 +11,11 @@ async function ensureBotConnection(interaction) {
     const guildId = interaction.guildId;
     let serverQueue = queue.get(guildId);
     if (!serverQueue) {
-        serverQueue = {
+        serverQueue = new ServerQueue({
             guildId,
             textChannel: interaction.channel || null,
-            voiceChannel: interaction.member?.voice?.channel || null,
-            connection: null,
-            player: createAudioPlayer(),
-            songs: [],
-            history: [],
-            playIndex: 0,
-            currentDeckLoaded: null,
-            nextDeckLoaded: null,
-            isPaused: false,
-            isTaskRunning: false,
-            loopEnabled: false,
-            fadeEnabled: true,
-            dashboardMessage: null,
-            dashboardMessageId: null,
-            textChannelId: null,
-            mixer: null,
-            bufferReady: {},
-            songStartTime: null,
-            nextDeckTarget: null,
-            sessionRestored: false,
-            loadingFooter: null,
-            isCrossfading: false
-        };
+            voiceChannel: interaction.member?.voice?.channel || null
+        });
         // Tentativo di ripristino da backup salvato
         try {
             const backup = loadQueueBackup(guildId);

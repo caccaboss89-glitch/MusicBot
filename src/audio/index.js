@@ -33,6 +33,17 @@ function recordStreamError(guildId, url) {
     return false;
 }
 
+function clearStreamErrors(guildId) {
+    streamErrorCounts.delete(guildId);
+    failedSongs.delete(guildId);
+}
+
+// Pulizia periodica per prevenire memory leak (ogni 30 minuti)
+setInterval(() => {
+    streamErrorCounts.clear();
+    failedSongs.clear();
+}, 30 * 60 * 1000);
+
 // ─── Rust event routing ─────────────────────────────────────
 
 /**
@@ -390,6 +401,16 @@ async function updatePreloadAfterQueueChange(guildId) {
 
 
 
+// ─── Bridge registrations (rompe dipendenze circolari) ──────
+
+const bridge = require('./audio-bridge');
+bridge.register('handleMixerCrash', handleMixerCrash);
+bridge.register('handleBufferReady', handleBufferReady);
+bridge.register('handleRustEvent', handleRustEvent);
+bridge.register('refreshDashboard', (sq, userId) => ui.refreshDashboard(sq, userId));
+bridge.register('isFailedSong', (guildId, url) => failedSongs.has(guildId) && failedSongs.get(guildId).has(url));
+bridge.register('updatePreloadAfterQueueChange', updatePreloadAfterQueueChange);
+
 // ─── Exports ────────────────────────────────────────────────
 
 module.exports = {
@@ -422,6 +443,7 @@ module.exports = {
 
     // Stream errors
     recordStreamError,
+    clearStreamErrors,
     isFailedSong: (guildId, url) => failedSongs.has(guildId) && failedSongs.get(guildId).has(url),
 
     // UI helpers

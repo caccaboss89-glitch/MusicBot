@@ -76,13 +76,13 @@ function deleteQueueBackup(guildId) {
     }
 }
 
-/**
- * Salva lo stato corrente della coda (wrapper conveniente)
- * @param {string} guildId - ID della guild
- * @param {object} serverQueue - Oggetto coda del server
- */
-function saveQueueState(guildId, serverQueue) {
-    if (!serverQueue) return;
+// ─── Debounce per saveQueueState ────────────────────────────
+const _saveTimers = new Map();   // guildId -> timeoutId
+const _savePending = new Map();  // guildId -> serverQueue reference
+const _lastSaveTime = new Map(); // guildId -> timestamp
+const SAVE_DEBOUNCE_MS = 2000;
+
+function _doSaveQueueState(guildId, serverQueue) {
     saveQueueBackup(
         guildId,
         serverQueue.songs,
@@ -97,9 +97,76 @@ function saveQueueState(guildId, serverQueue) {
     );
 }
 
+/**
+ * Salva lo stato corrente della coda con debounce (max 1 scrittura ogni 2s per guild).
+ * @param {string} guildId - ID della guild
+ * @param {object} serverQueue - Oggetto coda del server
+ */
+function saveQueueState(guildId, serverQueue) {
+    if (!serverQueue) return;
+
+    _savePending.set(guildId, serverQueue);
+
+    const now = Date.now();
+    const lastSave = _lastSaveTime.get(guildId) || 0;
+
+    if (now - lastSave >= SAVE_DEBOUNCE_MS) {
+        // Abbastanza tempo passato, scrivi subito
+        if (_saveTimers.has(guildId)) {
+            clearTimeout(_saveTimers.get(guildId));
+            _saveTimers.delete(guildId);
+        }
+        _savePending.delete(guildId);
+        _lastSaveTime.set(guildId, now);
+        _doSaveQueueState(guildId, serverQueue);
+    } else if (!_saveTimers.has(guildId)) {
+        // Troppo presto, schedula scrittura differita
+        const delay = SAVE_DEBOUNCE_MS - (now - lastSave);
+        _saveTimers.set(guildId, setTimeout(() => {
+            _saveTimers.delete(guildId);
+            const sq = _savePending.get(guildId);
+            _savePending.delete(guildId);
+            if (sq) {
+                _lastSaveTime.set(guildId, Date.now());
+                _doSaveQueueState(guildId, sq);
+            }
+        }, delay));
+    }
+    // Se timer già pendente, _savePending è già aggiornato con l'ultimo stato
+}
+
+/**
+ * Salva immediatamente bypassando il debounce (per shutdown/crash).
+ * @param {string} guildId
+ * @param {object} serverQueue
+ */
+function saveQueueStateImmediate(guildId, serverQueue) {
+    if (!serverQueue) return;
+    if (_saveTimers.has(guildId)) {
+        clearTimeout(_saveTimers.get(guildId));
+        _saveTimers.delete(guildId);
+    }
+    _savePending.delete(guildId);
+    _doSaveQueueState(guildId, serverQueue);
+}
+
+/**
+ * Flush di tutti i salvataggi pendenti (chiamare durante shutdown).
+ */
+function flushPendingSaves() {
+    for (const [, timer] of _saveTimers) clearTimeout(timer);
+    _saveTimers.clear();
+    for (const [guildId, sq] of _savePending) {
+        _doSaveQueueState(guildId, sq);
+    }
+    _savePending.clear();
+}
+
 module.exports = {
     loadQueueBackup,
     saveQueueBackup,
     deleteQueueBackup,
-    saveQueueState
+    saveQueueState,
+    saveQueueStateImmediate,
+    flushPendingSaves
 };

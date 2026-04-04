@@ -16,6 +16,7 @@ const { queue } = require('../state/globals');
 const { sanitizeTitle, areSameSong } = require('../utils/sanitize');
 const { CROSSFADE_DURATION_MS } = require('../../config');
 const { isMixerAlive } = require('../queue/QueueManager');
+const bridge = require('./audio-bridge');
 
 const PRELOAD_DELAY_MS = 5000; // Precarica 5 secondi dopo l'inizio della canzone (per dare tempo ai chunk audio iniziali)
 const PRELOAD_RETRY_MIN_DELAY_MS = 250;
@@ -229,8 +230,8 @@ async function handleTrackEnd(guildId) {
     clearAllTimers(guildId);
 
     // Verifica se uno skip è in corso (evita race condition)
-    const SkipManager = require('./SkipManager');
-    if (SkipManager.hasSkipInProgress(guildId)) {
+    const SkipManager_hasSkipInProgress = bridge.get('hasSkipInProgress');
+    if (SkipManager_hasSkipInProgress && SkipManager_hasSkipInProgress(guildId)) {
         console.log('⏳ [TRACK-END] Skip già in corso, ignoro');
         return;
     }
@@ -245,10 +246,10 @@ async function handleTrackEnd(guildId) {
     // Procedi con auto-skip se c'è una canzone successiva
     if (hasNextSong(sq)) {
         console.log('⏭️  [TRACK-END] Fine naturale, skip automatico');
-        await SkipManager.autoSkip(guildId);
+        await bridge.call('autoSkip', guildId);
     } else {
         console.log('🏁 [TRACK-END] Ultima canzone terminata, fine coda');
-        await SkipManager.endQueue(guildId);
+        await bridge.call('endQueue', guildId);
     }
 }
 
@@ -259,7 +260,11 @@ async function handleTrackEnd(guildId) {
 function handleDeckChanged(guildId, newDeck) {
     console.log(`🔀 [DECK-CHANGED] Rust: deck=${newDeck}`);
 }
+// ─── Bridge registrations ───────────────────────────────────
 
+bridge.register('onSongStart', onSongStart);
+bridge.register('clearAllTimers', clearAllTimers);
+bridge.register('preloadNextSong', preloadNextSong);
 // ─── Exports ────────────────────────────────────────────────
 
 module.exports = {

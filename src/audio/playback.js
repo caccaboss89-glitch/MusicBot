@@ -16,6 +16,7 @@ const { createCurrentSongEmbed, createDashboardComponents, updateDashboard } = r
 const { joinVoiceChannel, createAudioResource, StreamType, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
 const { safeMixerInvoke } = require('./mixer-utils');
 const { PassThrough } = require('stream');
+const bridge = require('./audio-bridge');
 
 // Fattore chiave per la latenza di pipeline:
 // highWaterMark basso = meno audio bufferizzato nel pipe = skip più reattivi
@@ -57,8 +58,7 @@ async function resumeIfPaused(serverQueue, guildId, deckToResume) {
     const mixerAlive = serverQueue.mixer?.isProcessAlive?.();
     if (mixerAlive) {
         try {
-            const { safeMixerInvoke: safeMixerInvokeResume } = require('./mixer-utils');
-            safeMixerInvokeResume(serverQueue, guildId, 
+            safeMixerInvoke(serverQueue, guildId, 
                 () => serverQueue.mixer.play(deckToResume), 
                 'resume'
             );
@@ -100,10 +100,9 @@ async function restartCurrentSong(guildId) {
     await resumeIfPaused(serverQueue, guildId, currentDeck);
 
     // Riavvia timer preload/monitoraggio fine
-    const PlaybackEngine = require('./PlaybackEngine');
-    PlaybackEngine.onSongStart(guildId);
+    bridge.call('onSongStart', guildId);
 
-    await require('./index').refreshDashboard(serverQueue, currentSong.requester);
+    bridge.call('refreshDashboard', serverQueue, currentSong.requester);
     return true;
 }
 
@@ -141,8 +140,8 @@ async function playSong(guildId, interaction = null) {
     }
 
     // Controlla se questa canzone è già fallita (Opus errors, corrupted stream)
-    const audio = require('./index');
-    if (audio.isFailedSong && audio.isFailedSong(guildId, song.url)) {
+    const isFailedSong = bridge.get('isFailedSong');
+    if (isFailedSong && isFailedSong(guildId, song.url)) {
         console.warn(`⏭️  [PLAY] Saltando canzone non giocabile: ${song.title}`);
         // Sposta al prossimo indice
         serverQueue.playIndex = (serverQueue.playIndex || 0) + 1;
@@ -180,9 +179,9 @@ async function playSong(guildId, interaction = null) {
             try {
                 serverQueue.mixer = new (require('./AudioMixerController'))(
                     guildId,
-                    (log) => require('./index').handleRustEvent(guildId, log),
-                    (deck) => require('./index').handleBufferReady(guildId, deck),
-                    (reason) => require('./index').handleMixerCrash(guildId, reason)
+                    (log) => bridge.call('handleRustEvent', guildId, log),
+                    (deck) => bridge.call('handleBufferReady', guildId, deck),
+                    (reason) => bridge.call('handleMixerCrash', guildId, reason)
                 );
                 serverQueue.mixer.start();
                 serverQueue.mixerGeneration = serverQueue.mixer.generation;
@@ -217,6 +216,10 @@ async function playSong(guildId, interaction = null) {
                 // Sincronizza loop mode con Rust per auto-gapless
                 safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setLoop(!!serverQueue.loopEnabled));
 
+                // Cleanup vecchio stream per evitare resource leak
+                if (serverQueue._llStream) {
+                    try { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); } catch(e) {}
+                }
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream; // Salva riferimento per cleanup
                 const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
@@ -238,6 +241,10 @@ async function playSong(guildId, interaction = null) {
                 if (!stdout) {
                     console.error('❌ [PLAY] Existing mixer has no stdout');
                     return;
+                }
+                // Cleanup vecchio stream per evitare resource leak
+                if (serverQueue._llStream) {
+                    try { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); } catch(e) {}
                 }
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream;
@@ -279,8 +286,7 @@ async function playSong(guildId, interaction = null) {
         await updateDashboard(serverQueue, embed, components);
 
         // Avvia il ciclo di preload e monitoraggio fine
-        const PlaybackEngine = require('./PlaybackEngine');
-        PlaybackEngine.onSongStart(guildId);
+        bridge.call('onSongStart', guildId);
 
         // ── STATS: canzone avviata + timer ascolto + registra play ──
         try {
@@ -363,7 +369,6 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
             if (mixerAlive) {
                 try {
                     await new Promise((resolve) => {
-                        const { safeMixerInvoke } = require('./mixer-utils');
                         const result = safeMixerInvoke(serverQueue, guildId, 
                             () => serverQueue.mixer.pause(), 
                             'pause'
@@ -378,7 +383,7 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
                 }
             } else {
                 console.warn(`⚠️  [PAUSE] Mixer non vivo, skip mixer pause`);
-                try { require('../audio').handleMixerCrash(guildId, 'mixer_dead_during_pause'); } catch(e){}
+                try { bridge.call('handleMixerCrash', guildId, 'mixer_dead_during_pause'); } catch(e){}
             }
 
             // ── STATS: ferma timer ascolto durante pausa ──
@@ -410,7 +415,6 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
             if (mixerAlive) {
                 try {
                     await new Promise((resolve) => {
-                        const { safeMixerInvoke } = require('./mixer-utils');
                         const currentDeck = serverQueue.currentDeck || 'A';
                         const result = safeMixerInvoke(serverQueue, guildId, 
                             () => serverQueue.mixer.play(currentDeck), 
@@ -426,11 +430,11 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
                 }
             } else {
                 console.warn(`⚠️  [RESUME] Mixer non vivo, skip mixer play`);
-                try { require('../audio').handleMixerCrash(guildId, 'mixer_dead_during_resume'); } catch(e){}
+                try { bridge.call('handleMixerCrash', guildId, 'mixer_dead_during_resume'); } catch(e){}
             }
 
             // Riavvia il timer di preload/monitoraggio
-            try { require('../audio').preloadNextSongs(guildId); } catch(e){}
+            try { bridge.call('updatePreloadAfterQueueChange', guildId); } catch(e){}
 
             // ── STATS: riprendi timer ascolto dopo resume ──
             try { require('../database/stats').startAllListeners(guildId, serverQueue.voiceChannel); } catch (e) {}
@@ -444,5 +448,12 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
         return { success: false, action: 'error', error: e.message };
     }
 }
+
+// ─── Bridge registrations ───────────────────────────────────
+
+bridge.register('playSong', playSong);
+bridge.register('restartCurrentSong', restartCurrentSong);
+bridge.register('resumeIfPaused', resumeIfPaused);
+bridge.register('recordMixerCrashTime', recordMixerCrashTime);
 
 module.exports = { playSong, restartCurrentSong, togglePauseResume, recordMixerCrashTime, resumeIfPaused };

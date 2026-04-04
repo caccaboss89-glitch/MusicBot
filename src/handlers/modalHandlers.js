@@ -9,7 +9,7 @@ const { generateSearchResultsView, createDashboardComponents } = require('../ui'
 const { getVideoInfo } = require('../utils/youtube');
 const { clearFinishedQueue } = require('../queue/QueueManager');
 const { saveQueueState } = require('../queue/persistence');
-const { DEFAULT_PLAYLIST_NAME } = require('../../config');
+const { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER } = require('../../config');
 const { activeSearches } = require('./playlistHandlers');
 const audio = require('../audio');
 
@@ -57,6 +57,10 @@ async function handleModal(interaction, guildId, deps) {
             if (!validation.valid) return await interaction.editReply(`❌ ${validation.error}`);
             const db = loadDatabase();
             const userData = getUserData(db, interaction.user.id);
+            const playlistCount = Object.keys(userData.playlists).length;
+            if (playlistCount >= MAX_PLAYLISTS_PER_USER) {
+                return await interaction.editReply(`❌ Hai raggiunto il limite massimo di ${MAX_PLAYLISTS_PER_USER} playlist.`);
+            }
             const existingNames = Object.keys(userData.playlists).map(n => n.toLowerCase());
             if (existingNames.includes(trimmedName.toLowerCase())) {
                 return await interaction.editReply(`❌ Esiste già una playlist con il nome **${trimmedName}**.`);
