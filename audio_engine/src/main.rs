@@ -268,11 +268,12 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     // Se Firefox non ha i cookie, fallback al file youtube-cookies.txt se esiste
     let cookies_file = format!("{}/youtube-cookies.txt", get_base_path());
     let cookie_file_exists = std::path::Path::new(&cookies_file).exists();
+    
     if cookie_file_exists {
-        send_log("info", &format!("File youtube-cookies.txt trovato: {}", cookies_file));
+        send_log("info", &format!("✅ File youtube-cookies.txt TROVATO: {}", cookies_file));
         yt_dlp_cmd.arg("--cookies").arg(&cookies_file);
     } else {
-        send_log("warn", "File youtube-cookies.txt non trovato, yt-dlp userà solo Firefox");
+        send_log("warn", &format!("⚠️ File youtube-cookies.txt NON TROVATO: {} | yt-dlp userà solo Firefox", cookies_file));
     }
 
     // Abilita la cronologia
@@ -296,7 +297,6 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
 
     thread::spawn(move || {
         let reader = BufReader::new(yt_dlp_stderr);
-        let mut found_cookies_msg = false;
         for line in reader.lines() {
             if let Ok(l) = line {
                 let trimmed = l.trim();
@@ -305,10 +305,8 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
                     // Log specifici per cookie
                     if lower.contains("cookies") && lower.contains("found") {
                         send_log("info", &format!("[yt-dlp] ✅ COOKIE CARICATI DAL BROWSER: {}", trimmed));
-                        found_cookies_msg = true;
                     } else if lower.contains("could not locate browser cookies") || (lower.contains("cookies") && lower.contains("not found")) {
                         send_log("error", &format!("[yt-dlp] ❌ Cookie NOT FOUND: {}", trimmed));
-                        found_cookies_msg = true;
                     } else if lower.contains("error") || (lower.contains("warning") && (lower.contains("cookies") || lower.contains("browser") || lower.contains("authenticate"))) {
                         send_log("warn", &format!("[yt-dlp] {}", trimmed));
                     } else if lower.contains("error") {
