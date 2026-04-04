@@ -80,7 +80,7 @@ async function getVideoInfo(query) {
         '--flat-playlist', 
         '-J', 
         '--no-warnings', 
-        '--no-mark-watched', 
+        '--mark-watched', 
         '--no-cache-dir', 
         '--no-part',
         '--force-ipv4',

@@ -261,14 +261,6 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
     yt_dlp_cmd.arg("--proxy").arg(proxy_url);
 
-    let cookie_file = if cfg!(windows) {
-        format!("{}/youtube-cookies.txt", get_base_path())
-    } else {
-        "/home/ubuntu/DiscordBots/DiscordMusicBot/youtube-cookies.txt".to_string()
-    };
-    send_log("info", &format!("yt-dlp cookies attivi: {}", cookie_file));
-    yt_dlp_cmd.arg("--cookies").arg(&cookie_file);
-
     let extractor_args = "youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web";
     send_log("info", &format!("yt-dlp extractor-args attivi: {}", extractor_args));
     yt_dlp_cmd.arg("--extractor-args").arg(extractor_args);
