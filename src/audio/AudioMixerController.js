@@ -262,6 +262,8 @@ class AudioMixerController {
     }
     
     kill() { 
+        // Previeni che il close handler invochi onCrash: kill() è sempre intenzionale
+        this.hasCrashed = true;
         // Chiudi readline PRIMA di uccidere il processo
         if (this.stderrReadline) {
             this.stderrReadline.close();
