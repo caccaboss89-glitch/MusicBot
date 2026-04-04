@@ -5,11 +5,13 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 
 // Root del progetto (una directory sopra config/)
 const ROOT_DIR = path.join(__dirname, '..');
 const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
+const DEFAULT_YTDLP_COOKIES_FILE = path.join(ROOT_DIR, 'youtube-cookies.txt');
 const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
 const DEFAULT_YTDLP_EXTRACTOR_ARGS = '';
 const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -38,6 +40,8 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
+    const cookieFile = process.env.YTDLP_COOKIES_FILE || DEFAULT_YTDLP_COOKIES_FILE;
+    const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
     const rawProxyUrl = process.env.YTDLP_PROXY_URL;
     const proxyUrl = (rawProxyUrl && rawProxyUrl.trim())
         ? rawProxyUrl.trim()
@@ -53,7 +57,7 @@ function getYtDlpCommand(additionalArgs = []) {
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
         cmd: PYTHON_BIN,
-        args: ['-m', 'yt_dlp', ...proxyArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
+        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
     };
 }
 
