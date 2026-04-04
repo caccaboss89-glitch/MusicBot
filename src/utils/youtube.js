@@ -31,6 +31,7 @@ async function getVideoDuration(videoUrl) {
         ]);
         
         const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
+        console.log('[YOUTUBE] Lanciato yt-dlp con --cookies-from-browser firefox');
         let data = '';
         let errorData = '';
         
@@ -97,6 +98,7 @@ async function getVideoInfo(query) {
     
     return new Promise((resolve, reject) => {
         const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
+        console.log('[YOUTUBE] Lanciato yt-dlp getVideoInfo con --cookies-from-browser firefox');
         let data = '';
         let errorData = '';
         
@@ -111,7 +113,13 @@ async function getVideoInfo(query) {
                 reject('TOO_LARGE'); 
             } 
         });
-        processSearch.stderr.on('data', chunk => { errorData += chunk.toString(); });
+        processSearch.stderr.on('data', chunk => { 
+            errorData += chunk.toString(); 
+            const err = chunk.toString().toLowerCase();
+            if (err.includes('cookies') || err.includes('browser') || err.includes('warning')) {
+                console.log('[YOUTUBE] [yt-dlp stderr]', chunk.toString().trim());
+            }
+        });
 
         processSearch.on('close', async () => {
             clearTimeout(killTimer);

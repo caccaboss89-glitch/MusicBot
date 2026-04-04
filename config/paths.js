@@ -40,8 +40,8 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
-    const cookieFile = process.env.YTDLP_COOKIES_FILE || DEFAULT_YTDLP_COOKIES_FILE;
-    const cookieArgs = fs.existsSync(cookieFile) ? ['--cookies', cookieFile] : [];
+    // Usa i cookie dal browser anzichè da file
+    const cookiesFromBrowserArgs = ['--cookies-from-browser', 'firefox'];
     const rawProxyUrl = process.env.YTDLP_PROXY_URL;
     const proxyUrl = (rawProxyUrl && rawProxyUrl.trim())
         ? rawProxyUrl.trim()
@@ -57,7 +57,7 @@ function getYtDlpCommand(additionalArgs = []) {
     // Consente override esplicito via PYTHON_BIN e usa python3 come default su Linux.
     return {
         cmd: PYTHON_BIN,
-        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookieArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
+        args: ['-m', 'yt_dlp', ...proxyArgs, ...cookiesFromBrowserArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
     };
 }
 
