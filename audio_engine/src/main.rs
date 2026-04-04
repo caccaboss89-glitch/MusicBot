@@ -261,12 +261,12 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
     send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
     yt_dlp_cmd.arg("--proxy").arg(proxy_url);
 
-    // Estrai cookie dal browser Firefox, con fallback al file se disponibile
-    send_log("info", "Configurazione cookie: provo Firefox first...");
-    yt_dlp_cmd.arg("--cookies-from-browser").arg("firefox");
+    // Estrai cookie dal browser Chromium, con fallback al file se disponibile
+    send_log("info", "Configurazione cookie: provo Chromium first...");
+    yt_dlp_cmd.arg("--cookies-from-browser").arg("chromium");
     send_log("info", "[COOKIE-CHECK-START]");
     
-    // Se Firefox non ha i cookie, fallback al file youtube-cookies.txt se esiste
+    // Se browser non ha i cookie, fallback al file youtube-cookies.txt se esiste
     let cookies_file = format!("{}/youtube-cookies.txt", get_base_path());
     send_log("info", &format!("[COOKIE-PATH]: {}", cookies_file));
     
@@ -277,7 +277,7 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
         send_log("info", &format!("[COOKIE-USING-FILE]: yes"));
         yt_dlp_cmd.arg("--cookies").arg(&cookies_file);
     } else {
-        send_log("info", &format!("[COOKIE-USING-FILE]: no - firefox only"));
+        send_log("info", &format!("[COOKIE-USING-FILE]: no - chromium only"));
     }
     send_log("info", "[COOKIE-CHECK-END]");
 
@@ -306,17 +306,8 @@ fn download_and_decode_advanced(url: &str, tx: Sender<Vec<f32>>, cancel: Arc<Ato
             if let Ok(l) = line {
                 let trimmed = l.trim();
                 if !trimmed.is_empty() {
-                    let lower = trimmed.to_lowercase();
-                    // Log specifici per cookie
-                    if lower.contains("cookies") && lower.contains("found") {
-                        send_log("info", &format!("[yt-dlp] ✅ COOKIE CARICATI DAL BROWSER: {}", trimmed));
-                    } else if lower.contains("could not locate browser cookies") || (lower.contains("cookies") && lower.contains("not found")) {
-                        send_log("error", &format!("[yt-dlp] ❌ Cookie NOT FOUND: {}", trimmed));
-                    } else if lower.contains("error") || (lower.contains("warning") && (lower.contains("cookies") || lower.contains("browser") || lower.contains("authenticate"))) {
-                        send_log("warn", &format!("[yt-dlp] {}", trimmed));
-                    } else if lower.contains("error") {
-                        send_log("error", &format!("[yt-dlp] {}", trimmed));
-                    }
+                    // Log TUTTO da yt-dlp stderr
+                    send_log("warn", &format!("[yt-dlp-stderr] {}", trimmed));
                 }
             }
         }

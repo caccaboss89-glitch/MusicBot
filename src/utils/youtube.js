@@ -31,7 +31,6 @@ async function getVideoDuration(videoUrl) {
         ]);
         
         const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
-        console.log('[YOUTUBE] Lanciato yt-dlp con --cookies-from-browser firefox');
         let data = '';
         let errorData = '';
         
@@ -98,7 +97,6 @@ async function getVideoInfo(query) {
     
     return new Promise((resolve, reject) => {
         const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
-        console.log('[YOUTUBE] Lanciato yt-dlp getVideoInfo con --cookies-from-browser firefox');
         let data = '';
         let errorData = '';
         

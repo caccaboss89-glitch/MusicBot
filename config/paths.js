@@ -40,8 +40,8 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
-    // Usa i cookie dal browser anzichè da file
-    const cookiesFromBrowserArgs = ['--cookies-from-browser', 'firefox'];
+    // Usa i cookie dal browser Chromium anzichè da file
+    const cookiesFromBrowserArgs = ['--cookies-from-browser', 'chromium'];
     const rawProxyUrl = process.env.YTDLP_PROXY_URL;
     const proxyUrl = (rawProxyUrl && rawProxyUrl.trim())
         ? rawProxyUrl.trim()
