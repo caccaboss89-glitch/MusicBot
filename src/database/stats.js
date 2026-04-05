@@ -1,9 +1,9 @@
 /**
  * Sistema di statistiche per il bot musicale
  * Traccia:
- *  - Tempo di ascolto per utente (solo mentre il bot canta, non in pausa)
- *  - Interazioni "aggiungi a playlist" per utente (server e personale)
- *  - Contatori globali: canzoni avviate e canzoni completate
+ * - Tempo di ascolto per utente (solo quando il bot canta, non in pausa)
+ * - Interazioni "aggiungi a playlist" per utente (server e personale)
+ * - Contatori globali: canzoni avviate e completate
  */
 
 const fs = require('fs');

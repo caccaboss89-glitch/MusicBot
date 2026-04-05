@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Script per versionare i file dati persistenti su GitHub.
- * Chiamato automaticamente il 1° del mese dalle 10:00 in poi.
+ * Script per versionare i file persistenti su GitHub.
+ * Viene eseguito idealmente il 1° del mese dopo le 10:00.
  */
 
 const fs = require('fs');

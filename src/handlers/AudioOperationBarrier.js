@@ -1,6 +1,6 @@
 /**
  * Barrier globale per serializzare le operazioni audio critiche.
- * Previene race conditions quando utente spamma skip, pause, etc.
+ * Previene race condition quando l'utente spamma skip, pause, ecc.
  */
 
 const { queue } = require('../state/globals');

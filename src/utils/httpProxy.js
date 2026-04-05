@@ -16,7 +16,7 @@ function getYoutubeSocksAgent() {
     const proxyUrl = getYoutubeProxyUrl();
     if (!proxyUrl) return null;
 
-    // socks-proxy-agent si aspetta schema socks5://; per yt-dlp usiamo socks5h://.
+    // socks-proxy-agent usa schema socks5://; yt-dlp richiede socks5h://.
     const normalized = proxyUrl.replace(/^socks5h:\/\//i, 'socks5://');
     return new SocksProxyAgent(normalized);
 }

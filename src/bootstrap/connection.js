@@ -16,8 +16,7 @@ async function ensureBotConnection(interaction) {
             textChannel: interaction.channel || null,
             voiceChannel: interaction.member?.voice?.channel || null
         });
-        // Registra SUBITO nella mappa per evitare race condition (TOCTOU):
-        // una seconda chiamata concorrente vedrà la queue già esistente.
+        // Inserisci subito la queue nella mappa per evitare race condition
         queue.set(guildId, serverQueue);
         // Tentativo di ripristino da backup salvato
         try {
@@ -161,7 +160,12 @@ async function connectToVoice(serverQueue, interaction) {
             await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
         } catch (e) {
             console.error('Connessione vocale fallita:', e);
-            try { connection.destroy(); } catch (e) { }
+            // Rimuovi listener PRIMA di distruggere per evitare cascade di cleanup
+            try { connection.off('stateChange', serverQueue._connStateHandler); } catch (_) { }
+            try { connection.off('error', serverQueue._connErrorHandler); } catch (_) { }
+            serverQueue._connStateHandler = null;
+            serverQueue._connErrorHandler = null;
+            try { connection.destroy(); } catch (_) { }
             serverQueue.connection = null;
             await safeReply(interaction, { content: '❌ Errore connessione vocale', flags: 64 });
             return false;

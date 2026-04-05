@@ -271,6 +271,8 @@ function isMixerAlive(serverQueue) {
  */
 function performDisconnectCleanup(serverQueue) {
     if (!serverQueue) return;
+    if (serverQueue._cleaningUp) return; // Guard contro re-entry (evita cascade)
+    serverQueue._cleaningUp = true;
     try {
         console.log(`🧹 [CLEANUP] Eseguo cleanup di disconnessione per guild ${serverQueue.guildId}`);
 
@@ -327,6 +329,8 @@ function performDisconnectCleanup(serverQueue) {
 
     } catch (e) {
         console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
+    } finally {
+        serverQueue._cleaningUp = false;
     }
 }
 

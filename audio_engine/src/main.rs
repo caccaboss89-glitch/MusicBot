@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-// --- CONFIGURAZIONE PERCORSI ---
+// ─── CONFIGURAZIONE PERCORSI ─────────────────────────────
 fn get_base_path() -> String {
     env::var("DISCORD_BOT_PATH").unwrap_or_else(|_| {
         if cfg!(windows) {
@@ -27,7 +27,7 @@ const SAMPLE_RATE: usize = 48000;
 const CHANNELS: usize = 2;
 const CHUNK_SIZE: usize = 960; // 10ms stereo (480 frame × 2 canali)
 
-// Default per retrocompat: LOAD senza autoplay specifico va in autoplay
+// Default per retrocompatibilità: LOAD senza autoplay specifico va in autoplay
 fn default_autoplay() -> bool {
     true
 }

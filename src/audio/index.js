@@ -457,10 +457,10 @@ module.exports = {
     restartCurrentSong: playback.restartCurrentSong,
     togglePauseResume: playback.togglePauseResume,
 
-    // PlaybackEngine
+    // Playback engine
     PlaybackEngine,
 
-    // Skip (v3 – sistema unificato)
+    // Skip manager
     skipNext: SkipManager.skipNext,
     skipPrev: SkipManager.skipPrev,
     skipToIndex: SkipManager.skipToIndex,
@@ -477,7 +477,7 @@ module.exports = {
     handleRustEvent,
     handleMixerCrash,
 
-    // Stream errors
+    // Stream error helpers
     recordStreamError,
     clearStreamErrors,
     isFailedSong,

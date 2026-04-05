@@ -4,11 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 // ─── GLOBAL ERROR HANDLERS ────────────────────────────────────
-// Previene crash silenzioso del bot su unhandled rejections
 const logsDir = './logs';
 if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     console.error('🚨 [UNHANDLED-REJECTION] Promise rifiutata senza handler:');
     console.error('Reason:', reason instanceof Error ? reason.message : String(reason));
     console.error('Stack:', reason instanceof Error ? reason.stack : 'N/A');
@@ -22,7 +21,8 @@ process.on('uncaughtException', (error) => {
     console.error('🚨 [UNCAUGHT-EXCEPTION] Eccezione non catturata:');
     console.error('Error:', error.message || String(error));
     console.error('Stack:', error.stack || 'N/A');
-    // Tenta di salvare lo stato prima di crashare
+
+    // Salva lo stato prima di terminare
     try {
         const { queue } = require('./src/state/globals');
         const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
@@ -31,16 +31,16 @@ process.on('uncaughtException', (error) => {
             try { saveQueueStateImmediate(guildId, sq); } catch (e) { /* ignore */ }
         });
     } catch (e) { /* ignore */ }
-    // Flush statistiche ascolto prima del crash
+
+    // Flush dei dati importanti
     try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }
-    // Flush playlist cache prima del crash
     try { require('./src/database/playlists').flushDatabaseSync(); } catch (e) { /* ignore */ }
-    // Log su file
+
     try {
         const logEntry = `[${new Date().toISOString()}] UNCAUGHT-EXCEPTION: ${error.message}\n${error.stack}\n\n`;
         fs.appendFileSync(path.join(logsDir, 'uncaught-exceptions.log'), logEntry);
     } catch (e) { /* ignore */ }
-    // Restart gracefully
+
     process.exit(1);
 });
 
@@ -64,12 +64,11 @@ function savePushState(state) {
     fs.writeFileSync(PUSH_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
 }
 
-// Punto di ingresso minimo: crea client, registra handler e fai login
+// Inizializza client, handlers e login
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages] });
 
 const token = process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
 
-// Collega i helper reali agli handler di interazione
 const connectionHelpers = require('./src/bootstrap/connection');
 const audio = require('./src/audio');
 

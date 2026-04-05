@@ -4,11 +4,11 @@
  * Tutte le Map e variabili condivise tra moduli
  */
 
-// --- CODA PER GUILD ---
+// ─── CODA PER GUILD ───────────────────────────────────────
 // Map<guildId, serverQueue>
 const queue = new Map();
 
-// --- TIMER DISCONNESSIONE ---
+// ─── TIMER DISCONNESSIONE ───────────────────────────────────
 // Map<guildId, timeoutId> - Timer per disconnettere il bot quando resta solo
 const disconnectTimers = new Map();
 

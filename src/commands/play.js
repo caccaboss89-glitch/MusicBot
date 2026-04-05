@@ -22,7 +22,7 @@ module.exports = {
         if (serverQueue && serverQueue.isTaskRunning) return interaction.reply({ content: '⚠️ **Sto elaborando...**', flags: 64 });
 
         await interaction.deferReply({ flags: 64 });
-        // Cleanup vecchi messaggi (debounce: max 1 volta al minuto per guild)
+        // Pulisci vecchi messaggi con debounce per evitare troppi delete
         if (!_lastCleanupTime.has(guild.id) || Date.now() - _lastCleanupTime.get(guild.id) > 60000) {
             _lastCleanupTime.set(guild.id, Date.now());
             cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null).catch(() => { });
@@ -30,18 +30,45 @@ module.exports = {
 
         serverQueue = await deps.ensureBotConnection(interaction);
         serverQueue.isTaskRunning = true;
+
+        // Se il canale di testo è cambiato, invalida la vecchia dashboard
+        const oldTextChannelId = serverQueue.textChannel?.id;
         serverQueue.textChannel = channel;
+        if (oldTextChannelId && oldTextChannelId !== channel.id && serverQueue.dashboardMessage) {
+            try { await serverQueue.dashboardMessage.delete(); } catch (_) { }
+            serverQueue.dashboardMessage = null;
+            serverQueue.dashboardMessageId = null;
+        }
 
         try {
-            const connected = await deps.connectToVoice(serverQueue, interaction);
-            if (!connected) {
-                serverQueue.isTaskRunning = false;
-                try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
-                return;
-            }
-
             const query = interaction.options.getString('cerca');
+
             if (!query) {
+                // Se non c'è nulla da riprodurre e nessuna history, mostra la dashboard senza entrare in vocale
+                const hasSongs = serverQueue.songs.length > 0;
+                const hasHistory = serverQueue.history && serverQueue.history.length > 0;
+                if (!hasSongs && !hasHistory) {
+                    try {
+                        const embed = createCurrentSongEmbed(serverQueue);
+                        const components = createDashboardComponents(serverQueue, interaction.user.id);
+                        const ok = await updateDashboard(serverQueue, embed, components);
+                        serverQueue.isTaskRunning = false;
+                        if (ok) return interaction.editReply("✅ Dashboard aperta.");
+                        return interaction.editReply("❌ Impossibile aprire la dashboard.");
+                    } catch (e) {
+                        serverQueue.isTaskRunning = false;
+                        return interaction.editReply("❌ Impossibile aprire la dashboard.");
+                    }
+                }
+
+                // C'è qualcosa da riprodurre/mostrare: connetti alla vocale
+                const connected = await deps.connectToVoice(serverQueue, interaction);
+                if (!connected) {
+                    serverQueue.isTaskRunning = false;
+                    try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
+                    return;
+                }
+
                 // Se esiste una coda attiva in memoria, riprendi la riproduzione
                 if (serverQueue.songs.length > 0) {
                     await deps.playSong(guild.id, interaction);
@@ -66,18 +93,19 @@ module.exports = {
                         serverQueue.isTaskRunning = false;
                         return interaction.editReply("✅ Dashboard (Coda terminata) aperta.");
                     }
-                    // Nessuna canzone: apri/aggiorna la dashboard normale
-                    const embed = createCurrentSongEmbed(serverQueue);
-                    const components = createDashboardComponents(serverQueue, interaction.user.id);
-                    const ok = await updateDashboard(serverQueue, embed, components);
-                    serverQueue.isTaskRunning = false;
-                    if (ok) return interaction.editReply("✅ Dashboard aperta.");
-                    return interaction.editReply("❌ Impossibile aprire la dashboard.");
                 } catch (e) {
                     serverQueue.isTaskRunning = false;
                     return interaction.editReply("❌ Impossibile aprire la dashboard.");
                 }
 
+            }
+
+            // Connessione vocale per riprodurre con query
+            const connected = await deps.connectToVoice(serverQueue, interaction);
+            if (!connected) {
+                serverQueue.isTaskRunning = false;
+                try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
+                return;
             }
 
             let songsFound = [];

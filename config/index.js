@@ -1,5 +1,5 @@
 /**
- * Esportazione centralizzata di tutte le configurazioni
+ * Export centralizzato delle configurazioni
  */
 
 const paths = require('./paths');
