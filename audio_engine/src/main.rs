@@ -1242,7 +1242,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     let source_sample = if active_deck == "A" { s_a } else { s_b };
                     let target_sample = if target_deck == "A" { s_a } else { s_b };
 
-                    source_sample * (1.0 - final_ratio) + target_sample * final_ratio
+                    // Equal-power crossfade: mantiene volume percepito costante
+                    // (crossfade lineare causa un calo di ~3 dB al punto medio)
+                    source_sample * (1.0 - final_ratio).sqrt() + target_sample * final_ratio.sqrt()
                 }
             } else {
                 // Nessun crossfade - output diretto dal deck attivo
@@ -1602,6 +1604,17 @@ fn main() {
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_IGN);
     }
+
+    // Installa un panic hook globale: se mixer_loop va in panic (es. divisione per zero,
+    // unwrap su None, OOM), il hook scrive un evento di errore su stderr e termina il
+    // processo con codice 1. Questo garantisce che Node.js riceva l'exit code e avvii
+    // il crash recovery, invece di lasciare il processo vivo-ma-silenzioso.
+    std::panic::set_hook(Box::new(|info| {
+        let msg = info.to_string();
+        send_log("error", &format!("PANIC nel mixer thread: {}", msg));
+        std::process::exit(1);
+    }));
+
     let (tx, rx) = bounded::<InputCommand>(10);
 
     // Thread audio (Priority)

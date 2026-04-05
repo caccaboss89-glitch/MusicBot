@@ -1,15 +1,5 @@
 /**
- * src/audio/audio-bridge.js
- *
  * Registro di callback per rompere le dipendenze circolari nel modulo audio.
- *
- * Problema: index.js importa playback/SkipManager/PlaybackEngine, che a loro volta
- * hanno bisogno di funzioni definite in index.js (handleMixerCrash, refreshDashboard, ecc.).
- * Questo crea cicli risolti finora con lazy require() dentro le funzioni.
- *
- * Soluzione: ogni modulo registra le proprie funzioni qui al momento del caricamento.
- * Gli altri moduli le invocano tramite bridge.call() senza importare direttamente
- * il modulo target, eliminando il ciclo.
  */
 
 const _registry = Object.create(null);

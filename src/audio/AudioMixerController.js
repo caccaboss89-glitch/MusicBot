@@ -1,5 +1,4 @@
 /**
- * src/audio/AudioMixerController.js
  * Controller per il mixer audio Rust (integrazione sidecar)
  */
 

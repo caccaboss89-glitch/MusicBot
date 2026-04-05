@@ -1,6 +1,4 @@
 /**
- * src/audio/index.js
- * 
  * Punto di ingresso centralizzato del sistema audio.
  * Esporta le funzioni pubbliche e gestisce il routing degli eventi Rust.
  */
@@ -16,8 +14,24 @@ const ui = require('../ui');
 
 // ─── Stream error tracking ─────────────────────────────────
 
-const failedSongs = new Map();       // guildId -> Set<url>
+const failedSongs = new Map();       // guildId -> Map<url, timestamp>
 const streamErrorCounts = new Map(); // guildId -> { url: count }
+const FAILED_SONG_TTL_MS = 60 * 60 * 1000; // 1 ora: errori transitori vengono dimenticati
+
+/**
+ * Controlla se una canzone è nella blacklist e se è ancora entro il TTL.
+ */
+function isFailedSong(guildId, url) {
+    const guildFailed = failedSongs.get(guildId);
+    if (!guildFailed) return false;
+    const ts = guildFailed.get(url);
+    if (ts === undefined) return false;
+    if (Date.now() - ts > FAILED_SONG_TTL_MS) {
+        guildFailed.delete(url);
+        return false;
+    }
+    return true;
+}
 
 function recordStreamError(guildId, url) {
     if (!streamErrorCounts.has(guildId)) streamErrorCounts.set(guildId, {});
@@ -25,8 +39,8 @@ function recordStreamError(guildId, url) {
     counts[url] = (counts[url] || 0) + 1;
 
     if (counts[url] >= 3) {
-        if (!failedSongs.has(guildId)) failedSongs.set(guildId, new Set());
-        failedSongs.get(guildId).add(url);
+        if (!failedSongs.has(guildId)) failedSongs.set(guildId, new Map());
+        failedSongs.get(guildId).set(url, Date.now());
         console.error(`❌ [STREAM] Canzone marcata non riproducibile (${counts[url]} errori): ${url.substring(0, 60)}`);
         return true;
     }
@@ -40,9 +54,15 @@ function clearStreamErrors(guildId) {
 
 // Pulizia periodica per prevenire memory leak (ogni 30 minuti)
 setInterval(() => {
+    const now = Date.now();
     streamErrorCounts.clear();
-    // failedSongs NON viene svuotato: canzoni con errori Opus persistenti
-    // restano marcate fino al restart per evitare cicli di retry infiniti
+    // Evict entry nella blacklist scadute (TTL 1 ora)
+    for (const [guildId, urlMap] of failedSongs) {
+        for (const [url, ts] of urlMap) {
+            if (now - ts > FAILED_SONG_TTL_MS) urlMap.delete(url);
+        }
+        if (urlMap.size === 0) failedSongs.delete(guildId);
+    }
 }, 30 * 60 * 1000);
 
 // ─── Rust event routing ─────────────────────────────────────
@@ -424,7 +444,7 @@ bridge.register('handleMixerCrash', handleMixerCrash);
 bridge.register('handleBufferReady', handleBufferReady);
 bridge.register('handleRustEvent', handleRustEvent);
 bridge.register('refreshDashboard', (sq, userId) => ui.refreshDashboard(sq, userId));
-bridge.register('isFailedSong', (guildId, url) => failedSongs.has(guildId) && failedSongs.get(guildId).has(url));
+bridge.register('isFailedSong', isFailedSong);
 bridge.register('updatePreloadAfterQueueChange', updatePreloadAfterQueueChange);
 
 // ─── Exports ────────────────────────────────────────────────
@@ -460,7 +480,7 @@ module.exports = {
     // Stream errors
     recordStreamError,
     clearStreamErrors,
-    isFailedSong: (guildId, url) => failedSongs.has(guildId) && failedSongs.get(guildId).has(url),
+    isFailedSong,
 
     // UI helpers
     refreshDashboard: (sq, userId = null) => ui.refreshDashboard(sq, userId),

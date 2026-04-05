@@ -1,7 +1,5 @@
 /**
- * src/audio/mixer-utils.js
  * Funzioni di utilità centralizzate per manipolazioni del mixer
- * Elimina duplicazione di safeMixerInvoke() tra playback, preload e crossfade
  */
 
 const bridge = require('./audio-bridge');

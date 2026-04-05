@@ -1,12 +1,8 @@
 /**
- * playback.js - Funzioni base di riproduzione
- * 
+ * Funzioni base di riproduzione
  * Responsabilità:
  *  - playSong:            avvia la riproduzione della canzone corrente (songs[playIndex])
  *  - restartCurrentSong:  riavvia la canzone corrente dall'inizio (replay)
- * 
- * Le funzioni di skip (smartSkip, performManualSkip) sono state rimosse in v3.
- * Tutta la logica di skip è centralizzata in SkipManager.
  */
 
 const { queue } = require('../state/globals');

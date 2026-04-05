@@ -137,6 +137,16 @@ client.on('guildDelete', (guild) => {
             globals.disconnectTimers.delete(guildId);
         }
         globals.interactionCooldowns.delete(guildId);
+
+        // Ferma player, mixer, connessione vocale e low-latency stream
+        if (sq) {
+            try { if (sq.player) sq.player.stop(true); } catch (e) { }
+            sq.intentionalKill = true;
+            try { if (sq.mixer) { sq.mixer.kill(); sq.mixer = null; } } catch (e) { }
+            try { if (sq.connection) sq.connection.destroy(); } catch (e) { }
+            try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch (e) { }
+        }
+
         globals.queue.delete(guildId);
 
         console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);

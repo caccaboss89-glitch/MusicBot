@@ -1,19 +1,6 @@
 /**
- * src/audio/CommandQueue.js
- * 
  * Sistema di serializzazione dei comandi verso il mixer Rust.
  * Previene race conditions mandando 1 comando alla volta.
- * 
- * Problema risolto:
- * - Skip + pause simultanei causano mixer desync
- * - Crossfade + skipTo concorrenti generano audio corrupto
- * - Multipli comandi load() sullo stesso deck causano state confusion
- * 
- * Soluzione:
- * - Coda FIFO per guildId
- * - Ogni comando attende il precedente
- * - Timeout per richieste stale
- * - Retry logic per comandi falliti
  */
 
 const { queue } = require('../state/globals');

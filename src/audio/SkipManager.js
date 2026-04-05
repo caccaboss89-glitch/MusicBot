@@ -1,5 +1,5 @@
 /**
- * SkipManager - Sistema di skip pulito e unificato
+ * Sistema di skip pulito e unificato
  *
  * Due tipi di skip:
  * 1. MANUALI: bottoni (next/prev) e menu a tendina (skipToIndex)
@@ -425,6 +425,8 @@ async function endQueue(guildId) {
         try { sq.mixer.kill(); } catch (e) { /* ignora */ }
         sq.mixer = null;
     }
+    // Distruggi il low-latency stream per evitare pipe/fd leak
+    try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch (e) { /* ignora */ }
 
     saveQueueState(guildId, sq);
     await require('../ui').updateDashboardToFinished(sq, lastSong);

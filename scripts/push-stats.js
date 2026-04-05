@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
  * Script per versionare i file dati persistenti su GitHub.
- * Esegui: node scripts/push-stats.js
  * Chiamato automaticamente il 1° del mese dalle 10:00 in poi.
  */
 

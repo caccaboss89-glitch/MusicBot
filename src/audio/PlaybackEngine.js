@@ -1,6 +1,5 @@
 /**
- * PlaybackEngine - Gestore temporizzazione audio
- *
+ * Gestore temporizzazione audio
  * Responsabilità:
  * 1. Precaricamento: 5s dopo l'inizio di ogni canzone, precarica la successiva nell'altro deck
  * 2. Monitoraggio: Ascolta l'evento 'end' dal Rust (fine traccia naturale)
