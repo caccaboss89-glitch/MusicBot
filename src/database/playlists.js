@@ -8,23 +8,56 @@ const { PLAYLIST_FILE } = require('../../config');
 const { safeJSONParse } = require('../utils/sanitize');
 const { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } = require('../../config');
 
+// ─── Cache singleton per evitare race condition read-modify-write ──────
+let _dbCache = null;
+let _dbDirty = false;
+let _dbFlushTimer = null;
+const DB_FLUSH_INTERVAL_MS = 2000; // Flush su disco ogni 2 secondi se dirty
+
 /**
  * Carica il database delle playlist
  * @returns {object} - { server: [], users: {} }
  */
 function loadDatabase() {
-    return safeJSONParse(PLAYLIST_FILE, { server: [], users: {} });
+    if (_dbCache) return _dbCache;
+    _dbCache = safeJSONParse(PLAYLIST_FILE, { server: [], users: {} });
+    return _dbCache;
 }
 
 /**
  * Salva il database delle playlist
- * @param {object} data - Dati da salvare
+ * Marca la cache come dirty e schedula un flush su disco.
+ * @param {object} data - Dati da salvare (deve essere lo stesso riferimento della cache)
  */
 function saveDatabase(data) {
+    _dbCache = data;
+    _dbDirty = true;
+    if (!_dbFlushTimer) {
+        _dbFlushTimer = setTimeout(() => {
+            _flushToFile();
+        }, DB_FLUSH_INTERVAL_MS);
+    }
+}
+
+/**
+ * Forza la scrittura immediata su disco (per shutdown).
+ */
+function flushDatabaseSync() {
+    if (_dbFlushTimer) {
+        clearTimeout(_dbFlushTimer);
+        _dbFlushTimer = null;
+    }
+    _flushToFile();
+}
+
+function _flushToFile() {
+    _dbFlushTimer = null;
+    if (!_dbDirty || !_dbCache) return;
     try {
         const tmpFile = PLAYLIST_FILE + '.tmp';
-        fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2));
+        fs.writeFileSync(tmpFile, JSON.stringify(_dbCache, null, 2));
         fs.renameSync(tmpFile, PLAYLIST_FILE);
+        _dbDirty = false;
     } catch(e) {
         console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
     }
@@ -135,13 +168,15 @@ function validatePlaylistName(name) {
     if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `Il nome non può superare ${MAX_PLAYLIST_NAME_LENGTH} caratteri.` };
     if (trimmed.includes('_')) return { valid: false, error: 'Il nome non può contenere underscore (_).' };
     // Permetti alfanumerici, spazi, trattini, accenti e altri caratteri unicode comuni
-    if (!/^[^\n\r_]{1,20}$/.test(trimmed)) return { valid: false, error: 'Il nome contiene caratteri non validi.' };
+    const nameRegex = new RegExp(`^[^\\n\\r_]{1,${MAX_PLAYLIST_NAME_LENGTH}}$`);
+    if (!nameRegex.test(trimmed)) return { valid: false, error: 'Il nome contiene caratteri non validi.' };
     return { valid: true };
 }
 
 module.exports = {
     loadDatabase,
     saveDatabase,
+    flushDatabaseSync,
     migrateUserData,
     getUserData,
     getUserPlaylist,

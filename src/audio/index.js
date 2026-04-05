@@ -199,6 +199,24 @@ function handleRustEvent(guildId, log) {
         // deck_proposal legacy – ignorato
         if (log.event === 'deck_proposal') return;
 
+        // ── Proactive crossfade proposal da Rust ──
+        if (log.event === 'proactive_crossfade_proposal') {
+            const sq = queue.get(guildId);
+            if (sq && !sq.isCrossfading) {
+                const fadeEnabled = sq.crossfadeEnabled !== false;
+                const nextSong = require('../queue/QueueManager').peekNext(sq);
+                if (fadeEnabled && nextSong) {
+                    console.log('🎚️  [PROACTIVE-CROSSFADE] Rust propone crossfade – avvio autoSkip');
+                    SkipManager.autoSkip(guildId).catch(e => {
+                        console.error('❌ [PROACTIVE-CROSSFADE] Errore autoSkip:', e);
+                    });
+                } else {
+                    console.log('⏭️  [PROACTIVE-CROSSFADE] Proposta ignorata (fade off o nessuna next track)');
+                }
+            }
+            return;
+        }
+
         // Errori
         if (log.event === 'error' || log.event === 'yt_error') {
             console.error(`🦀 [RUST-${guildId}] ERRORE`, log.data || '');

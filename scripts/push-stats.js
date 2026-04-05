@@ -64,10 +64,17 @@ function archiveMonthlyStats() {
         fs.writeFileSync(backupFilePath, JSON.stringify(statsData, null, 2), 'utf-8');
         console.log(`📊 Archived monthly stats to: ${backupFilePath}`);
 
-        return true;
+        // Resetta stats.json SUBITO dopo l'archiviazione (prima del commit/push)
+        // Così il commit contiene sia l'archivio che il reset
+        const resetOk = resetStatsFile();
+        if (!resetOk) {
+            return { success: false, error: 'Reset stats file failed after archive' };
+        }
+
+        return { success: true };
     } catch (e) {
         console.error('❌ Error archiving monthly stats:', e.message);
-        return false;
+        return { success: false, error: e.message };
     }
 }
 
@@ -123,9 +130,9 @@ function pushStats(forceArchive = false) {
 
         if (shouldArchive) {
             console.log('📦 Archiviazione mensile delle stats in corso...');
-            const archiveSuccess = archiveMonthlyStats();
-            if (!archiveSuccess) {
-                console.log('❌ Archiviazione mensile fallita, push annullato');
+            const archiveResult = archiveMonthlyStats();
+            if (!archiveResult.success) {
+                console.log(`❌ Archiviazione mensile fallita: ${archiveResult.error}, push annullato`);
                 return false;
             }
         }
@@ -173,10 +180,8 @@ function pushStats(forceArchive = false) {
             }
         }
 
-        // Se era un archiving mensile, resetta stats.json DOPO il push riuscito
-        if (shouldArchive) {
-            resetStatsFile();
-        }
+        // Se era un archiving mensile, il reset di stats.json è già avvenuto
+        // in archiveMonthlyStats() prima del commit (atomicamente)
 
         return true;
 

@@ -18,6 +18,14 @@ const { STATS_FILE } = require('../../config/paths');
 // guildId → Map<userId, startTimestamp>
 const activeListeners = new Map();
 
+// Buffer statico per il tempo pendente (non ancora scritto su disco)
+const pendingTime = {};
+
+// Flush periodico del tempo pendente per ridurre perdita dati su crash non-graceful
+setInterval(() => {
+    try { flushPendingAndSave(); } catch (e) {}
+}, 60 * 1000); // Ogni 60 secondi
+
 // ─── Caricamento / Salvataggio ──────────────────────────────
 
 function getDefaultStats() {
@@ -128,15 +136,12 @@ function stopListening(guildId, userId) {
     // Accumula nel file stats (carica, aggiorna, salva subito NO — lo facciamo in batch)
     // Usiamo un buffer intermedio per evitare I/O per ogni singolo stop
     // Il flush effettivo su disco avviene in flushGuildAndSave o flushAllGuildsAndSave
-    if (!stopListening._pendingTime) stopListening._pendingTime = {};
-    if (!stopListening._pendingTime[userId]) stopListening._pendingTime[userId] = 0;
-    stopListening._pendingTime[userId] += elapsed;
+    if (!pendingTime[userId]) pendingTime[userId] = 0;
+    pendingTime[userId] += elapsed;
 
     return elapsed;
 }
 
-// Buffer statico per il tempo pendente (non ancora scritto su disco)
-stopListening._pendingTime = {};
 
 const MAX_LISTENER_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
@@ -197,7 +202,7 @@ function flushPendingAndSave() {
         // Pulisci listener stalli (attivi da >24h sono certamente orfani)
         cleanupStaleListeners();
 
-        const pending = stopListening._pendingTime;
+        const pending = pendingTime;
         if (!pending || Object.keys(pending).length === 0) return;
 
         const data = loadStats();
@@ -210,7 +215,9 @@ function flushPendingAndSave() {
         saveStats(data);
 
         // Reset buffer
-        stopListening._pendingTime = {};
+        for (const key of Object.keys(pendingTime)) {
+            delete pendingTime[key];
+        }
     } catch (e) {
         console.error('❌ [STATS] Errore flushPendingAndSave:', e.message);
     }
@@ -253,10 +260,11 @@ function flushAllGuildsAndSave() {
  */
 /**
  * Normalizza un URL YouTube alla forma canonica (rimuove parametri extra)
+ * Gestisce: /watch?v=, /youtu.be/, /embed/, /v/, /shorts/
  */
 function normalizeYoutubeUrl(url) {
     if (!url) return url;
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/);
+    const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
     return url;
 }

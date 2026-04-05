@@ -106,5 +106,9 @@ module.exports = {
                 if (serverQueue.songs.length === 2) deps.preloadNextSongs(guild.id);
             }
         } finally { if (serverQueue) serverQueue.isTaskRunning = false; }
+    },
+
+    cleanupLastCleanupTime(guildId) {
+        _lastCleanupTime.delete(guildId);
     }
 };

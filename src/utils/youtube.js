@@ -12,13 +12,36 @@ const {
 
 const DURATION_FETCH_CONCURRENCY = 3; // Max processi yt-dlp paralleli per fetch durata
 
+// ─── Semaforo globale per limitare processi yt-dlp concorrenti ──────
+const MAX_YTDLP_CONCURRENT = 6; // Max processi yt-dlp globali (cross-guild)
+let _activeProcesses = 0;
+const _waitQueue = [];
+
+function acquireSlot() {
+    if (_activeProcesses < MAX_YTDLP_CONCURRENT) {
+        _activeProcesses++;
+        return Promise.resolve();
+    }
+    return new Promise(resolve => _waitQueue.push(resolve));
+}
+
+function releaseSlot() {
+    _activeProcesses--;
+    if (_waitQueue.length > 0 && _activeProcesses < MAX_YTDLP_CONCURRENT) {
+        _activeProcesses++;
+        _waitQueue.shift()();
+    }
+}
+
 /**
  * Estrae solo la durata di un video (funzione veloce di ripiego)
  * @param {string} videoUrl - URL del video YouTube
  * @returns {Promise<number>} - Durata in secondi (0 se fallisce)
  */
 async function getVideoDuration(videoUrl) {
-    return new Promise((resolve) => {
+    await acquireSlot();
+    try {
+    return await new Promise((resolve) => {
         const ytdlpCmd = getYtDlpCommand([
             '--no-warnings',
             '--no-cache-dir',
@@ -66,6 +89,7 @@ async function getVideoDuration(videoUrl) {
             resolve(0);
         });
     });
+    } finally { releaseSlot(); }
 }
 
 /**
@@ -75,6 +99,8 @@ async function getVideoDuration(videoUrl) {
  * @throws {string} - 'TIMEOUT', 'TOO_LARGE'
  */
 async function getVideoInfo(query) {
+    await acquireSlot();
+    try {
     const baseArgs = [
         '--flat-playlist', 
         '-J', 
@@ -172,6 +198,7 @@ async function getVideoInfo(query) {
             } catch (e) { resolve([]); }
         });
     });
+    } finally { releaseSlot(); }
 }
 
 module.exports = {

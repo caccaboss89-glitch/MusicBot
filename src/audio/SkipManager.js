@@ -32,6 +32,10 @@ const bridge = require('./audio-bridge');
 // Throttle per prevenire spam di skip ravvicinati
 const skipThrottle = new Map();  // guildId -> timestamp
 
+function cleanupSkipState(guildId) {
+    skipThrottle.delete(guildId);
+}
+
 // ─── Helpers ────────────────────────────────────────────────
 
 function getOtherDeck(sq) {
@@ -275,15 +279,16 @@ async function performTransition(guildId, targetIndex, reason) {
 
     } catch (e) {
         console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
-        const sq2 = queue.get(guildId);
-        if (sq2) {
-            sq2.loadingFooter = null;
-            sq2.isCrossfading = false;
-            sq2.crossfadeStartTime = null;
-        }
         stateVersion.incrementVersion('skip_error', { reason, error: e.message });
         return false;
     } finally {
+        // Reset flag crossfade in TUTTI i path di uscita
+        const sqF = queue.get(guildId);
+        if (sqF) {
+            sqF.loadingFooter = null;
+            sqF.isCrossfading = false;
+            sqF.crossfadeStartTime = null;
+        }
         // Rilascia il lock
         lock.release();
     }
@@ -535,5 +540,6 @@ module.exports = {
     autoSkip,
     endQueue,
     hasSkipInProgress,
-    completePendingTransition
+    completePendingTransition,
+    cleanupSkipState
 };

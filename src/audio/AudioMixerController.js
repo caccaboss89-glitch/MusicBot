@@ -73,6 +73,7 @@ class AudioMixerController {
         
         this.isAlive = true;
         this.stdoutClosed = false;
+        this.hasCrashed = false; // Reset per permettere recovery su futuri crash
 
         // Chiudi risorse precedenti prima di riavviare
         if (this.logStream) {

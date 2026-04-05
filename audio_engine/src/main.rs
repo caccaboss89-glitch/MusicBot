@@ -899,19 +899,10 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             let threshold = SAMPLE_RATE * CHANNELS * 3;
 
             if current_buffer_len < threshold && target_ready {
-                // Avvia crossfade DIRETTAMENTE (nessun handshake con Node.js)
-                send_log("info", &format!("Auto-crossfade: {} -> {} (buffer: {} samples, <3s remaining)",
-                    active_deck, target_deck_name, current_buffer_len));
-                
-                crossfading = true;
-                target_deck = target_deck_name.to_string();
-                // Crossfade di 6 secondi (3s overlap fine canzone + 3s inizio prossima)
-                crossfade_total = SAMPLE_RATE * CHANNELS * 6;
-                crossfade_left = crossfade_total;
+                // Invia proposta a Node.js invece di crossfade diretto
+                // Node.js deciderà se approvare il crossfade (via approaching_end handler)
+                send_log("proactive_crossfade_proposal", &format!("from={}, to={}, buffer={}", active_deck, target_deck_name, current_buffer_len));
                 proactive_crossfade_triggered = true;
-                
-                // Notifica Node.js che il crossfade è iniziato
-                send_log("crossfade_started", &format!("from={}, to={}", active_deck, target_deck_name));
             }
         }
 

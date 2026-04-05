@@ -33,6 +33,8 @@ process.on('uncaughtException', (error) => {
     } catch (e) { /* ignore */ }
     // Flush statistiche ascolto prima del crash
     try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }
+    // Flush playlist cache prima del crash
+    try { require('./src/database/playlists').flushDatabaseSync(); } catch (e) { /* ignore */ }
     // Log su file
     try {
         const logEntry = `[${new Date().toISOString()}] UNCAUGHT-EXCEPTION: ${error.message}\n${error.stack}\n\n`;
@@ -89,6 +91,7 @@ const { stateVersionManager } = require('./src/state/StateVersion');
 const { commandQueue } = require('./src/audio/CommandQueue');
 const { audioOperationBarrier } = require('./src/handlers/AudioOperationBarrier');
 const PlaybackEngine = require('./src/audio/PlaybackEngine');
+const SkipManager = require('./src/audio/SkipManager');
 
 client.on('guildDelete', (guild) => {
     const guildId = guild.id;
@@ -112,6 +115,15 @@ client.on('guildDelete', (guild) => {
         
         // Pulisci playback state (lastMixerCrashTime)
         require('./src/audio/playback').cleanupPlaybackState(guildId);
+        
+        // Pulisci stream error tracking
+        require('./src/audio').clearStreamErrors(guildId);
+        
+        // Pulisci skip throttle state
+        SkipManager.cleanupSkipState(guildId);
+        
+        // Pulisci cleanup debounce (play.js)
+        require('./src/commands/play').cleanupLastCleanupTime(guildId);
         
         // Pulisci dashboard timer, disconnect timer, cooldowns e rimuovi dalla queue
         const globals = require('./src/state/globals');
@@ -202,6 +214,7 @@ function gracefulShutdown(signal) {
         });
     } catch (e) { /* ignore */ }
     try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }
+    try { require('./src/database/playlists').flushDatabaseSync(); } catch (e) { /* ignore */ }
     console.log(`✅ [SHUTDOWN] Salvataggio completato.`);
     process.exit(0);
 }

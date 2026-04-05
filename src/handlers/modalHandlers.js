@@ -125,6 +125,9 @@ async function handleModal(interaction, guildId, deps) {
                     if (needStartDueToMissingAudio) {
                         serverQueue.currentDeckLoaded = null;
                         serverQueue.nextDeckLoaded = null;
+                        if (serverQueue.mixer) {
+                            try { serverQueue.mixer.kill(); } catch(e) {}
+                        }
                         serverQueue.mixer = null;
                     }
                     if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);

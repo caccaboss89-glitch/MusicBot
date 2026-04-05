@@ -80,9 +80,21 @@ async function connectToVoice(serverQueue, interaction) {
             selfDeaf: false
         });
         serverQueue.connection = connection;
+        // Rimuovi listener obsoleti dalla connessione precedente (se riutilizzata)
+        if (serverQueue._connStateHandler) {
+            try { connection.off('stateChange', serverQueue._connStateHandler); } catch(e) {}
+        }
+        if (serverQueue._connErrorHandler) {
+            try { connection.off('error', serverQueue._connErrorHandler); } catch(e) {}
+        }
+        // Cancella timer di riconciliazione pendente
+        if (serverQueue._reconcileTimer) {
+            clearTimeout(serverQueue._reconcileTimer);
+            serverQueue._reconcileTimer = null;
+        }
         // Aggiungi listener sul ciclo di vita per reagire a disconnessioni/spostamenti
         try {
-            connection.on('stateChange', (oldState, newState) => {
+            const stateChangeHandler = (oldState, newState) => {
                 try {
                         if (newState.status === VoiceConnectionStatus.Destroyed) {
                         // Forza cleanup immediato
@@ -96,8 +108,13 @@ async function connectToVoice(serverQueue, interaction) {
                             const connChannelId = connection.joinConfig?.channelId;
                             const storedChannelId = serverQueue.voiceChannel?.id;
                             if (connChannelId && storedChannelId && connChannelId !== storedChannelId) {
+                                // Cancella timer precedente se esiste
+                                if (serverQueue._reconcileTimer) {
+                                    clearTimeout(serverQueue._reconcileTimer);
+                                }
                                 // Attendi una finestra breve e poi riconcilia
-                                setTimeout(() => {
+                                serverQueue._reconcileTimer = setTimeout(() => {
+                                    serverQueue._reconcileTimer = null;
                                     try {
                                         const latestStoredId = serverQueue.voiceChannel?.id;
                                         const latestConnId = connection.joinConfig?.channelId;
@@ -126,11 +143,16 @@ async function connectToVoice(serverQueue, interaction) {
                         scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
                     }
                 } catch (e) {}
-            });
-            connection.on('error', (err) => {
+            };
+            const errorHandler = (err) => {
                 console.error('Errore VoiceConnection:', err);
                 scheduleDisconnectIfAlone(serverQueue, 0);
-            });
+            };
+            // Salva riferimenti per poterli rimuovere alla prossima connessione
+            serverQueue._connStateHandler = stateChangeHandler;
+            serverQueue._connErrorHandler = errorHandler;
+            connection.on('stateChange', stateChangeHandler);
+            connection.on('error', errorHandler);
         } catch (e) {}
         try { serverQueue.connection.subscribe(serverQueue.player); } catch(e){}
         try {

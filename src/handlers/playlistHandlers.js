@@ -287,6 +287,8 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         const deletedCount = userData.playlists[plName].length;
         delete userData.playlists[plName];
         if (userData.activePlaylist === plName) userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
+        // Pulisci ricerche attive relative a questa playlist
+        activeSearches.delete(`${interaction.user.id}_likes_${plName}`);
         saveDatabase(db);
         await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
         await safeReply(interaction, { content: `🗑️ Playlist **${plName}** eliminata (${deletedCount} canzoni rimosse).`, flags: MessageFlags.Ephemeral });

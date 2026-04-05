@@ -244,8 +244,9 @@ module.exports = function registerInteractionHandlers(client, deps) {
                 }
 
                 const now = Date.now();
-                if (interactionCooldowns.has(guildId) && now < interactionCooldowns.get(guildId) + 200) return;
-                interactionCooldowns.set(guildId, now);
+                const cooldownKey = `${guildId}_${interaction.user.id}`;
+                if (interactionCooldowns.has(cooldownKey) && now < interactionCooldowns.get(cooldownKey) + 200) return;
+                interactionCooldowns.set(cooldownKey, now);
 
                 const serverQueue = await deps.ensureBotConnection(interaction);
                 if (!serverQueue) return;
