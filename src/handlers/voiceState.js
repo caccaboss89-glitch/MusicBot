@@ -19,6 +19,8 @@ module.exports = (client) => {
             if (oldIsBot || newIsBot) {
                 const botChannel = newState?.channel || newState?.member?.voice?.channel || null;
                 if (!botChannel) {
+                    // Se è in corso una riconnessione (cambio canale), non interferire
+                    if (serverQueue._isReconnecting) return;
                     // Il bot è stato disconnesso/espulso - ferma tutti i timer ascolto
                     try { stats.stopAllListeners(guildId); } catch (e) { }
                     // Aggiorna lo stato della coda per riflettere l'assenza di canale

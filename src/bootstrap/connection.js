@@ -58,12 +58,19 @@ async function connectToVoice(serverQueue, interaction) {
         // Aggiorna il `voiceChannel` memorizzato al target (cerchiamo di seguire l'utente)
         serverQueue.voiceChannel = targetVoice;
 
+        // Cancella qualsiasi timer di disconnect pendente — stiamo (ri)connettendo intenzionalmente
+        cancelScheduledDisconnect(serverQueue);
+
+        // Flag: impedisce a voiceStateUpdate/cleanup di distruggere la nuova connessione durante il cambio canale
+        serverQueue._isReconnecting = true;
+
         // Se esiste una connessione, convalidala. Se è pronta e corrisponde al canale target, riutilizzala.
         if (serverQueue.connection) {
             try {
                 const status = serverQueue.connection.state?.status;
                 const joinedChannelId = serverQueue.connection.joinConfig?.channelId || serverQueue.voiceChannel?.id;
                 if (status === VoiceConnectionStatus.Ready && joinedChannelId === targetVoice.id) {
+                    serverQueue._isReconnecting = false;
                     return true;
                 }
             } catch (e) {
@@ -170,12 +177,15 @@ async function connectToVoice(serverQueue, interaction) {
             serverQueue._connErrorHandler = null;
             try { connection.destroy(); } catch (_) { }
             serverQueue.connection = null;
+            serverQueue._isReconnecting = false;
             await safeReply(interaction, { content: '❌ Errore connessione vocale', flags: 64 });
             return false;
         }
+        serverQueue._isReconnecting = false;
         return true;
     } catch (e) {
         console.error('Errore connectToVoice:', e);
+        if (serverQueue) serverQueue._isReconnecting = false;
         return false;
     }
 }
