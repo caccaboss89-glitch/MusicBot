@@ -1,6 +1,6 @@
 const { queue } = require('../state/globals');
 const ServerQueue = require('../state/ServerQueue');
-const { joinVoiceChannel, entersState, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, entersState, VoiceConnectionStatus, createAudioPlayer } = require('@discordjs/voice');
 const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
 const { loadQueueBackup } = require('../queue/persistence');
 const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } = require('../../config');
@@ -33,15 +33,6 @@ async function ensureBotConnection(interaction) {
                 // il mancato avvio di playSong() quando l'utente aggiunge canzoni.
                 serverQueue.currentDeckLoaded = null;
                 serverQueue.sessionRestored = true;
-                // Se currentDeckLoaded non corrisponde a nessuna canzone presente, aggiungila in history per mostrare l'ultima riprodotta
-                if (serverQueue.currentDeckLoaded) {
-                    const foundInSongs = serverQueue.songs.find(s => s && s.url === serverQueue.currentDeckLoaded);
-                    const foundInHistory = serverQueue.history.find(s => s && s.url === serverQueue.currentDeckLoaded);
-                    if (!foundInSongs && !foundInHistory) {
-                        const synthetic = { title: 'Ultima canzone (ripristinata)', url: serverQueue.currentDeckLoaded, thumbnail: null, duration: 0 };
-                        if (serverQueue.history && serverQueue.history.length > 0) serverQueue.history.push(synthetic); else serverQueue.songs.unshift(synthetic);
-                    }
-                }
             }
         } catch (e) { console.error('Errore caricamento backup coda:', e); }
         queue.set(guildId, serverQueue);

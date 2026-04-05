@@ -16,6 +16,11 @@ const audio = require('../audio');
 // Mappa in-memory per query di ricerca attive (per paginazione risultati)
 const activeSearches = new Map();
 
+// Pulizia periodica per prevenire memory leak (ogni 30 minuti)
+setInterval(() => {
+    activeSearches.clear();
+}, 30 * 60 * 1000);
+
 /**
  * Gestisce tutte le interazioni playlist (plist_*, act_*, srch_*, open_plist_*, btn_toggle_*).
  * @returns {boolean} true se l'interazione è stata gestita

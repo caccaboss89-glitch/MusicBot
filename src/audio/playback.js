@@ -48,6 +48,10 @@ function cleanupLowLatencyStream(serverQueue) {
 const lastMixerCrashTime = new Map();
 const MIXER_CRASH_COOLDOWN_MS = 1500;
 
+function cleanupPlaybackState(guildId) {
+    lastMixerCrashTime.delete(guildId);
+}
+
 /**
  * Riprende la riproduzione se era in pausa (utility per evitare duplicazione)
  * Usato sia per replay che per skip quando la musica era ferma
@@ -473,4 +477,4 @@ bridge.register('restartCurrentSong', restartCurrentSong);
 bridge.register('resumeIfPaused', resumeIfPaused);
 bridge.register('recordMixerCrashTime', recordMixerCrashTime);
 
-module.exports = { playSong, restartCurrentSong, togglePauseResume, recordMixerCrashTime, resumeIfPaused };
+module.exports = { playSong, restartCurrentSong, togglePauseResume, recordMixerCrashTime, resumeIfPaused, cleanupPlaybackState };

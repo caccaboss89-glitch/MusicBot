@@ -7,9 +7,10 @@ const {
     LOCAL_TEMP_DIR,
     VIDEO_DURATION_TIMEOUT_MS,
     VIDEO_INFO_TIMEOUT_MS,
-    USER_AGENT,
     getYtDlpCommand
 } = require('../../config');
+
+const DURATION_FETCH_CONCURRENCY = 3; // Max processi yt-dlp paralleli per fetch durata
 
 /**
  * Estrae solo la durata di un video (funzione veloce di ripiego)
@@ -24,7 +25,6 @@ async function getVideoDuration(videoUrl) {
             '--skip-download',
             '--force-ipv4',
             '--paths', `home:${LOCAL_TEMP_DIR}`,
-            '--user-agent', USER_AGENT,
             '-J',
             videoUrl
         ]);
@@ -86,8 +86,7 @@ async function getVideoInfo(query) {
         '--paths', `home:${LOCAL_TEMP_DIR}`,
         '--skip-download', 
         '--compat-options', 'no-youtube-unavailable-videos',
-        '--yes-playlist', 
-        '--user-agent', USER_AGENT 
+        '--yes-playlist'
     ];
 
     if (query.startsWith('http')) baseArgs.push(query); else baseArgs.push(`ytsearch1:${query}`);
@@ -135,18 +134,19 @@ async function getVideoInfo(query) {
                         duration: entry.duration || 0
                     }));
                     
-                    // Se la durata è mancante, recuperala con una query veloce
-                    results = await Promise.all(results.map(async (song) => {
-                        if (!song.duration || song.duration === 0) {
+                    // Se la durata è mancante, recuperala con una query veloce (max N alla volta)
+                    const needsDuration = results.filter(s => !s.duration || s.duration === 0);
+                    for (let i = 0; i < needsDuration.length; i += DURATION_FETCH_CONCURRENCY) {
+                        const batch = needsDuration.slice(i, i + DURATION_FETCH_CONCURRENCY);
+                        await Promise.all(batch.map(async (song) => {
                             try {
                                 const dur = await getVideoDuration(song.url);
                                 if (dur && dur > 0) song.duration = dur;
                             } catch (e) {
                                 // Mantieni duration: 0 se fallisce
                             }
-                        }
-                        return song;
-                    }));
+                        }));
+                    }
                     
                     return resolve(results);
                 }

@@ -113,6 +113,9 @@ client.on('guildDelete', (guild) => {
         // Pulisci cooldowns
         require('./src/state/globals').interactionCooldowns.delete(guildId);
         
+        // Pulisci playback state (lastMixerCrashTime)
+        require('./src/audio/playback').cleanupPlaybackState(guildId);
+        
         console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
     } catch (e) {
         console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);

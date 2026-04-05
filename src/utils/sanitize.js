@@ -36,7 +36,7 @@ function sanitizeTitle(title) {
 function safeJSONParse(filename, defaultData) {
     if (!fs.existsSync(filename)) {
         try { 
-            fs.writeFileSync(filename, JSON.stringify(defaultData)); 
+            fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); 
         } catch(e) {}
         return defaultData;
     }
