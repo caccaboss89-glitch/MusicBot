@@ -202,6 +202,8 @@ function preloadNextSong(guildId) {
             console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
         }).catch(err => {
             console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
+            sq.nextDeckLoaded = null;
+            sq.nextDeckTarget = null;
         });
 
     } catch (e) {
@@ -225,6 +227,9 @@ function preloadNextSong(guildId) {
 async function handleTrackEnd(guildId) {
     const sq = queue.get(guildId);
     if (!sq) return;
+
+    // Ignora eventi se il mixer non è più attivo
+    if (!isMixerAlive(sq)) return;
 
     // Pulisci timer preload quando la traccia finisce
     clearAllTimers(guildId);

@@ -34,6 +34,16 @@ function createLowLatencyStream(stdout) {
     return passthrough;
 }
 
+/**
+ * Pulisce il low-latency stream per evitare resource leak
+ */
+function cleanupLowLatencyStream(serverQueue) {
+    if (serverQueue && serverQueue._llStream) {
+        try { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); } catch(e) {}
+        serverQueue._llStream = null;
+    }
+}
+
 // Traccia timestamp di ultimi crash per guild (per evitare restart troppo veloci)
 const lastMixerCrashTime = new Map();
 const MIXER_CRASH_COOLDOWN_MS = 1500;
@@ -87,7 +97,12 @@ async function restartCurrentSong(guildId) {
     }
 
     // Riavvia il deck corrente dall'inizio senza ri-scaricare
-    const currentDeck = serverQueue.currentDeck || 'A';
+    let currentDeck = serverQueue.currentDeck || 'A';
+    if (currentDeck !== 'A' && currentDeck !== 'B') {
+        console.warn(`⚠️ [REPLAY] currentDeck non valido (${currentDeck}), reset ad A`);
+        currentDeck = 'A';
+        serverQueue.currentDeck = 'A';
+    }
     console.log(`[REPLAY] Restart Deck ${currentDeck} dall'inizio`);
 
     safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.restartDeck(currentDeck));
@@ -125,7 +140,7 @@ async function playSong(guildId, interaction = null) {
             });
             serverQueue.connection.subscribe(serverQueue.player);
             await entersState(serverQueue.connection, VoiceConnectionStatus.Ready, 10000);
-        } catch (e) { return; }
+        } catch (e) { cleanupLowLatencyStream(serverQueue); return; }
     }
 
     const song = getCurrentSong(serverQueue);
@@ -136,6 +151,7 @@ async function playSong(guildId, interaction = null) {
         require('../ui').updateDashboardToFinished(serverQueue, lastSong);
         serverQueue.currentDeckLoaded = null;
         serverQueue.nextDeckLoaded = null;
+        cleanupLowLatencyStream(serverQueue);
         return;
     }
 
@@ -147,6 +163,7 @@ async function playSong(guildId, interaction = null) {
         serverQueue.playIndex = (serverQueue.playIndex || 0) + 1;
         if (serverQueue.playIndex >= serverQueue.songs.length) {
             serverQueue.currentDeckLoaded = null;
+            cleanupLowLatencyStream(serverQueue);
             require('../ui').updateDashboardToFinished(serverQueue, song);
             return;
         }
@@ -217,9 +234,7 @@ async function playSong(guildId, interaction = null) {
                 safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setLoop(!!serverQueue.loopEnabled));
 
                 // Cleanup vecchio stream per evitare resource leak
-                if (serverQueue._llStream) {
-                    try { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); } catch(e) {}
-                }
+                cleanupLowLatencyStream(serverQueue);
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream; // Salva riferimento per cleanup
                 const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
@@ -243,9 +258,7 @@ async function playSong(guildId, interaction = null) {
                     return;
                 }
                 // Cleanup vecchio stream per evitare resource leak
-                if (serverQueue._llStream) {
-                    try { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); } catch(e) {}
-                }
+                cleanupLowLatencyStream(serverQueue);
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream;
                 const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
@@ -256,7 +269,11 @@ async function playSong(guildId, interaction = null) {
                 if (serverQueue.connection) {
                     try { serverQueue.connection.subscribe(serverQueue.player); } catch(e) { console.error('Failed to re-subscribe connection:', e); }
                 }
-            } catch (e) { console.error('❌ [PLAY] Error attaching to existing mixer stdout', e); return; }
+            } catch (e) { 
+                console.error('❌ [PLAY] Error attaching to existing mixer stdout', e); 
+                cleanupLowLatencyStream(serverQueue);
+                return; 
+            }
         }
 
         // Carica e avvia la canzone su deck A

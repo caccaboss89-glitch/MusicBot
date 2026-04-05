@@ -104,3 +104,36 @@
 **Status**: ✅ **NON RICHIEDE MODIFICHE** (soluzione è già corretta per il caso d'uso reale)
 
 ---
+
+### 10. Stats Collision su `userId` senza `guildId`
+**File**: [src/database/stats.js](src/database/stats.js#L131-L136)
+
+**Problema**: Il buffer `stopListening._pendingTime` usa solo `userId` come chiave, senza distinguere la guild. Se un utente ascolta su 2 server contemporaneamente, i tempi di ascolto si sommano indiscriminatamente.
+
+**Possibile soluzione**: Usare chiavi `${guildId}_${userId}` e aggiornare `flushPendingAndSave` per fare il parse della chiave composta.
+
+**Motivo skip**: Utente ha deciso di non implementare questo miglioramento.
+
+---
+
+### 11. YouTube query non escapata per yt-dlp
+**File**: [src/utils/youtube.js](src/utils/youtube.js#L85-L92)
+
+**Problema**: La query utente viene passata come `ytsearch1:${query}` senza sanitizzazione. Essendo `spawn` (non `exec`) non è vulnerabile a shell injection, ma metacaratteri o stringhe che iniziano con `--` potrebbero essere interpretati da yt-dlp come flag (argument injection).
+
+**Possibile soluzione**: Sanitizzare la query rimuovendo quote, backslash, newline e stringhe tipo `--flag`.
+
+**Motivo skip**: Utente ha deciso di non implementare questo miglioramento.
+
+---
+
+### 12. `VOICE_CONNECTION_TIMEOUT_MS` hardcoded
+**File**: [config/constants.js](config/constants.js#L16-L20)
+
+**Problema**: Il timeout di connessione vocale è fissato a 20 secondi. Su sistemi lenti (es. Raspberry Pi) o con I/O pesante, 20 secondi possono essere insufficienti.
+
+**Possibile soluzione**: Rendere il valore configurabile via variabile d'ambiente (`process.env.VOICE_CONN_TIMEOUT`).
+
+**Motivo skip**: Utente ha deciso di non implementare questo miglioramento.
+
+---

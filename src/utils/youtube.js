@@ -98,24 +98,31 @@ async function getVideoInfo(query) {
         const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
         let data = '';
         let errorData = '';
+        let settled = false;
         
         const killTimer = setTimeout(() => {
-            if (!processSearch.killed) { processSearch.kill(); reject('TIMEOUT'); }
+            if (!processSearch.killed) { processSearch.kill(); if (!settled) { settled = true; reject('TIMEOUT'); } }
         }, VIDEO_INFO_TIMEOUT_MS); 
         
         processSearch.stdout.on('data', chunk => { 
             data += chunk; 
             if (data.length > 50 * 1024 * 1024) { 
                 processSearch.kill(); 
-                reject('TOO_LARGE'); 
+                if (!settled) { settled = true; reject('TOO_LARGE'); }
             } 
         });
         processSearch.stderr.on('data', chunk => { 
             errorData += chunk.toString(); 
         });
 
+        processSearch.on('error', (e) => {
+            clearTimeout(killTimer);
+            if (!settled) { settled = true; reject(e.message || 'SPAWN_ERROR'); }
+        });
+
         processSearch.on('close', async () => {
             clearTimeout(killTimer);
+            if (settled) return;
             if (!data) return resolve([]); 
             try {
                 const info = JSON.parse(data);

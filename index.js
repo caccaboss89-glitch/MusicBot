@@ -107,6 +107,12 @@ client.on('guildDelete', (guild) => {
         // Pulisci audio operation barrier
         audioOperationBarrier.cleanup(guildId);
         
+        // Pulisci persistence timers
+        require('./src/queue/persistence').cleanupGuild(guildId);
+        
+        // Pulisci cooldowns
+        require('./src/state/globals').interactionCooldowns.delete(guildId);
+        
         console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
     } catch (e) {
         console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);

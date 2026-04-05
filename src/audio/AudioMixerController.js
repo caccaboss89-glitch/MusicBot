@@ -76,7 +76,7 @@ class AudioMixerController {
 
         // Chiudi risorse precedenti prima di riavviare
         if (this.logStream) {
-            try { this.logStream.end(); } catch(e) {}
+            try { this.logStream.destroy(); } catch(e) {}
             this.logStream = null;
         }
         if (this.stderrReadline) {
@@ -108,6 +108,7 @@ class AudioMixerController {
                     // ignora le righe non JSON ma conserva un minimo di debug
                 }
                 if (!log) return;
+                log._mixerGeneration = this.generation;
 
                 // --- FILTRO SILENZIATORE ---
                 const dataStr = log.data || "";

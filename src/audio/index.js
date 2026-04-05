@@ -87,6 +87,14 @@ function handleRustEvent(guildId, log) {
     try {
         if (!log || !log.event) return;
 
+        // Ignora eventi da mixer obsoleti (generazione non più corrente)
+        if (log._mixerGeneration) {
+            const sq_gen = queue.get(guildId);
+            if (sq_gen && sq_gen.mixerGeneration && log._mixerGeneration !== sq_gen.mixerGeneration) {
+                return;
+            }
+        }
+
         // Stream errors
         if (log.event === 'stream_error') {
             const dataStr = (log.data || '').toLowerCase();

@@ -13,7 +13,24 @@ const { safeJSONParse } = require('../utils/sanitize');
  */
 function loadQueueBackup(guildId) {
     const data = safeJSONParse(QUEUE_FILE, {});
-    return data[guildId] || null;
+    const backup = data[guildId];
+    if (!backup) return null;
+
+    // Validazione struttura
+    if (!Array.isArray(backup.songs)) backup.songs = [];
+    if (!Array.isArray(backup.history)) backup.history = [];
+    if (typeof backup.playIndex !== 'number' || backup.playIndex < 0) backup.playIndex = 0;
+
+    // Filtra canzoni invalide
+    backup.songs = backup.songs.filter(s => s && typeof s === 'object' && s.url && s.title);
+    backup.history = backup.history.filter(s => s && typeof s === 'object' && s.url && s.title);
+
+    // Assicura playIndex nei limiti
+    if (backup.songs.length > 0 && backup.playIndex >= backup.songs.length) {
+        backup.playIndex = backup.songs.length - 1;
+    }
+
+    return backup;
 }
 
 /**
@@ -162,11 +179,24 @@ function flushPendingSaves() {
     _savePending.clear();
 }
 
+/**
+ * Pulisce timer e stato pendente per una guild (da chiamare su guildDelete)
+ */
+function cleanupGuild(guildId) {
+    if (_saveTimers.has(guildId)) {
+        clearTimeout(_saveTimers.get(guildId));
+        _saveTimers.delete(guildId);
+    }
+    _savePending.delete(guildId);
+    _lastSaveTime.delete(guildId);
+}
+
 module.exports = {
     loadQueueBackup,
     saveQueueBackup,
     deleteQueueBackup,
     saveQueueState,
     saveQueueStateImmediate,
-    flushPendingSaves
+    flushPendingSaves,
+    cleanupGuild
 };

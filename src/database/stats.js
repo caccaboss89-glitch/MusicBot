@@ -251,10 +251,20 @@ function flushAllGuildsAndSave() {
  * @param {{ url: string, title: string, thumbnail?: string }} songInfo
  * @param {object|null} voiceChannel - Canale vocale Discord (con .members)
  */
+/**
+ * Normalizza un URL YouTube alla forma canonica (rimuove parametri extra)
+ */
+function normalizeYoutubeUrl(url) {
+    if (!url) return url;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?#]+)/);
+    if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
+    return url;
+}
+
 function recordSongPlay(guildId, songInfo, voiceChannel = null) {
     try {
         if (!songInfo || !songInfo.url) return;
-        const url = songInfo.url;
+        const url = normalizeYoutubeUrl(songInfo.url);
         const entry = {
             title: songInfo.title || 'Unknown',
             url,
