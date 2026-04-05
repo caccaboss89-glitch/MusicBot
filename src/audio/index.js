@@ -41,7 +41,8 @@ function clearStreamErrors(guildId) {
 // Pulizia periodica per prevenire memory leak (ogni 30 minuti)
 setInterval(() => {
     streamErrorCounts.clear();
-    failedSongs.clear();
+    // failedSongs NON viene svuotato: canzoni con errori Opus persistenti
+    // restano marcate fino al restart per evitare cicli di retry infiniti
 }, 30 * 60 * 1000);
 
 // ─── Rust event routing ─────────────────────────────────────
@@ -204,7 +205,7 @@ function handleRustEvent(guildId, log) {
             const sq = queue.get(guildId);
             if (sq && !sq.isCrossfading) {
                 const fadeEnabled = sq.crossfadeEnabled !== false;
-                const nextSong = require('../queue/QueueManager').peekNext(sq);
+                const nextSong = require('../queue/QueueManager').getNextSong(sq);
                 if (fadeEnabled && nextSong) {
                     console.log('🎚️  [PROACTIVE-CROSSFADE] Rust propone crossfade – avvio autoSkip');
                     SkipManager.autoSkip(guildId).catch(e => {
@@ -391,6 +392,9 @@ function handleMixerCrash(guildId, reason) {
         sq.currentDeckLoaded = null;
         sq.nextDeckLoaded = null;
         sq.nextDeckTarget = null;
+
+        // Svuota comandi pendenti che aspetterebbero un mixer ormai morto
+        try { require('./CommandQueue').commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch (e) { /* ignora */ }
 
         // Tenta restart se la connessione vocale è pronta
         try {

@@ -30,6 +30,14 @@ function getNextMixerGeneration() {
     return ++globalMixerGeneration;
 }
 
+// Pulizia periodica cooldown interazioni per prevenire memory leak (ogni 5 minuti)
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, timestamp] of interactionCooldowns) {
+        if (now - timestamp > 60000) interactionCooldowns.delete(key);
+    }
+}, 5 * 60 * 1000);
+
 module.exports = {
     // Map principali
     queue,

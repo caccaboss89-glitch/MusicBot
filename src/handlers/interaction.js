@@ -82,19 +82,25 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
 }
 
 async function handleReplay(interaction, serverQueue, guildId, deps) {
-    if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs && serverQueue.songs.length > 0) {
-        serverQueue.sessionRestored = false; serverQueue.isPaused = false;
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (connected) await audio.playSong(interaction.guild.id, interaction);
-        return;
-    }
-    if (serverQueue.currentDeckLoaded) {
-        await audio.restartCurrentSong(interaction.guild.id);
-    } else if (serverQueue.songs.length > 0) {
-        serverQueue.playIndex = 0;
-        serverQueue.currentDeckLoaded = null;
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (connected) await audio.playSong(interaction.guild.id, interaction);
+    const result = await audioOperationBarrier.request(guildId, 'replay', async () => {
+        if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs && serverQueue.songs.length > 0) {
+            serverQueue.sessionRestored = false; serverQueue.isPaused = false;
+            const connected = await deps.connectToVoice(serverQueue, interaction);
+            if (connected) await audio.playSong(interaction.guild.id, interaction);
+            return;
+        }
+        if (serverQueue.currentDeckLoaded) {
+            await audio.restartCurrentSong(interaction.guild.id);
+        } else if (serverQueue.songs.length > 0) {
+            serverQueue.playIndex = 0;
+            serverQueue.currentDeckLoaded = null;
+            const connected = await deps.connectToVoice(serverQueue, interaction);
+            if (connected) await audio.playSong(interaction.guild.id, interaction);
+        }
+    }, { timeout: 10000, minThrottle: 2000 });
+
+    if (!result.throttled && !result.success) {
+        console.error(`❌ [REPLAY] Errore:`, result.error?.message);
     }
 }
 

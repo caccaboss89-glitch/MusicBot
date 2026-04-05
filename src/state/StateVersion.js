@@ -112,13 +112,15 @@ class QueueStateVersion {
     }
 
     /**
-     * Verifica se esiste un lock attivo per un'operazione
-     * @param {string} operationId - ID dell'operazione
+     * Verifica se esiste un lock attivo il cui operationId inizia con il prefisso dato.
+     * Usato per rilevare skip concorrenti: acquireLock usa operationId con timestamp,
+     * ma hasActiveLock cerca per prefisso (es. 'skip_GUILDID').
+     * @param {string} operationPrefix - Prefisso dell'operationId da cercare
      * @returns {boolean}
      */
-    hasActiveLock(operationId) {
+    hasActiveLock(operationPrefix) {
         for (const [, lock] of this.locks) {
-            if (lock.operationId === operationId && !lock.released && !lock.isExpired()) {
+            if (lock.operationId.startsWith(operationPrefix) && !lock.released && !lock.isExpired()) {
                 return true;
             }
         }

@@ -99,9 +99,6 @@ function resetStatsFile() {
 
 function pushStats(forceArchive = false) {
     try {
-        // Cambia directory alla radice del progetto per git
-        process.chdir(PROJECT_ROOT);
-        
         if (!fs.existsSync(STATS_FILE)) {
             console.log('❌ Stats file not found:', STATS_FILE);
             return false;
@@ -116,14 +113,14 @@ function pushStats(forceArchive = false) {
 
         // Configura git con le variabili d'ambiente se disponibili
         try {
-            execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { encoding: 'utf-8' });
-            execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { encoding: 'utf-8' });
+            execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+            execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
         } catch (e) {
             console.warn('⚠️ Git config may be already set:', e.message);
         }
 
         // Controlla se il branch attuale è 'main', ma non blocca il push in caso di branch diverso
-        const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+        const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' }).trim();
         if (currentBranch !== 'main') {
             console.warn(`⚠️ Branch corrente: ${currentBranch} (non 'main'), procederò comunque con il commit/push su questo branch`);
         }
@@ -139,10 +136,10 @@ function pushStats(forceArchive = false) {
 
         // Aggiungi tutti i file dati persistenti aggiornati dal bot.
         // Usa --force per aggiungere i file anche se sono nel .gitignore
-        execSync('git add --force data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
+        execSync('git add --force data/stats.json data/playlists.json data/monthly-stats', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
         // Controlla lo status dei file
-        const status = execSync('git status --porcelain data/stats.json data/playlists.json data/monthly-stats', { encoding: 'utf-8' });
+        const status = execSync('git status --porcelain data/stats.json data/playlists.json data/monthly-stats', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
         
         if (!status.trim()) {
             console.log('ℹ️ Nessun file dati persistente da sincronizzare su GitHub');
@@ -161,18 +158,18 @@ function pushStats(forceArchive = false) {
             ? `Monthly data snapshot - ${monthYear}`
             : `Data update - ${monthYear}`;
         
-        execSync(`git commit -m "${commitMsg}"`, { encoding: 'utf-8' });
+        execSync(`git commit -m "${commitMsg}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
         console.log('✅ Commit created successfully');
 
         // Fai il push sul branch corrente per ridurre errori di branch mismatch
         try {
-            execSync('git push origin HEAD', { encoding: 'utf-8' });
+            execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
             console.log('✅ File dati persistenti pushati su GitHub con successo');
         } catch (pushErr) {
             console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
             try {
-                execSync('git pull --rebase origin main', { encoding: 'utf-8' });
-                execSync('git push origin HEAD', { encoding: 'utf-8' });
+                execSync('git pull --rebase origin main', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+                execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
                 console.log('✅ Push riuscito dopo rebase');
             } catch (rebaseErr) {
                 console.error('❌ [STATS-PUSH] Ritento push fallito:', rebaseErr.message);

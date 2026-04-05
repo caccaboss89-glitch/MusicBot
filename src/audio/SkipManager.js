@@ -280,14 +280,19 @@ async function performTransition(guildId, targetIndex, reason) {
     } catch (e) {
         console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
         stateVersion.incrementVersion('skip_error', { reason, error: e.message });
+        // Cleanup crossfade flags solo in caso di errore
+        const sqErr = queue.get(guildId);
+        if (sqErr) {
+            sqErr.isCrossfading = false;
+            sqErr.crossfadeStartTime = null;
+        }
         return false;
     } finally {
-        // Reset flag crossfade in TUTTI i path di uscita
+        // Pulisci solo il footer di caricamento — i flag crossfade sono gestiti da
+        // onSongStart() (successo) o dal catch (errore)
         const sqF = queue.get(guildId);
         if (sqF) {
             sqF.loadingFooter = null;
-            sqF.isCrossfading = false;
-            sqF.crossfadeStartTime = null;
         }
         // Rilascia il lock
         lock.release();

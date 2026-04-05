@@ -203,6 +203,11 @@ class AudioMixerController {
             console.error(`❌ [RUST] Errore processo: ${err.message}`);
             this.process = null;
             this.isAlive = false;
+            if (this.onCrash && !this.hasCrashed) {
+                this.hasCrashed = true;
+                console.log(`🚨 [RUST] Triggering crash recovery da process error...`);
+                try { this.onCrash(`process_error_${err.message}`); } catch(e) { console.error('onCrash handler error', e); }
+            }
         });
     }
     

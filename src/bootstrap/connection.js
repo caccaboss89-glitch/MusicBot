@@ -16,6 +16,9 @@ async function ensureBotConnection(interaction) {
             textChannel: interaction.channel || null,
             voiceChannel: interaction.member?.voice?.channel || null
         });
+        // Registra SUBITO nella mappa per evitare race condition (TOCTOU):
+        // una seconda chiamata concorrente vedrà la queue già esistente.
+        queue.set(guildId, serverQueue);
         // Tentativo di ripristino da backup salvato
         try {
             const backup = loadQueueBackup(guildId);
@@ -35,7 +38,6 @@ async function ensureBotConnection(interaction) {
                 serverQueue.sessionRestored = true;
             }
         } catch (e) { console.error('Errore caricamento backup coda:', e); }
-        queue.set(guildId, serverQueue);
     } else {
         if (!serverQueue.player || typeof serverQueue.player.play !== 'function') serverQueue.player = createAudioPlayer();
         serverQueue.textChannel = serverQueue.textChannel || interaction.channel || null;

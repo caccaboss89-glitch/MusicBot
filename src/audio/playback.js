@@ -179,8 +179,9 @@ async function playSong(guildId, interaction = null) {
     if (!serverQueue.currentDeckLoaded) {
         // Evita avvii concorrenti del mixer
         if (serverQueue.mixerStarting) {
-            for (let i = 0; i < 10; i++) {
-                await new Promise(r => setImmediate(r));
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 50));
+                if (!serverQueue.mixerStarting) break;
                 if (serverQueue.mixer && serverQueue.mixer.isProcessAlive && serverQueue.mixer.isProcessAlive()) break;
             }
         }
@@ -242,7 +243,7 @@ async function playSong(guildId, interaction = null) {
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream; // Salva riferimento per cleanup
                 const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
-                serverQueue.player.removeAllListeners();
+                serverQueue.player.removeAllListeners('error');
                 serverQueue.player.on('error', e => console.error(`AudioPlayer Error: ${e.message}`));
                 serverQueue.player.play(resource);
 
@@ -266,7 +267,7 @@ async function playSong(guildId, interaction = null) {
                 const llStream = createLowLatencyStream(stdout);
                 serverQueue._llStream = llStream;
                 const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
-                serverQueue.player.removeAllListeners();
+                serverQueue.player.removeAllListeners('error');
                 serverQueue.player.on('error', e => console.error(`AudioPlayer Error: ${e.message}`));
                 serverQueue.player.play(resource);
                 serverQueue.crashRecoveryAttempts = 0;

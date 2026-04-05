@@ -231,6 +231,25 @@ class CommandQueue {
     }
 
     /**
+     * Svuota e rigetta tutti i comandi pendenti (es. crash mixer).
+     * A differenza di cleanup(), NON elimina la queue entry —
+     * il mixer potrebbe essere riavviato e nuovi comandi potrebbero arrivare.
+     */
+    flushAndReject(guildId, reason = 'Mixer crashed') {
+        const commandQueue = this.queues.get(guildId);
+        if (!commandQueue) return;
+        const error = new Error(reason);
+        const flushedCount = commandQueue.pending.length;
+        commandQueue.pending.forEach(cmd => {
+            try { cmd.reject(error); } catch (e) { /* ignora */ }
+        });
+        commandQueue.pending = [];
+        if (flushedCount > 0) {
+            console.log(`🧹 [CMD-QUEUE] Flushed ${flushedCount} pending commands for guild=${guildId} (${reason})`);
+        }
+    }
+
+    /**
      * Debug info
      */
     getDebugInfo() {

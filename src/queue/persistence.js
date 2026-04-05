@@ -6,13 +6,32 @@ const fs = require('fs');
 const { QUEUE_FILE } = require('../../config');
 const { safeJSONParse } = require('../utils/sanitize');
 
+// ─── Cache in-memory per evitare letture da disco ripetute ──
+let _queueCache = null;
+
+function _getQueueCache() {
+    if (_queueCache === null) {
+        _queueCache = safeJSONParse(QUEUE_FILE, {});
+    }
+    return _queueCache;
+}
+
+function _flushQueueCache() {
+    if (_queueCache === null) return;
+    try {
+        fs.writeFileSync(QUEUE_FILE, JSON.stringify(_queueCache, null, 2));
+    } catch (e) {
+        console.error('❌ [PERSISTENCE] Errore scrittura cache:', e.message);
+    }
+}
+
 /**
  * Carica il backup della coda per una guild
  * @param {string} guildId - ID della guild
  * @returns {object|null} - Dati della coda o null se non esiste
  */
 function loadQueueBackup(guildId) {
-    const data = safeJSONParse(QUEUE_FILE, {});
+    const data = _getQueueCache();
     const backup = data[guildId];
     if (!backup) return null;
 
@@ -52,7 +71,7 @@ function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = fals
             deleteQueueBackup(guildId);
             return;
         }
-        let data = safeJSONParse(QUEUE_FILE, {});
+        let data = _getQueueCache();
         const mapSong = s => ({
             title: s.title,
             url: s.url,
@@ -74,7 +93,7 @@ function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = fals
             dashboardMessageId,
             textChannelId
         };
-        fs.writeFileSync(QUEUE_FILE, JSON.stringify(data, null, 2));
+        _flushQueueCache();
     } catch (e) {
         console.error('❌ [PERSISTENCE] Errore salvataggio backup:', e.message);
     }
@@ -83,10 +102,10 @@ function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = fals
 // Funzione privata per eliminare il backup (usata internamente da saveQueueBackup)
 function deleteQueueBackup(guildId) {
     try {
-        let data = safeJSONParse(QUEUE_FILE, {});
+        let data = _getQueueCache();
         if (data[guildId]) {
             delete data[guildId];
-            fs.writeFileSync(QUEUE_FILE, JSON.stringify(data, null, 2));
+            _flushQueueCache();
         }
     } catch (e) {
         console.error('❌ [PERSISTENCE] Errore eliminazione backup:', e.message);

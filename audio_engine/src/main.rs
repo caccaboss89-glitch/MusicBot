@@ -1220,8 +1220,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
     }
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // Evita che il processo Rust termini su SIGPIPE quando Node chiude la pipe
     // (solo Unix - Windows non ha SIGPIPE)
     #[cfg(unix)]
