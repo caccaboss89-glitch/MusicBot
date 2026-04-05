@@ -69,8 +69,18 @@ async function connectToVoice(serverQueue, interaction) {
             } catch (e) {
                 // fallthrough: ricrea la connessione
             }
-            // Connessione esistente obsoleta o nel canale sbagliato — distruggi e ricrea
-            try { serverQueue.connection.destroy(); } catch (e) { }
+            // Connessione esistente obsoleta o nel canale sbagliato — rimuovi listener PRIMA di distruggere
+            // per evitare che il destroy scateni cleanup cascade
+            const oldConn = serverQueue.connection;
+            if (serverQueue._connStateHandler) {
+                try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch (_) { }
+                serverQueue._connStateHandler = null;
+            }
+            if (serverQueue._connErrorHandler) {
+                try { oldConn.off('error', serverQueue._connErrorHandler); } catch (_) { }
+                serverQueue._connErrorHandler = null;
+            }
+            try { oldConn.destroy(); } catch (_) { }
             serverQueue.connection = null;
         }
 
@@ -81,13 +91,6 @@ async function connectToVoice(serverQueue, interaction) {
             selfDeaf: false
         });
         serverQueue.connection = connection;
-        // Rimuovi listener obsoleti dalla connessione precedente (se riutilizzata)
-        if (serverQueue._connStateHandler) {
-            try { connection.off('stateChange', serverQueue._connStateHandler); } catch (e) { }
-        }
-        if (serverQueue._connErrorHandler) {
-            try { connection.off('error', serverQueue._connErrorHandler); } catch (e) { }
-        }
         // Cancella timer di riconciliazione pendente
         if (serverQueue._reconcileTimer) {
             clearTimeout(serverQueue._reconcileTimer);
