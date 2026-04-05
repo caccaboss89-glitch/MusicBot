@@ -110,11 +110,22 @@ client.on('guildDelete', (guild) => {
         // Pulisci persistence timers
         require('./src/queue/persistence').cleanupGuild(guildId);
         
-        // Pulisci cooldowns
-        require('./src/state/globals').interactionCooldowns.delete(guildId);
-        
         // Pulisci playback state (lastMixerCrashTime)
         require('./src/audio/playback').cleanupPlaybackState(guildId);
+        
+        // Pulisci dashboard timer, disconnect timer, cooldowns e rimuovi dalla queue
+        const globals = require('./src/state/globals');
+        const sq = globals.queue.get(guildId);
+        if (sq && sq.dashboardState && sq.dashboardState.timer) {
+            clearTimeout(sq.dashboardState.timer);
+            sq.dashboardState.timer = null;
+        }
+        if (globals.disconnectTimers.has(guildId)) {
+            clearTimeout(globals.disconnectTimers.get(guildId));
+            globals.disconnectTimers.delete(guildId);
+        }
+        globals.interactionCooldowns.delete(guildId);
+        globals.queue.delete(guildId);
         
         console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
     } catch (e) {
@@ -133,13 +144,18 @@ client.once('clientReady', () => {
     const tryPushStats = () => {
         try {
             const now = new Date();
-            // Roma time = UTC+1 (CET) o UTC+2 (CEST in estate)
-            // Usa toLocaleString('en-US') per avere un formato parsabile in modo consistente in Node
-            const romaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
-            const day = romaTime.getDate();
-            const hour = romaTime.getHours();
-            const month = romaTime.getMonth() + 1;
-            const year = romaTime.getFullYear();
+            // Roma time: estrai componenti via Intl.DateTimeFormat (robusto, non dipende dal formato locale)
+            const romaFmt = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Europe/Rome',
+                year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hour12: false
+            });
+            const romaParts = Object.fromEntries(
+                romaFmt.formatToParts(now).filter(p => p.type !== 'literal').map(p => [p.type, parseInt(p.value)])
+            );
+            const day = romaParts.day;
+            const hour = romaParts.hour;
+            const month = romaParts.month;
+            const year = romaParts.year;
             const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // Per evitare push multipli lo stesso giorno
 
             const pushState = loadPushState();
@@ -153,7 +169,7 @@ client.once('clientReady', () => {
                     console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
                 }
 
-                console.log('📤 [STATS-PUSH] Pushing stats del mese alle', romaTime.toLocaleTimeString('it-IT'));
+                console.log('📤 [STATS-PUSH] Pushing stats del mese alle', `${String(romaParts.hour).padStart(2, '0')}:00`);
                 const success = pushStats();
                 if (success) {
                     pushState.lastPushDate = dateKey; // Segna che ha fatto push

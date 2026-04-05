@@ -100,14 +100,14 @@ async function getVideoInfo(query) {
         let settled = false;
         
         const killTimer = setTimeout(() => {
-            if (!processSearch.killed) { processSearch.kill(); if (!settled) { settled = true; reject('TIMEOUT'); } }
+            if (!processSearch.killed) { processSearch.kill(); if (!settled) { settled = true; reject(new Error('TIMEOUT')); } }
         }, VIDEO_INFO_TIMEOUT_MS); 
         
         processSearch.stdout.on('data', chunk => { 
             data += chunk; 
             if (data.length > 50 * 1024 * 1024) { 
                 processSearch.kill(); 
-                if (!settled) { settled = true; reject('TOO_LARGE'); }
+                if (!settled) { settled = true; reject(new Error('TOO_LARGE')); }
             } 
         });
         processSearch.stderr.on('data', chunk => { 

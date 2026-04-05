@@ -208,11 +208,7 @@ class AudioMixerController {
 
     send(cmd) { 
         if (!this.process || !this.isAlive) {
-            console.warn(`⚠️ [MIXER] Processo non attivo, provo a riavviare...`);
-            this.start();
-        }
-        if (!this.process || !this.isAlive) {
-            console.error(`❌ [MIXER] Impossibile avviare processo!`);
+            console.warn(`⚠️ [MIXER] Processo non attivo, comando ignorato`);
             return false;
         }
         try {
@@ -257,9 +253,8 @@ class AudioMixerController {
     setLoop(enabled) { this.send({ op: 'set_loop', enabled }); }
     
     getStdout() { 
-        if (!this.process) this.start(); 
-        const stdout = this.process ? this.process.stdout : null;
-        return stdout;
+        if (!this.process || !this.isAlive) return null;
+        return this.process.stdout;
     }
     
     kill() { 
@@ -269,6 +264,11 @@ class AudioMixerController {
         if (this.stderrReadline) {
             this.stderrReadline.close();
             this.stderrReadline = null;
+        }
+        // Chiudi logStream per evitare file descriptor leak
+        if (this.logStream) {
+            try { this.logStream.end(); } catch(e) {}
+            this.logStream = null;
         }
         if (this.process) { 
             try { this.process.kill(); } catch(e) {}

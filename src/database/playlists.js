@@ -22,7 +22,9 @@ function loadDatabase() {
  */
 function saveDatabase(data) {
     try {
-        fs.writeFileSync(PLAYLIST_FILE, JSON.stringify(data, null, 2));
+        const tmpFile = PLAYLIST_FILE + '.tmp';
+        fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2));
+        fs.renameSync(tmpFile, PLAYLIST_FILE);
     } catch(e) {
         console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
     }

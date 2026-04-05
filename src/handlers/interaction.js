@@ -17,6 +17,11 @@ const handleModal = require('./modalHandlers');
 // ─── Button Handlers ────────────────────────────────────────
 
 async function handleClearQueue(interaction, serverQueue, guildId) {
+    // Cancella transizione differita pendente prima di svuotare la coda
+    if (serverQueue.pendingTransition) {
+        if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
+        serverQueue.pendingTransition = null;
+    }
     const currentSong = getCurrentSong(serverQueue);
     serverQueue.songs = currentSong ? [currentSong] : [];
     serverQueue.playIndex = 0;
@@ -162,6 +167,11 @@ async function handleLoop(interaction, serverQueue, guildId) {
 
 async function handleShuffle(interaction, serverQueue, guildId) {
     if (serverQueue.songs.length >= 2) {
+        // Cancella transizione differita pendente prima dello shuffle
+        if (serverQueue.pendingTransition) {
+            if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
+            serverQueue.pendingTransition = null;
+        }
         const currentIdx = serverQueue.playIndex || 0;
         const before = serverQueue.songs.slice(0, currentIdx + 1);
         const after = serverQueue.songs.slice(currentIdx + 1);

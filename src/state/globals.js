@@ -18,18 +18,6 @@ const interactionCooldowns = new Map();
 
 // NOTA: I pending skip sono gestiti internamente da SkipManager v3 (skipLock).
 
-// --- CRASH RECOVERY ---
-// Map<guildId, { count, firstCrash }> - Contatore crash consecutivi per evitare loop
-const crashRecoveryCounters = new Map();
-
-// --- RESTART COOLDOWNS ---
-// Map<guildId, timestamp> - Previene restart troppo frequenti
-const restartCooldowns = new Map();
-
-// --- RESTART COUNTERS ---
-// Map<guildId, { count, firstTime }> - Conta restart consecutivi
-const restartCounters = new Map();
-
 // --- GENERAZIONE MIXER ---
 // Contatore globale per invalidare eventi da mixer vecchi
 let globalMixerGeneration = 0;
@@ -47,9 +35,6 @@ module.exports = {
     queue,
     disconnectTimers,
     interactionCooldowns,
-    crashRecoveryCounters,
-    restartCooldowns,
-    restartCounters,
     // Funzione generazione mixer
     getNextMixerGeneration
 };

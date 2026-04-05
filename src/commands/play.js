@@ -3,7 +3,8 @@ const { queue } = require('../state/globals');
 const { getVideoInfo } = require('../utils/youtube');
 const { saveQueueState } = require('../queue/persistence');
 const { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished } = require('../ui');
-const { cleanupOldMessages } = require('../utils/discord');
+const { cleanupOldMessages } = require('../utils/cleanup');
+const _lastCleanupTime = new Map(); // guildId -> timestamp (debounce cleanup)
 const { MAX_QUEUE_SIZE } = require('../../config');
 const { clearFinishedQueue } = require('../queue/QueueManager');
 
@@ -21,7 +22,11 @@ module.exports = {
         if (serverQueue && serverQueue.isTaskRunning) return interaction.reply({ content: '⚠️ **Sto elaborando...**', flags: 64 });
 
         await interaction.deferReply({ flags: 64 });
-        try { cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null); } catch(e){}
+        // Cleanup vecchi messaggi (debounce: max 1 volta al minuto per guild)
+        if (!_lastCleanupTime.has(guild.id) || Date.now() - _lastCleanupTime.get(guild.id) > 60000) {
+            _lastCleanupTime.set(guild.id, Date.now());
+            cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null).catch(() => {});
+        }
 
         serverQueue = await deps.ensureBotConnection(interaction);
         serverQueue.isTaskRunning = true;

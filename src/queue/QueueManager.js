@@ -274,6 +274,18 @@ function performDisconnectCleanup(serverQueue) {
     try {
         console.log(`🧹 [CLEANUP] Eseguo cleanup di disconnessione per guild ${serverQueue.guildId}`);
 
+        // Cancella transizione differita pendente
+        if (serverQueue.pendingTransition) {
+            if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
+            serverQueue.pendingTransition = null;
+        }
+
+        // Cancella dashboard timer pendente
+        if (serverQueue.dashboardState && serverQueue.dashboardState.timer) {
+            clearTimeout(serverQueue.dashboardState.timer);
+            serverQueue.dashboardState.timer = null;
+        }
+
         // ── STATS: ferma timer ascolto e salva su disco ──
         try {
             const stats = require('../database/stats');
