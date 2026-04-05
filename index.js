@@ -97,34 +97,34 @@ client.on('guildDelete', (guild) => {
     const guildId = guild.id;
     try {
         console.log(`🚀 [CLEANUP] Bot left guild ${guildId} - cleaning up state`);
-        
+
         // Pulisci PlaybackEngine timers (preload, etc)
         PlaybackEngine.clearAllTimers(guildId);
-        
+
         // Pulisci state versioning
         stateVersionManager.cleanup(guildId);
-        
+
         // Pulisci command queue
         commandQueue.cleanup(guildId);
-        
+
         // Pulisci audio operation barrier
         audioOperationBarrier.cleanup(guildId);
-        
+
         // Pulisci persistence timers
         require('./src/queue/persistence').cleanupGuild(guildId);
-        
+
         // Pulisci playback state (lastMixerCrashTime)
         require('./src/audio/playback').cleanupPlaybackState(guildId);
-        
+
         // Pulisci stream error tracking
         require('./src/audio').clearStreamErrors(guildId);
-        
+
         // Pulisci skip throttle state
         SkipManager.cleanupSkipState(guildId);
-        
+
         // Pulisci cleanup debounce (play.js)
         require('./src/commands/play').cleanupLastCleanupTime(guildId);
-        
+
         // Pulisci dashboard timer, disconnect timer, cooldowns e rimuovi dalla queue
         const globals = require('./src/state/globals');
         const sq = globals.queue.get(guildId);
@@ -138,7 +138,7 @@ client.on('guildDelete', (guild) => {
         }
         globals.interactionCooldowns.delete(guildId);
         globals.queue.delete(guildId);
-        
+
         console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
     } catch (e) {
         console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);
@@ -147,7 +147,7 @@ client.on('guildDelete', (guild) => {
 
 client.once('clientReady', () => {
     console.log(`Logged in as ${client.user?.tag}`);
-    
+
     // ── AUTO-PUSH STATS (Daily check per garantire push il 1° del mese) ────────────────────────────────────────────
     // Controlla ogni minuto se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
     const { pushStats } = require('./scripts/push-stats');

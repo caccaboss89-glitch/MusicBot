@@ -14,13 +14,13 @@ async function cleanupOldMessages(channel, currentDashId = null, client) {
         const messages = await channel.messages.fetch({ limit: 100 });
         const botMessages = messages.filter(msg => msg.author.id === client.user.id);
         const toDelete = botMessages.filter(msg => msg.id !== currentDashId);
-        
+
         if (toDelete.size > 0) {
             const now = Date.now();
             // Solo messaggi più giovani di 14 giorni (limite Discord per bulkDelete)
             const young = toDelete.filter(m => now - m.createdTimestamp < 1209600000);
             if (young.size > 0) {
-                await channel.bulkDelete(young).catch(() => {});
+                await channel.bulkDelete(young).catch(() => { });
             }
         }
     } catch (e) {

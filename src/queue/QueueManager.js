@@ -88,11 +88,11 @@ function hasNextSong(serverQueue) {
  * @returns {boolean}
  */
 function isValidSong(song) {
-    return song && 
-           song.url && 
-           song.title && 
-           typeof song.url === 'string' && 
-           song.url.length > 0;
+    return song &&
+        song.url &&
+        song.title &&
+        typeof song.url === 'string' &&
+        song.url.length > 0;
 }
 
 /**
@@ -222,7 +222,7 @@ function removeSongAtIndex(serverQueue, index) {
                 });
 
                 // Notifica preload update
-                try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch(e) {}
+                try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch (e) { }
 
                 return { success: true, removed };
             }
@@ -256,10 +256,10 @@ function removeSongAtIndex(serverQueue, index) {
  * @returns {boolean}
  */
 function isMixerAlive(serverQueue) {
-    return serverQueue && 
-           serverQueue.mixer && 
-           serverQueue.mixer.isProcessAlive && 
-           serverQueue.mixer.isProcessAlive();
+    return serverQueue &&
+        serverQueue.mixer &&
+        serverQueue.mixer.isProcessAlive &&
+        serverQueue.mixer.isProcessAlive();
 }
 
 // switchActiveDeck, advanceToNextSong, getCurrentPlayingSong rimossi in v3
@@ -290,14 +290,23 @@ function performDisconnectCleanup(serverQueue) {
         try {
             const stats = require('../database/stats');
             stats.flushGuildAndSave(serverQueue.guildId);
-        } catch (e) {}
+        } catch (e) { }
 
         // Ferma il player
-        try { if (serverQueue.player) serverQueue.player.stop(true); } catch (e) {}
+        try { if (serverQueue.player) serverQueue.player.stop(true); } catch (e) { }
         // Kill mixer se presente
-        try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch (e) {}
+        try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch (e) { }
         // Distruggi la connessione vocale
-        try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch (e) {}
+        try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch (e) { }
+
+        // Cleanup low-latency stream per evitare pipe/fd leak
+        try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch (e) { }
+
+        // Cleanup stato audio per-guild
+        try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch (e) { }
+        try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch (e) { }
+        try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch (e) { }
+        try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch (e) { }
 
         // Resetta alcuni campi dello stato della coda
         serverQueue.connection = null;
@@ -308,13 +317,13 @@ function performDisconnectCleanup(serverQueue) {
         serverQueue.nextDeckTarget = null;
 
         // Salva stato su disco
-        try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) {}
+        try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) { }
 
         // Assicurati di rimuovere i riferimenti a mixer e player per evitare duplicati dopo il restart
-        try { serverQueue.mixer = null; } catch (e) {}
-        try { serverQueue.player = null; } catch (e) {}
+        try { serverQueue.mixer = null; } catch (e) { }
+        try { serverQueue.player = null; } catch (e) { }
         // Cancella eventuale timer schedulato
-        try { disconnectTimers.delete(serverQueue.guildId); } catch (e) {}
+        try { disconnectTimers.delete(serverQueue.guildId); } catch (e) { }
 
     } catch (e) {
         console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
@@ -335,7 +344,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
     if (timeoutMs === 0) {
         // Se c'è un timer già schedulato, annullalo.
         if (disconnectTimers.has(gid)) {
-            try { clearTimeout(disconnectTimers.get(gid)); } catch (e) {}
+            try { clearTimeout(disconnectTimers.get(gid)); } catch (e) { }
             disconnectTimers.delete(gid);
         }
         performDisconnectCleanup(serverQueue);
@@ -354,7 +363,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
     if (disconnectTimers.has(gid)) return true;
     const t = setTimeout(() => {
         try {
-                // Ricontrolla prima di eseguire
+            // Ricontrolla prima di eseguire
             if (isBotAloneInChannel(serverQueue)) {
                 performDisconnectCleanup(serverQueue);
             } else {
@@ -378,7 +387,7 @@ function cancelScheduledDisconnect(serverQueue) {
     if (!disconnectTimers.has(gid)) return false;
     try {
         clearTimeout(disconnectTimers.get(gid));
-    } catch (e) {}
+    } catch (e) { }
     disconnectTimers.delete(gid);
     console.log(`⏱️ [CANCEL] Timer di disconnect cancellato per guild ${gid}`);
     return true;

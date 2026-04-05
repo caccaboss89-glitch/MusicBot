@@ -57,12 +57,12 @@ function isThrottled(guildId) {
 function waitForBufferReady(sq, deck, guildId, expectedVersion, timeoutMs = 8000) {
     return new Promise(resolve => {
         if (sq.bufferReady && sq.bufferReady[deck]) return resolve(true);
-        
+
         const start = Date.now();
-        
+
         const check = () => {
             if (!sq.mixer || !sq.mixer.isProcessAlive()) return resolve(false);
-            
+
             if (sq.bufferReady && sq.bufferReady[deck]) return resolve(true);
             if (Date.now() - start >= timeoutMs) return resolve(false);
             setTimeout(check, 50);
@@ -98,7 +98,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
     const stateVersion = stateVersionManager.get(guildId);
     const operationId = `skip_${guildId}_${Date.now()}`;
-    
+
     // Acquisisci lock esclusivo per questa operazione di skip
     // Timeout: 30s max per completare tutto (load, buffer wait, crossfade, etc)
     const lock = stateVersion.acquireLock(operationId, 30000);
@@ -130,9 +130,9 @@ async function performTransition(guildId, targetIndex, reason) {
         // Verifica se la canzone è precaricata sul deck target
         // CRITICO: Controlla sia l'URL che lo stato bufferReady per evitare false-positive
         // "preloaded" significa che il Rust ha dati audio pronti, non solo che l'URL è stato inviato
-        const isPreloaded = sq.nextDeckLoaded === targetUrl 
-                         && sq.nextDeckTarget === targetDeck
-                         && sq.bufferReady && sq.bufferReady[targetDeck];
+        const isPreloaded = sq.nextDeckLoaded === targetUrl
+            && sq.nextDeckTarget === targetDeck
+            && sq.bufferReady && sq.bufferReady[targetDeck];
 
         // Pulisci timer del brano corrente (preload / end-monitor)
         bridge.call('clearAllTimers', guildId);
@@ -142,21 +142,21 @@ async function performTransition(guildId, targetIndex, reason) {
             // Il Rust gestisce il buffer internamente: se il deck ha dati, switcha subito.
             // Se il deck non ha ancora dati, il Rust imposta un "pending skip" e
             // continua a riprodurre il deck corrente fino a quando i dati arrivano.
-            
+
             // SERIALIZZA il comando attraverso command queue per evitare race conditions
             if (fadeEnabled) {
                 sq.isCrossfading = true;
                 sq.crossfadeStartTime = Date.now();  // ⚠️  Traccia il momento di inizio per sincronizzazione
-                
+
                 await commandQueue.enqueue(
                     guildId,
                     'crossfade',
                     () => { sq.mixer.crossfade(targetDeck, CROSSFADE_DURATION_MS); },
                     { timeout: 5000, priority: 'high' }
                 );
-                
+
                 console.log(`🎚️  [SKIP] Crossfade → deck ${targetDeck} (${reason}, preloaded)`);
-                
+
                 // ⚠️  NON cancellare il flag qui con setTimeout
                 // Il flag verrà cancellato quando onSongStart() viene callato,
                 // che significa che il crossfade è definitivamente completato nel Rust
@@ -176,7 +176,7 @@ async function performTransition(guildId, targetIndex, reason) {
             try { sq.mixer.stopDeck(targetDeck); } catch (e) { /* ignora */ }
             sq.bufferReady = sq.bufferReady || {};
             sq.bufferReady[targetDeck] = false;
-            
+
             // SERIALIZZA il comando load
             await commandQueue.enqueue(
                 guildId,
@@ -218,7 +218,7 @@ async function performTransition(guildId, targetIndex, reason) {
                     console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
                     sq2.pendingTransition = null;
                     sq2.loadingFooter = null;
-                    try { bridge.call('refreshDashboard', sq2); } catch (e) {}
+                    try { bridge.call('refreshDashboard', sq2); } catch (e) { }
                 }
             }, timeoutMs);
 
@@ -251,7 +251,7 @@ async function performTransition(guildId, targetIndex, reason) {
             const stats = require('../database/stats');
             stats.incrementSongsStarted();
             stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-        } catch (e) {}
+        } catch (e) { }
 
         // Incrementa versione dopo tutte le mutazioni
         stateVersion.incrementVersion('skip_complete', {
@@ -364,7 +364,7 @@ async function autoSkip(guildId) {
     if (!sq) return false;
 
     // ── STATS: canzone completata (fine naturale) ──
-    try { require('../database/stats').incrementSongsCompleted(); } catch (e) {}
+    try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
 
     // Loop → riavvia canzone corrente
     if (sq.loopEnabled) {
@@ -396,7 +396,7 @@ async function endQueue(guildId) {
     try {
         const stats = require('../database/stats');
         stats.flushGuildAndSave(guildId);
-    } catch (e) {}
+    } catch (e) { }
 
     // Ultima canzone riprodotta (per embed "Coda Terminata" e replay)
     const lastSong = sq.songs[sq.playIndex || 0] || null;
@@ -469,7 +469,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     if (!targetSong || targetSong.url !== pt.targetUrl) {
         console.warn(`⚠️  [SKIP] Pending transition invalidata: canzone rimossa dalla coda`);
         sq.loadingFooter = null;
-        try { bridge.call('refreshDashboard', sq); } catch (e) {}
+        try { bridge.call('refreshDashboard', sq); } catch (e) { }
         return;
     }
 
@@ -511,7 +511,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
         const stats = require('../database/stats');
         stats.incrementSongsStarted();
         stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-    } catch (e) {}
+    } catch (e) { }
 
     stateVersionManager.get(guildId).incrementVersion('skip_deferred_complete', {
         targetIndex: pt.targetIndex,
@@ -520,13 +520,13 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     });
 
     saveQueueState(guildId, sq);
-    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) {}
+    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) { }
 
     bridge.call('onSongStart', guildId);
 
     try {
         await bridge.call('resumeIfPaused', sq, guildId, pt.targetDeck);
-    } catch (e) {}
+    } catch (e) { }
 
     console.log(`✅ [SKIP] ${pt.reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${pt.targetIndex}, deck=${pt.targetDeck}, fade=${pt.fadeEnabled}, deferred)`);
 }

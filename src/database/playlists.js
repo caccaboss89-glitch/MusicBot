@@ -58,7 +58,7 @@ function _flushToFile() {
         fs.writeFileSync(tmpFile, JSON.stringify(_dbCache, null, 2));
         fs.renameSync(tmpFile, PLAYLIST_FILE);
         _dbDirty = false;
-    } catch(e) {
+    } catch (e) {
         console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
     }
 }

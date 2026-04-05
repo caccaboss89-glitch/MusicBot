@@ -189,14 +189,14 @@ function preloadNextSong(guildId) {
             const playIndexAfter = sq.playIndex || 0;
             const songCountAfter = (sq.songs && sq.songs.length) || 0;
             const nextSongUrlAfter = getNextSong(sq)?.url || null;
-            
+
             if (playIndexBefore !== playIndexAfter || songCountBefore !== songCountAfter || nextSongUrlBefore !== nextSongUrlAfter) {
                 console.warn(`⚠️  [PRELOAD] Coda cambiata durante load (playIdx: ${playIndexBefore}→${playIndexAfter}, songs: ${songCountBefore}→${songCountAfter}), preload invalidato`);
                 sq.nextDeckLoaded = null;
                 sq.nextDeckTarget = null;
                 return;
             }
-            
+
             sq.nextDeckLoaded = nextSong.url;
             sq.nextDeckTarget = nextDeck;
             console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);

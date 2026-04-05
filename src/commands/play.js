@@ -12,7 +12,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')
         .setDescription('Avvia il player musicale')
-        .addStringOption(option => option.setName('cerca').setDescription('Titolo, Link o Playlist').setRequired(true)),
+        .addStringOption(option => option.setName('cerca').setDescription('Titolo, Link o Playlist').setRequired(false)),
 
     async execute(interaction, deps) {
         const { guild, member, channel } = interaction;
@@ -25,7 +25,7 @@ module.exports = {
         // Cleanup vecchi messaggi (debounce: max 1 volta al minuto per guild)
         if (!_lastCleanupTime.has(guild.id) || Date.now() - _lastCleanupTime.get(guild.id) > 60000) {
             _lastCleanupTime.set(guild.id, Date.now());
-            cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null).catch(() => {});
+            cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null).catch(() => { });
         }
 
         serverQueue = await deps.ensureBotConnection(interaction);
@@ -34,9 +34,9 @@ module.exports = {
 
         try {
             const connected = await deps.connectToVoice(serverQueue, interaction);
-                if (!connected) {
+            if (!connected) {
                 serverQueue.isTaskRunning = false;
-                try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch(e) { /* ignora */ }
+                try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
                 return;
             }
 
@@ -50,9 +50,9 @@ module.exports = {
                     // la dashboard così il messaggio del player appare nel canale di testo.
                     try {
                         if (!serverQueue.dashboardMessage) {
-                            try { await require('../ui').refreshDashboard(serverQueue); } catch (e) {}
+                            try { await require('../ui').refreshDashboard(serverQueue); } catch (e) { }
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                     serverQueue.isTaskRunning = false;
                     return interaction.editReply("✅ **Sessione ripresa!**");
                 }
@@ -77,7 +77,7 @@ module.exports = {
                     serverQueue.isTaskRunning = false;
                     return interaction.editReply("❌ Impossibile aprire la dashboard.");
                 }
-                
+
             }
 
             let songsFound = [];
@@ -97,12 +97,12 @@ module.exports = {
                     await interaction.editReply(serverQueue.sessionRestored ? `✅ **Sessione Ripristinata e Aggiornata!**` : `✅ Avvio riproduzione...`);
                 } catch (e) {
                     console.error('Errore playSong:', e);
-                    try { await interaction.editReply('❌ Errore avvio riproduzione.'); } catch(e){}
+                    try { await interaction.editReply('❌ Errore avvio riproduzione.'); } catch (e) { }
                 }
             } else {
                 if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await deps.updatePreloadAfterQueueChange(guild.id); }
-                if (songsFound.length > 1) interaction.editReply(`✅ Aggiunte **${songsFound.length}** canzoni.`); else interaction.deleteReply().catch(() => {});
-                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                if (songsFound.length > 1) interaction.editReply(`✅ Aggiunte **${songsFound.length}** canzoni.`); else interaction.deleteReply().catch(() => { });
+                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
                 if (serverQueue.songs.length === 2) deps.preloadNextSongs(guild.id);
             }
         } finally { if (serverQueue) serverQueue.isTaskRunning = false; }

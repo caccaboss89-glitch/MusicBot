@@ -126,21 +126,21 @@ async function handleModal(interaction, guildId, deps) {
                         serverQueue.currentDeckLoaded = null;
                         serverQueue.nextDeckLoaded = null;
                         if (serverQueue.mixer) {
-                            try { serverQueue.mixer.kill(); } catch(e) {}
+                            try { serverQueue.mixer.kill(); } catch (e) { }
                         }
                         serverQueue.mixer = null;
                     }
                     if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);
-                    try { await audio.playSong(interaction.guild.id, interaction); } catch(e) { console.error('playSong error after modal add', e); }
+                    try { await audio.playSong(interaction.guild.id, interaction); } catch (e) { console.error('playSong error after modal add', e); }
                 } else {
                     if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
-                    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
                 }
             } else {
                 if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
-                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
             }
-            if (found.length > 1) interaction.editReply(`✅ Aggiunte **${found.length}** canzoni.`); else interaction.deleteReply().catch(() => {});
+            if (found.length > 1) interaction.editReply(`✅ Aggiunte **${found.length}** canzoni.`); else interaction.deleteReply().catch(() => { });
         } else interaction.editReply('❌ Errore.');
     } finally { serverQueue.isTaskRunning = false; }
 }

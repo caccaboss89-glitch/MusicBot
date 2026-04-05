@@ -108,7 +108,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
             if (connected) await audio.playSong(interaction.guild.id, interaction);
         } else {
             if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
-            if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+            if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
         }
         await safeReply(interaction, { content: `✅ Aggiunte ${toAdd.length} canzoni dalla playlist.`, flags: MessageFlags.Ephemeral });
         return true;
@@ -195,7 +195,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
                 if (serverQueue.nextDeckLoaded === null || !areSameSong(serverQueue.nextDeckLoaded, playObj.url)) {
                     await audio.updatePreloadAfterQueueChange(guildId);
                 }
-                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
             }
             await safeReply(interaction, { content: `🚀 Avviata: **${song.title}**`, flags: MessageFlags.Ephemeral });
             return true;
@@ -336,10 +336,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         } else {
             if (!db.server) db.server = [];
             db.server.push({ ...song, addedBy: interaction.user.id });
-            try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'server'); } catch(e){}
+            try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'server'); } catch (e) { }
         }
         saveDatabase(db);
-        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
         return true;
     }
 
@@ -359,7 +359,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         } else {
             playlist.push({ ...song });
             await safeReply(interaction, { content: `✅ Aggiunta a: **${activePlName}**!`, flags: MessageFlags.Ephemeral });
-            try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'personal'); } catch(e){}
+            try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'personal'); } catch (e) { }
         }
         saveDatabase(db);
         return true;

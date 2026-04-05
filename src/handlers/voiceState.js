@@ -20,7 +20,7 @@ module.exports = (client) => {
                 const botChannel = newState?.channel || newState?.member?.voice?.channel || null;
                 if (!botChannel) {
                     // Il bot è stato disconnesso/espulso - ferma tutti i timer ascolto
-                    try { stats.stopAllListeners(guildId); } catch (e) {}
+                    try { stats.stopAllListeners(guildId); } catch (e) { }
                     // Aggiorna lo stato della coda per riflettere l'assenza di canale
                     serverQueue.voiceChannel = null;
                     // Forza cleanup immediato
@@ -58,19 +58,9 @@ module.exports = (client) => {
                         } else if (oldChannelId !== botChannelId && newChannelId === botChannelId) {
                             // Utente entrato nel canale del bot
                             stats.startListening(guildId, memberId);
-                            // Salva le info Discord dell'utente
-                            const member = newState?.member;
-                            if (member && member.user) {
-                                stats.updateUserDiscordInfo(memberId, {
-                                    username: member.user.username,
-                                    globalName: member.user.globalName,
-                                    avatar: member.user.avatar,
-                                    discriminator: member.user.discriminator
-                                });
-                            }
                         }
                     }
-                } catch (e) {}
+                } catch (e) { }
 
                 const humanCount = vc.members ? vc.members.filter(m => !m.user.bot).size : 0;
                 if (humanCount === 0) scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);

@@ -69,16 +69,16 @@ module.exports = {
     ROOT_DIR,
     LOCAL_TEMP_DIR,
     DATA_DIR,
-    
+
     // File
     PLAYLIST_FILE,
     QUEUE_FILE,
     STATS_FILE,
-    
+
     // Binari
     YT_DLP_PATH,
     RUST_ENGINE_PATH,
-    
+
     // Funzioni
     getYtDlpCommand
 };

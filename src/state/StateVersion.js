@@ -60,7 +60,7 @@ class QueueStateVersion {
      */
     isVersionValid(versionRead, maxAgeMsec = 5000) {
         const timeSinceMutation = Date.now() - this.lastMutationTime;
-        
+
         if (versionRead !== this.version) {
             return {
                 isValid: false,

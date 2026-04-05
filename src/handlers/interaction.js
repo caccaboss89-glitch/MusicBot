@@ -29,31 +29,31 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
     serverQueue.nextDeckLoaded = null;
     serverQueue.nextDeckTarget = null;
     saveQueueState(guildId, serverQueue);
-    try { await audio.updatePreloadAfterQueueChange(guildId); } catch(e) {}
-    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+    try { await audio.updatePreloadAfterQueueChange(guildId); } catch (e) { }
+    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
 }
 
 async function handlePause(interaction, serverQueue, guildId, deps) {
     const result = await audio.togglePauseResume(guildId, serverQueue, { connectToVoice: deps.connectToVoice });
     if (!result.success) {
         console.error(`❌ [PAUSE-BUTTON] ${result.error}`);
-        await safeReply(interaction, { content: `❌ Errore durante ${result.action === 'pause' ? 'pausa' : 'ripresa'}.`, flags: MessageFlags.Ephemeral }).catch(() => {});
+        await safeReply(interaction, { content: `❌ Errore durante ${result.action === 'pause' ? 'pausa' : 'ripresa'}.`, flags: MessageFlags.Ephemeral }).catch(() => { });
         return;
     }
     saveQueueState(guildId, serverQueue);
     try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-    catch(e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{}); }
+    catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 async function handleYtMix(interaction, serverQueue, guildId, deps) {
     serverQueue.isTaskRunning = true;
     let statusMsg = null;
-    try { statusMsg = await interaction.followUp({ content: '✨ **Generazione Mix YouTube in corso...**', flags: MessageFlags.Ephemeral }); } catch(e) {}
+    try { statusMsg = await interaction.followUp({ content: '✨ **Generazione Mix YouTube in corso...**', flags: MessageFlags.Ephemeral }); } catch (e) { }
     try {
         const db = loadDatabase();
         const currentSong = getCurrentSong(serverQueue);
         let seedSource = db.server.length > 0 ? db.server : (currentSong ? [currentSong] : serverQueue.history);
-        if (!seedSource || seedSource.length === 0) { if(statusMsg) await statusMsg.edit({ content: '❌ Serve almeno una canzone salvata o in riproduzione per generare un Mix!' }).catch(() => {}); return; }
+        if (!seedSource || seedSource.length === 0) { if (statusMsg) await statusMsg.edit({ content: '❌ Serve almeno una canzone salvata o in riproduzione per generare un Mix!' }).catch(() => { }); return; }
         const randomSong = seedSource[Math.floor(Math.random() * seedSource.length)];
         const videoId = getYoutubeId(randomSong.url);
         if (!videoId) throw new Error("ID Video non valido");
@@ -62,7 +62,7 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
         if (songsFound && songsFound.length > 0) {
             const currentMixSong = getCurrentSong(serverQueue);
             if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
-            if (serverQueue.songs.length + (serverQueue.history || []).length + songsFound.length > MAX_QUEUE_SIZE) { if(statusMsg) await statusMsg.edit({ content: `❌ **Limite Coda Raggiunto!**` }).catch(() => {}); return; }
+            if (serverQueue.songs.length + (serverQueue.history || []).length + songsFound.length > MAX_QUEUE_SIZE) { if (statusMsg) await statusMsg.edit({ content: `❌ **Limite Coda Raggiunto!**` }).catch(() => { }); return; }
             clearFinishedQueue(serverQueue);
             songsFound.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
             saveQueueState(guildId, serverQueue);
@@ -71,13 +71,13 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
                 if (connected) audio.playSong(interaction.guild.id);
             } else {
                 if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
-                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{});
+                if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
             }
-            if(statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => {});
-        } else { if(statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => {}); }
+            if (statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
+        } else { if (statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => { }); }
     } catch (e) {
         console.error("Errore Mix:", e);
-        if(statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => {});
+        if (statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => { });
     } finally { serverQueue.isTaskRunning = false; }
 }
 
@@ -123,7 +123,7 @@ async function handleSkip(interaction, serverQueue, guildId, deps) {
 
     if (!result.throttled && !result.success) {
         console.error(`❌ [SKIP] Errore:`, result.error?.message);
-        await safeReply(interaction, { content: '❌ Impossibile eseguire skip. Riprova tra un attimo.', flags: MessageFlags.Ephemeral }).catch(() => {});
+        await safeReply(interaction, { content: '❌ Impossibile eseguire skip. Riprova tra un attimo.', flags: MessageFlags.Ephemeral }).catch(() => { });
     }
 }
 
@@ -164,11 +164,11 @@ async function handleSelectQueue(interaction, serverQueue, guildId) {
 async function handleLoop(interaction, serverQueue, guildId) {
     serverQueue.loopEnabled = !serverQueue.loopEnabled;
     if (serverQueue.mixer && serverQueue.mixer.isProcessAlive()) {
-        try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch(e) {}
+        try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch (e) { }
     }
     saveQueueState(guildId, serverQueue);
     try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-    catch(e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{}); }
+    catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 async function handleShuffle(interaction, serverQueue, guildId) {
@@ -181,22 +181,22 @@ async function handleShuffle(interaction, serverQueue, guildId) {
         const currentIdx = serverQueue.playIndex || 0;
         const before = serverQueue.songs.slice(0, currentIdx + 1);
         const after = serverQueue.songs.slice(currentIdx + 1);
-        for (let i = after.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [after[i], after[j]] = [after[j], after[i]]; }
+        for (let i = after.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[after[i], after[j]] = [after[j], after[i]]; }
         serverQueue.songs = [...before, ...after];
         serverQueue.nextDeckLoaded = null;
         serverQueue.nextDeckTarget = null;
         saveQueueState(guildId, serverQueue);
         try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-        catch(e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{}); }
-        audio.updatePreloadAfterQueueChange(guildId).catch(()=>{});
-    } else { try { await interaction.deferUpdate(); } catch(e){} }
+        catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+        audio.updatePreloadAfterQueueChange(guildId).catch(() => { });
+    } else { try { await interaction.deferUpdate(); } catch (e) { } }
 }
 
 async function handleFade(interaction, serverQueue, guildId) {
     serverQueue.fadeEnabled = !serverQueue.fadeEnabled;
     saveQueueState(guildId, serverQueue);
     try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-    catch(e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(()=>{}); }
+    catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 // ─── Button dispatch table ──────────────────────────────────
@@ -221,7 +221,7 @@ module.exports = function registerInteractionHandlers(client, deps) {
         try {
             if (interaction.isChatInputCommand()) {
                 let commands = {};
-                try { commands = require('../commands'); } catch (e) {}
+                try { commands = require('../commands'); } catch (e) { }
                 const cmd = commands[interaction.commandName];
                 if (cmd && typeof cmd.execute === 'function') {
                     try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error', e); }
@@ -246,7 +246,7 @@ module.exports = function registerInteractionHandlers(client, deps) {
                 const modalButtons = ['plist_create', 'plist_search_server'];
                 const isModalButton = modalButtons.includes(customId) || customId.startsWith('plist_rename_likes_') || customId.startsWith('plist_search_likes_');
                 if (!immediateUpdateButtons.includes(customId) && !isModalButton) {
-                    try { await interaction.deferUpdate(); } catch(e){}
+                    try { await interaction.deferUpdate(); } catch (e) { }
                 }
 
                 const now = Date.now();

@@ -13,7 +13,7 @@ const { createDashboardComponents } = require('./components');
  */
 async function tryRestoreDashboardMessage(serverQueue) {
     if (!serverQueue || !serverQueue.textChannel || !serverQueue.dashboardMessageId) return null;
-    
+
     try {
         const message = await serverQueue.textChannel.messages.fetch(serverQueue.dashboardMessageId);
         if (message) {
@@ -50,7 +50,7 @@ async function updateDashboard(serverQueue, embed, components) {
     const performUpdate = async () => {
         if (!state.nextData) { state.isUpdating = false; return; }
         const dataToUse = state.nextData;
-        state.nextData = null; 
+        state.nextData = null;
         state.isUpdating = true;
 
         try {
@@ -72,8 +72,8 @@ async function updateDashboard(serverQueue, embed, components) {
                     const last = await channel.messages.fetch({ limit: 1 });
                     const lastMsg = last.first();
                     if (lastMsg && lastMsg.id !== serverQueue.dashboardMessage.id) {
-                            // Esiste una dashboard vecchia ma non è l'ultima: rimuovila e forza il reinvio
-                        try { await serverQueue.dashboardMessage.delete().catch(() => {}); } catch (e) {}
+                        // Esiste una dashboard vecchia ma non è l'ultima: rimuovila e forza il reinvio
+                        try { await serverQueue.dashboardMessage.delete().catch(() => { }); } catch (e) { }
                         serverQueue.dashboardMessage = null;
                         serverQueue.dashboardMessageId = null;
                         serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
@@ -83,8 +83,8 @@ async function updateDashboard(serverQueue, embed, components) {
                     }
                 } catch (e) {
                     // Se qualcosa fallisce, tenta di reinviare la dashboard
-                    try { 
-                        serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components }); 
+                    try {
+                        serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
                         serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
                     } catch (err) { throw err; }
                 }
@@ -126,14 +126,14 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
             if (!serverQueue.dashboardMessage && serverQueue.dashboardMessageId) {
                 await tryRestoreDashboardMessage(serverQueue);
             }
-            
+
             // Se ancora non c'è un messaggio, creane uno nuovo
             if (!serverQueue.dashboardMessage) {
                 console.log(`🔔 [DASH] updateDashboardToFinished creating message guild=${serverQueue.guildId || 'unknown'}`);
                 const channel = serverQueue.textChannel;
                 if (channel && channel.send) {
-                    try { 
-                        serverQueue.dashboardMessage = await channel.send({ embeds: [createFinishedEmbed(lastSong)], components: createDashboardComponents(serverQueue) }); 
+                    try {
+                        serverQueue.dashboardMessage = await channel.send({ embeds: [createFinishedEmbed(lastSong)], components: createDashboardComponents(serverQueue) });
                         serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
                     } catch (e) { console.error(`⚠️ [DASH] failed to send finished dashboard:`, e && e.message); }
                 }
@@ -169,7 +169,7 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
                 if (components[4].components[1]) components[4].components[1].setDisabled(!isTerminated); // mix solo quando terminata
                 if (components[4].components[2]) components[4].components[2].setDisabled(true); // clear
             }
-            } catch (e) { /* ignora */ }
+        } catch (e) { /* ignora */ }
     }
     await updateDashboard(serverQueue, embed, components);
 }

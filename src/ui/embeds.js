@@ -14,7 +14,7 @@ const { getCurrentSong } = require('../queue/QueueManager');
  */
 function createCurrentSongEmbed(serverQueue) {
     let song = null;
-    
+
     try {
         if (serverQueue) {
             song = getCurrentSong(serverQueue);
@@ -22,14 +22,14 @@ function createCurrentSongEmbed(serverQueue) {
     } catch (e) {
         console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
     }
-    
+
     if (!song || !song.url) {
         return new EmbedBuilder()
             .setColor(0x555555)
             .setTitle('🚫 Nessuna canzone')
             .setDescription('Aggiungi una canzone per iniziare!');
     }
-    
+
     const embed = new EmbedBuilder()
         .setColor(song.isLive ? 0xFF0000 : 0x0099FF)
         .setTitle('🎶 In Riproduzione')
@@ -41,7 +41,7 @@ function createCurrentSongEmbed(serverQueue) {
     if (serverQueue && serverQueue.loadingFooter) {
         embed.setFooter({ text: serverQueue.loadingFooter });
     }
-    
+
     return embed;
 }
 

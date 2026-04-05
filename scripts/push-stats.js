@@ -44,12 +44,12 @@ function archiveMonthlyStats() {
         const now = new Date();
         const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-        
-        const yearMonth = previousMonth.getFullYear() + '-' + 
-                         String(previousMonth.getMonth() + 1).padStart(2, '0');
-        const dateStr = lastDayOfPreviousMonth.getFullYear() + '-' + 
-                       String(lastDayOfPreviousMonth.getMonth() + 1).padStart(2, '0') + '-' +
-                       String(lastDayOfPreviousMonth.getDate()).padStart(2, '0');
+
+        const yearMonth = previousMonth.getFullYear() + '-' +
+            String(previousMonth.getMonth() + 1).padStart(2, '0');
+        const dateStr = lastDayOfPreviousMonth.getFullYear() + '-' +
+            String(lastDayOfPreviousMonth.getMonth() + 1).padStart(2, '0') + '-' +
+            String(lastDayOfPreviousMonth.getDate()).padStart(2, '0');
 
         // Crea la cartella monthly-stats/YYYY-MM se non esiste
         const monthDir = path.join(MONTHLY_STATS_DIR, yearMonth);
@@ -140,7 +140,7 @@ function pushStats(forceArchive = false) {
 
         // Controlla lo status dei file
         const status = execSync('git status --porcelain data/stats.json data/playlists.json data/monthly-stats', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-        
+
         if (!status.trim()) {
             console.log('ℹ️ Nessun file dati persistente da sincronizzare su GitHub');
             return true;
@@ -157,7 +157,7 @@ function pushStats(forceArchive = false) {
         const commitMsg = shouldArchive
             ? `Monthly data snapshot - ${monthYear}`
             : `Data update - ${monthYear}`;
-        
+
         execSync(`git commit -m "${commitMsg}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
         console.log('✅ Commit created successfully');
 

@@ -9,10 +9,10 @@ const commands = [
     new SlashCommandBuilder()
         .setName('play')
         .setDescription('Avvia il player musicale')
-        .addStringOption(option => 
+        .addStringOption(option =>
             option.setName('cerca')
                 .setDescription('Titolo, Link o Playlist')
-                .setRequired(true))
+                .setRequired(false))
 ]
     .map(command => command.toJSON());
 

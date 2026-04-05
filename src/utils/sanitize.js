@@ -35,21 +35,21 @@ function sanitizeTitle(title) {
  */
 function safeJSONParse(filename, defaultData) {
     if (!fs.existsSync(filename)) {
-        try { 
-            fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); 
-        } catch(e) {}
+        try {
+            fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2));
+        } catch (e) { }
         return defaultData;
     }
-    try { 
-        return JSON.parse(fs.readFileSync(filename, 'utf-8')); 
-    } catch (e) { 
+    try {
+        return JSON.parse(fs.readFileSync(filename, 'utf-8'));
+    } catch (e) {
         // File corrotto: salva backup prima di sovrascrivere
-        try { 
+        try {
             fs.copyFileSync(filename, filename + '.corrupted.bak');
             console.warn(`⚠️ [SANITIZE] File corrotto: ${filename} — backup salvato come ${filename}.corrupted.bak`);
-        } catch(backupErr) { /* ignore */ }
-        try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch(err) { /* ignoriamo */ }
-        return defaultData; 
+        } catch (backupErr) { /* ignore */ }
+        try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch (err) { /* ignoriamo */ }
+        return defaultData;
     }
 }
 

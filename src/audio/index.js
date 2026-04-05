@@ -55,28 +55,28 @@ function handleBufferReady(guildId, deck) {
     try {
         const sq = queue.get(guildId);
         if (!sq) return;
-        
+
         // Incrementa versione quando buffer diventa pronto
         const { stateVersionManager } = require('../state/StateVersion');
         const stateVersion = stateVersionManager.get(guildId);
-        
+
         sq.bufferReady = sq.bufferReady || {};
         sq.bufferReady[deck] = true;
-        
+
         stateVersion.incrementVersion('buffer_ready', {
             deck,
             loadedUrl: (deck === 'A' ? sq.currentDeckLoaded : sq.nextDeckLoaded)?.substring(0, 60) || 'N/A'
         });
-        
+
         console.log(`✅ [BUFFER-READY] Deck ${deck} pronto per riproduzione`);
 
-            // Se c'è una transizione differita in attesa di questo deck, eseguila ora
-            if (sq.pendingTransition && sq.pendingTransition.targetDeck === deck) {
-                SkipManager.completePendingTransition(guildId).catch(e => {
-                    console.error('❌ [BUFFER-READY] Errore completePendingTransition:', e);
-                });
-            }
-    } catch (e) { 
+        // Se c'è una transizione differita in attesa di questo deck, eseguila ora
+        if (sq.pendingTransition && sq.pendingTransition.targetDeck === deck) {
+            SkipManager.completePendingTransition(guildId).catch(e => {
+                console.error('❌ [BUFFER-READY] Errore completePendingTransition:', e);
+            });
+        }
+    } catch (e) {
         console.error(`❌ [BUFFER-READY] Errore:`, e);
     }
 }
@@ -125,13 +125,13 @@ function handleRustEvent(guildId, log) {
                 const fadeEnabled = !!(sq.fadeEnabled && sq.mixer && sq.mixer.crossfade);
                 const { getNextSong } = require('../queue/QueueManager');
                 const nextSong = getNextSong(sq);
-                
+
                 // Se c'è già una pending transition, non avviare un altro auto-skip:
                 // completePendingTransition() gestirà il cambio quando il buffer è pronto.
                 // Tollera solo se scaduta (> 25s), in quel caso procedi normalmente.
                 const ptAge = sq.pendingTransition ? (Date.now() - sq.pendingTransition.startTime) : Infinity;
                 if (sq.pendingTransition && ptAge < 25000) {
-                    console.log(`⏳ [APPROACHING-END] Transizione differita in corso (${Math.round(ptAge/1000)}s) – skip auto-crossfade`);
+                    console.log(`⏳ [APPROACHING-END] Transizione differita in corso (${Math.round(ptAge / 1000)}s) – skip auto-crossfade`);
                     return;
                 }
 
@@ -142,22 +142,8 @@ function handleRustEvent(guildId, log) {
                         console.error('❌ [APPROACHING-END] Errore autoSkip:', e);
                     });
                 } else if (!nextSong) {
-                    // NESSUNA CANZONE SUCCESSIVA (indipendentemente dal fade)
-                    // Carica la traccia corrente sull'altra deck come fallback
-                    // Così il Rust continua a riprodurre fino alla fine naturale senza terminare prematuramente
-                    const currentSong = require('../queue/QueueManager').getCurrentSong(sq);
-                    if (currentSong && sq.mixer && sq.mixer.isProcessAlive && sq.mixer.isProcessAlive()) {
-                        const otherDeck = (sq.currentDeck || 'A') === 'A' ? 'B' : 'A';
-                        try {
-                            sq.bufferReady = sq.bufferReady || {};
-                            sq.bufferReady[otherDeck] = false;
-                            // Carica la stessa canzone in fallback (autoplay=false)
-                            sq.mixer.load(currentSong.url, otherDeck, false);
-                            console.log('⏳ [APPROACHING-END] Nessuna next track – caricamento fallback per continuare fino alla fine');
-                        } catch (e) {
-                            console.warn(`⚠️  [APPROACHING-END] Fallback load fallito:`, e.message);
-                        }
-                    }
+                    // Nessuna canzone successiva: il Rust riprodurrà fino alla fine naturale
+                    console.log('⏭️  [APPROACHING-END] Nessuna next track – attendo fine naturale');
                 } else {
                     // Fade disattivo + c'è una canzone successiva: non fare nulla, skip istantaneo a fine naturale
                     console.log('⏭️  [APPROACHING-END] 3s prima della fine – fade OFF, attendo fine naturale');
@@ -204,7 +190,7 @@ function handleRustEvent(guildId, log) {
         if (log.event === 'proactive_crossfade_proposal') {
             const sq = queue.get(guildId);
             if (sq && !sq.isCrossfading) {
-                const fadeEnabled = sq.crossfadeEnabled !== false;
+                const fadeEnabled = sq.fadeEnabled !== false;
                 const nextSong = require('../queue/QueueManager').getNextSong(sq);
                 if (fadeEnabled && nextSong) {
                     console.log('🎚️  [PROACTIVE-CROSSFADE] Rust propone crossfade – avvio autoSkip');
@@ -237,7 +223,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         if (!sq) return;
 
         // ── STATS: canzone completata (gapless auto-switch) ──
-        try { require('../database/stats').incrementSongsCompleted(); } catch (e) {}
+        try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
 
         // Se c'è una transizione differita per questo deck (utente aveva già premuto skip
         // mentre il deck era in download), lascia che completePendingTransition gestisca
@@ -275,7 +261,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
             const stats = require('../database/stats');
             stats.incrementSongsStarted();
             stats.recordSongPlay(guildId, nextSong, sq.voiceChannel);
-        } catch (e) {}
+        } catch (e) { }
 
         // Salva stato e aggiorna UI
         const { saveQueueState } = require('../queue/persistence');
@@ -306,7 +292,7 @@ function handleAutoLoopRestart(guildId, deck) {
             const stats = require('../database/stats');
             stats.incrementSongsCompleted();
             stats.incrementSongsStarted();
-        } catch (e) {}
+        } catch (e) { }
 
         // Riavvia il timer di preload per la prossima canzone
         PlaybackEngine.onSongStart(guildId);
@@ -351,7 +337,7 @@ function handleMixerCrash(guildId, reason) {
         console.error(`🚨 [MIXER-CRASH] ${JSON.stringify(crashContext)}`);
 
         // ── STATS: ferma tutti i timer ascolto (il recovery li riavvierà in playSong) ──
-        try { require('../database/stats').stopAllListeners(guildId); } catch (e) {}
+        try { require('../database/stats').stopAllListeners(guildId); } catch (e) { }
 
         // Log su file per post-mortem analysis
         try {

@@ -19,7 +19,9 @@ function _getQueueCache() {
 function _flushQueueCache() {
     if (_queueCache === null) return;
     try {
-        fs.writeFileSync(QUEUE_FILE, JSON.stringify(_queueCache, null, 2));
+        const tmpFile = QUEUE_FILE + '.tmp';
+        fs.writeFileSync(tmpFile, JSON.stringify(_queueCache, null, 2));
+        fs.renameSync(tmpFile, QUEUE_FILE);
     } catch (e) {
         console.error('❌ [PERSISTENCE] Errore scrittura cache:', e.message);
     }

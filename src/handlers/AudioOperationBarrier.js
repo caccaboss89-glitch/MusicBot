@@ -1,19 +1,6 @@
 /**
- * src/handlers/AudioOperationBarrier.js
- * 
  * Barrier globale per serializzare le operazioni audio critiche.
  * Previene race conditions quando utente spamma skip, pause, etc.
- * 
- * Problema risolto:
- * - Skip + pause rapid-fire causano desync
- * - Crossfade durante skip causa audio corrupto
- * - Loop toggle mentre skip in progress causa state confusion
- * 
- * Soluzione:
- * - Una coda per guildId
- * - Operazioni eseguite in sequenza (NON in parallelo)
- * - Timeout per richieste stale
- * - Min throttle di 2s tra operazioni per prevenire spam utente
  */
 
 const { queue } = require('../state/globals');
@@ -124,7 +111,7 @@ class AudioOperationBarrier {
             const sq = queue.get(guildId);
             if (!sq) {
                 operation.error = new Error('Guild disappeared');
-                operation.promise.reject(operation.error);
+                operation.promise.resolve({ success: false, error: operation.error });
                 operationQueue.executing = null;
                 continue;
             }
@@ -161,7 +148,7 @@ class AudioOperationBarrier {
             } catch (error) {
                 console.error(`❌ [AUDIO-BARRIER] '${operation.name}' failed:`, error.message);
                 operation.error = error;
-                operation.promise.reject(error);
+                operation.promise.resolve({ success: false, error });
                 operationQueue.lastOperationTime = Date.now();
 
                 stateVersion.incrementVersion('audio_operation_failed', {

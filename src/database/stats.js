@@ -4,10 +4,6 @@
  *  - Tempo di ascolto per utente (solo mentre il bot canta, non in pausa)
  *  - Interazioni "aggiungi a playlist" per utente (server e personale)
  *  - Contatori globali: canzoni avviate e canzoni completate
- *
- * I timer di ascolto vengono mantenuti in memoria (activeListeners) e 
- * flush-ati su disco SOLO alla disconnessione del bot o allo shutdown.
- * I contatori (canzoni, playlist) vengono scritti immediatamente su disco.
  */
 
 const fs = require('fs');
@@ -23,7 +19,7 @@ const pendingTime = {};
 
 // Flush periodico del tempo pendente per ridurre perdita dati su crash non-graceful
 setInterval(() => {
-    try { flushPendingAndSave(); } catch (e) {}
+    try { flushPendingAndSave(); } catch (e) { }
 }, 60 * 1000); // Ogni 60 secondi
 
 // ─── Caricamento / Salvataggio ──────────────────────────────
@@ -88,7 +84,7 @@ function ensureUser(data, userId, discordUser = null) {
     if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
     if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
     if (!u.songPlays) u.songPlays = {};
-    
+
     // Aggiungi info Discord se fornite
     if (discordUser) {
         u.username = discordUser.username;
@@ -434,7 +430,7 @@ module.exports = {
 
     // Contatori playlist
     recordPlaylistAdd,
-    
+
     // Info Discord
     updateUserDiscordInfo,
 

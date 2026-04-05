@@ -71,8 +71,6 @@ class CommandQueue {
             return { success: false, error: new Error('Command queue full (50)') };
         }
 
-        const stateVersion = stateVersionManager.get(guildId);
-
         const commandId = `${commandName}_${Date.now()}_${Math.random()}`;
         const commandEntry = {
             id: commandId,
@@ -160,7 +158,7 @@ class CommandQueue {
 
                 commandQueue.stats.successCount++;
                 commandQueue.stats.lastCommandTime = new Date().toISOString();
-                commandQueue.stats.avgWaitTimeMs = 
+                commandQueue.stats.avgWaitTimeMs =
                     (commandQueue.stats.avgWaitTimeMs * (commandQueue.stats.totalCommands) + executionTime) /
                     (commandQueue.stats.totalCommands + 1);
                 commandQueue.stats.totalCommands++;

@@ -71,7 +71,7 @@ async function connectToVoice(serverQueue, interaction) {
                 // fallthrough: ricrea la connessione
             }
             // Connessione esistente obsoleta o nel canale sbagliato — distruggi e ricrea
-            try { serverQueue.connection.destroy(); } catch (e) {}
+            try { serverQueue.connection.destroy(); } catch (e) { }
             serverQueue.connection = null;
         }
 
@@ -84,10 +84,10 @@ async function connectToVoice(serverQueue, interaction) {
         serverQueue.connection = connection;
         // Rimuovi listener obsoleti dalla connessione precedente (se riutilizzata)
         if (serverQueue._connStateHandler) {
-            try { connection.off('stateChange', serverQueue._connStateHandler); } catch(e) {}
+            try { connection.off('stateChange', serverQueue._connStateHandler); } catch (e) { }
         }
         if (serverQueue._connErrorHandler) {
-            try { connection.off('error', serverQueue._connErrorHandler); } catch(e) {}
+            try { connection.off('error', serverQueue._connErrorHandler); } catch (e) { }
         }
         // Cancella timer di riconciliazione pendente
         if (serverQueue._reconcileTimer) {
@@ -98,7 +98,7 @@ async function connectToVoice(serverQueue, interaction) {
         try {
             const stateChangeHandler = (oldState, newState) => {
                 try {
-                        if (newState.status === VoiceConnectionStatus.Destroyed) {
+                    if (newState.status === VoiceConnectionStatus.Destroyed) {
                         // Forza cleanup immediato
                         scheduleDisconnectIfAlone(serverQueue, 0);
                     } else if (newState.status === VoiceConnectionStatus.Ready) {
@@ -135,16 +135,16 @@ async function connectToVoice(serverQueue, interaction) {
                                                 }
                                             }
                                         }
-                                    } catch (e) {}
+                                    } catch (e) { }
                                 }, RECONCILE_WINDOW_MS);
                             }
-                        } catch (e) {}
+                        } catch (e) { }
 
                     } else if (newState.status === VoiceConnectionStatus.Disconnected) {
                         // Prova una breve finestra di riconnessione, altrimenti programma il cleanup
                         scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
                     }
-                } catch (e) {}
+                } catch (e) { }
             };
             const errorHandler = (err) => {
                 console.error('Errore VoiceConnection:', err);
@@ -155,13 +155,13 @@ async function connectToVoice(serverQueue, interaction) {
             serverQueue._connErrorHandler = errorHandler;
             connection.on('stateChange', stateChangeHandler);
             connection.on('error', errorHandler);
-        } catch (e) {}
-        try { serverQueue.connection.subscribe(serverQueue.player); } catch(e){}
+        } catch (e) { }
+        try { serverQueue.connection.subscribe(serverQueue.player); } catch (e) { }
         try {
             await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
         } catch (e) {
             console.error('Connessione vocale fallita:', e);
-            try { connection.destroy(); } catch(e){}
+            try { connection.destroy(); } catch (e) { }
             serverQueue.connection = null;
             await safeReply(interaction, { content: '❌ Errore connessione vocale', flags: 64 });
             return false;

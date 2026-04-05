@@ -3,10 +3,10 @@
  * Funzioni per la creazione di componenti Discord (bottoni, menu)
  */
 
-const { 
-    ActionRowBuilder, 
-    ButtonBuilder, 
-    ButtonStyle, 
+const {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     StringSelectMenuBuilder,
     MessageFlags
 } = require('discord.js');
@@ -27,10 +27,10 @@ const { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } = require('../../config');
  */
 function generatePlaylistView(type, userId, page, playlistName = null) {
     const db = loadDatabase();
-    
+
     let items;
     let currentPlName = DEFAULT_PLAYLIST_NAME;
-    
+
     if (type === 'server') {
         items = db.server || [];
     } else {
@@ -39,7 +39,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
         currentPlName = playlistName || userData.activePlaylist || DEFAULT_PLAYLIST_NAME;
         items = userData.playlists[currentPlName] || [];
     }
-    
+
     const totalItems = items.length;
     const itemsPerPage = PLAYLIST_PAGE_SIZE;
     const maxPage = Math.max(0, Math.ceil(totalItems / itemsPerPage) - 1);
@@ -51,7 +51,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     const start = page * itemsPerPage;
     const currentItems = items.slice(start, start + itemsPerPage);
 
-    let description = currentItems.length > 0 
+    let description = currentItems.length > 0
         ? currentItems.map((s, i) => `**${start + i + 1}.** [${sanitizeTitle(s.title).substring(0, 60)}](${s.url})`).join('\n')
         : '📭 Nessuna canzone salvata.';
 
@@ -67,7 +67,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     if (type !== 'server') {
         const plNames = getUserPlaylistNames(db, userId);
         const navId = currentPlName; // nome playlist nel customId
-        
+
         // Row 1: Selezione canzone
         const rowSelect = new ActionRowBuilder();
         if (currentItems.length > 0) {
@@ -81,7 +81,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
                     })))
             );
         } else {
-            rowSelect.addComponents(new StringSelectMenuBuilder().setCustomId('dummy').setPlaceholder('Vuoto').addOptions([{label:'vuoto', value:'vuoto'}]).setDisabled(true));
+            rowSelect.addComponents(new StringSelectMenuBuilder().setCustomId('dummy').setPlaceholder('Vuoto').addOptions([{ label: 'vuoto', value: 'vuoto' }]).setDisabled(true));
         }
         components.push(rowSelect);
 
@@ -132,7 +132,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
                     })))
             );
         } else {
-            rowSelect.addComponents(new StringSelectMenuBuilder().setCustomId('dummy').setPlaceholder('Vuoto').addOptions([{label:'vuoto', value:'vuoto'}]).setDisabled(true));
+            rowSelect.addComponents(new StringSelectMenuBuilder().setCustomId('dummy').setPlaceholder('Vuoto').addOptions([{ label: 'vuoto', value: 'vuoto' }]).setDisabled(true));
         }
         components.push(rowSelect);
 
@@ -162,12 +162,12 @@ function createDashboardComponents(serverQueue, userId = null) {
     const canGoPrev = serverQueue && (serverQueue.playIndex || 0) > 0;
     // Rileva stato terminato: nessun deck corrente ma c'è ancora musica (per replay)
     const isTerminated = serverQueue && !serverQueue.currentDeckLoaded;
-    
+
     const db = loadDatabase();
     const isDuplicateServer = isSongValid ? (db.server || []).some(s => areSameSong(s.url, song.url)) : false;
     const isLive = isSongValid ? song.isLive === true : false;
 
-    
+
     let rowControls;
     if (isTerminated) {
         // Solo 'replay' abilitato nello stato terminato
