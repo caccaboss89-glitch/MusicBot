@@ -255,12 +255,13 @@ function flushAllGuildsAndSave() {
  * @param {object|null} voiceChannel - Canale vocale Discord (con .members)
  */
 /**
- * Normalizza un URL YouTube alla forma canonica (rimuove parametri extra)
- * Gestisce: /watch?v=, /youtu.be/, /embed/, /v/, /shorts/
+ * Normalizza un URL YouTube (compresi link music.youtube.com) alla forma canonica
+ * solo video ID. Usato per keying stats (dedup indipendente da playlist/mix).
  */
 function normalizeYoutubeUrl(url) {
     if (!url) return url;
-    const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    // Supporta anche music.youtube.com e m.youtube.com
+    const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/|music\.youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/);
     if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
     return url;
 }

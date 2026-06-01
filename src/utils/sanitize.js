@@ -65,6 +65,69 @@ function getYoutubeId(url) {
 }
 
 /**
+ * Normalizza un URL YouTube (o YouTube Music) alla forma canonica www.youtube.com
+ * - Converte music.youtube.com → www.youtube.com
+ * - Rimuove parametri di tracking (si, pp, feature, ecc.)
+ * - Preserva list= e index= quando presenti (utile per mix/playlist context)
+ * - Gestisce youtu.be, /embed/, /shorts/, /v/ ecc.
+ * @param {string} url
+ * @returns {string}
+ */
+function normalizeYoutubeUrl(url) {
+    if (!url || typeof url !== 'string') return url;
+    let u = url.trim();
+
+    // 1. Converti domini music.youtube e m.youtube a www.youtube
+    u = u.replace(/^https?:\/\/(?:music|m)\.youtube\.com\//i, 'https://www.youtube.com/');
+
+    // 2. Prova parsing URL per pulizia precisa dei query params
+    try {
+        const parsed = new URL(u);
+        if (parsed.hostname.endsWith('youtube.com') || parsed.hostname === 'youtu.be') {
+            const v = parsed.searchParams.get('v');
+            const list = parsed.searchParams.get('list');
+            const index = parsed.searchParams.get('index');
+
+            let base;
+            if (parsed.hostname === 'youtu.be' && parsed.pathname.length > 1) {
+                const id = parsed.pathname.slice(1).split(/[?#]/)[0];
+                base = `https://www.youtube.com/watch?v=${id}`;
+            } else if (v) {
+                base = `https://www.youtube.com/watch?v=${v}`;
+            } else if (parsed.pathname.includes('/playlist')) {
+                // Playlist page: mantieni il path e solo il list param
+                const qs = list ? `?list=${list}` : '';
+                return `https://www.youtube.com${parsed.pathname}${qs}`;
+            } else {
+                // Non è un video singolo riconoscibile, restituisci con dominio normalizzato
+                return u.replace(/^https?:\/\/[^/]+/, 'https://www.youtube.com');
+            }
+
+            const params = new URLSearchParams();
+            if (list) params.set('list', list);
+            if (index && list) params.set('index', index);
+            const qs = params.toString();
+            return qs ? `${base}?${qs}` : base;
+        }
+    } catch (_) {
+        // Fallback regex semplice
+    }
+
+    // Fallback regex-based (per URL malformati o casi edge)
+    const idMatch = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|playlist\?list=))([a-zA-Z0-9_-]{11,})/);
+    if (idMatch && idMatch[1] && idMatch[1].length === 11) {
+        // Se c'è list= nel query originale, prova a preservarlo
+        const listMatch = u.match(/[?&]list=([A-Za-z0-9_-]+)/);
+        if (listMatch) {
+            return `https://www.youtube.com/watch?v=${idMatch[1]}&list=${listMatch[1]}`;
+        }
+        return `https://www.youtube.com/watch?v=${idMatch[1]}`;
+    }
+
+    return u;
+}
+
+/**
  * Confronta due URL per verificare se puntano alla stessa canzone
  * @param {string} url1 - Primo URL
  * @param {string} url2 - Secondo URL
@@ -83,5 +146,6 @@ module.exports = {
     sanitizeTitle,
     safeJSONParse,
     getYoutubeId,
-    areSameSong
+    areSameSong,
+    normalizeYoutubeUrl
 };

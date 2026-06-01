@@ -9,6 +9,7 @@ const {
     VIDEO_INFO_TIMEOUT_MS,
     getYtDlpCommand
 } = require('../../config');
+const { normalizeYoutubeUrl } = require('./sanitize');
 
 const DURATION_FETCH_CONCURRENCY = 3; // Max processi yt-dlp paralleli per fetch durata
 
@@ -41,6 +42,10 @@ function releaseSlot() {
 async function getVideoDuration(videoUrl) {
     await acquireSlot();
     try {
+        // Normalizza anche qui per robustezza (code legacy o restore da disco)
+        if (videoUrl && typeof videoUrl === 'string' && videoUrl.startsWith('http')) {
+            videoUrl = normalizeYoutubeUrl(videoUrl);
+        }
         return await new Promise((resolve) => {
             const ytdlpCmd = getYtDlpCommand([
                 '--no-warnings',
@@ -101,6 +106,12 @@ async function getVideoDuration(videoUrl) {
 async function getVideoInfo(query) {
     await acquireSlot();
     try {
+        // Normalizza URL music.youtube.com / m.youtube.com / tracking params → www.youtube.com canonico.
+        // Questo risolve casi in cui yt-dlp con client ANDROID_MUSIC su single video music. restituisce "null".
+        if (query && typeof query === 'string' && query.startsWith('http')) {
+            query = normalizeYoutubeUrl(query);
+        }
+
         const baseArgs = [
             '--flat-playlist',
             '-J',
@@ -154,6 +165,10 @@ async function getVideoInfo(query) {
                 }
                 try {
                     const info = JSON.parse(data);
+                    if (!info || typeof info !== 'object') {
+                        console.warn(`[getVideoInfo] yt-dlp ha restituito null/empty per query: ${query.substring(0, 120)}`);
+                        return resolve([]);
+                    }
                     if (info.entries && info.entries.length > 0) {
                         let results = info.entries.map(entry => ({
                             title: entry.title || "Titolo Sconosciuto",
@@ -212,7 +227,7 @@ async function getVideoInfo(query) {
 
                     return resolve([result]);
                 } catch (e) {
-                    console.warn(`[getVideoInfo] Errore parsing JSON per query "${query.substring(0, 80)}": ${e.message}`);
+                    console.warn(`[getVideoInfo] Errore elaborazione output yt-dlp per "${query.substring(0, 80)}": ${e.message}`);
                     console.warn(`[getVideoInfo] Dati grezzi (primi 500 char): ${data ? data.substring(0, 500) : '(vuoto)'}`);
                     resolve([]);
                 }
