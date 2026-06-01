@@ -148,10 +148,13 @@ async function getVideoInfo(query) {
             processSearch.on('close', async () => {
                 clearTimeout(killTimer);
                 if (settled) return;
-                if (!data) return resolve([]);
+                if (!data) {
+                    console.warn(`[getVideoInfo] Nessun dato da yt-dlp per query: ${query.substring(0, 120)}`);
+                    return resolve([]);
+                }
                 try {
                     const info = JSON.parse(data);
-                    if (info.entries) {
+                    if (info.entries && info.entries.length > 0) {
                         let results = info.entries.map(entry => ({
                             title: entry.title || "Titolo Sconosciuto",
                             url: entry.url || `https://www.youtube.com/watch?v=${entry.id}`,
@@ -184,6 +187,19 @@ async function getVideoInfo(query) {
                         duration: info.duration || 0
                     };
 
+                    // Fallback: se il root non ha info video utili ma c'è una entries con 1 elemento (es. list non espanso ma video principale presente)
+                    const hasUsableVideo = result.url || (result.title && result.title !== "Titolo Sconosciuto");
+                    if (!hasUsableVideo && Array.isArray(info.entries) && info.entries.length > 0) {
+                        const first = info.entries[0];
+                        result = {
+                            title: first.title || result.title,
+                            url: first.url || (first.id ? `https://www.youtube.com/watch?v=${first.id}` : result.url),
+                            thumbnail: (first.thumbnails && first.thumbnails[0] ? first.thumbnails[0].url : result.thumbnail),
+                            isLive: first.is_live || result.isLive,
+                            duration: first.duration || result.duration
+                        };
+                    }
+
                     // Se la durata è mancante per single video
                     if (!result.duration || result.duration === 0) {
                         try {
@@ -195,7 +211,11 @@ async function getVideoInfo(query) {
                     }
 
                     return resolve([result]);
-                } catch (e) { resolve([]); }
+                } catch (e) {
+                    console.warn(`[getVideoInfo] Errore parsing JSON per query "${query.substring(0, 80)}": ${e.message}`);
+                    console.warn(`[getVideoInfo] Dati grezzi (primi 500 char): ${data ? data.substring(0, 500) : '(vuoto)'}`);
+                    resolve([]);
+                }
             });
         });
     } finally { releaseSlot(); }
