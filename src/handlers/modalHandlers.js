@@ -141,7 +141,7 @@ async function handleModal(interaction, guildId, deps) {
                 if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
             }
             if (found.length > 1) interaction.editReply(`✅ Aggiunte **${found.length}** canzoni.`); else interaction.deleteReply().catch(() => { });
-        } else interaction.editReply('❌ Errore.');
+        } else interaction.editReply('❌ Nessun risultato per il link o la ricerca inserita.');
     } finally { serverQueue.isTaskRunning = false; }
 }
 
