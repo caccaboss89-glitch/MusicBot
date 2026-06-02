@@ -96,6 +96,35 @@ fn get_download_watchdog_secs() -> u64 {
     60
 }
 
+/// Legge una variabile d'ambiente; valori vuoti o "none"/"off"/"false" → None.
+fn env_opt(name: &str) -> Option<String> {
+    env::var(name).ok().and_then(|v| {
+        let t = v.trim();
+        if t.is_empty() {
+            return None;
+        }
+        match t.to_lowercase().as_str() {
+            "none" | "off" | "false" | "0" | "no" => None,
+            _ => Some(t.to_string()),
+        }
+    })
+}
+
+fn default_ytdlp_proxy_url() -> String {
+    "socks5h://127.0.0.1:5040".to_string()
+}
+
+fn default_ytdlp_cookie_browser() -> Option<String> {
+    #[cfg(windows)]
+    {
+        Some("chromium".to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
 struct Deck {
     name: String,
     samples: VecDeque<f32>,
@@ -327,23 +356,47 @@ fn download_and_decode_advanced(
         .arg("-q")
         .arg("--no-warnings")
         .arg("--no-cache-dir")
+        .arg("--no-playlist")
+        .arg("--socket-timeout").arg("30")
+        .arg("--retries").arg("5")
+        .arg("--fragment-retries").arg("5")
+        .arg("--concurrent-fragments").arg("1")
         .arg("--js-runtimes").arg("node")
         .arg("--impersonate").arg("chrome");
 
     yt_dlp_cmd.env("PATH", env::var("PATH").unwrap_or_default());
 
-    // Proxy configurabile via env (default: socks5h://127.0.0.1:5040)
-    let proxy_url =
-        env::var("YTDLP_PROXY_URL").unwrap_or_else(|_| "socks5h://127.0.0.1:5040".to_string());
-    send_log("info", &format!("yt-dlp proxy attivo: {}", proxy_url));
-    yt_dlp_cmd.arg("--proxy").arg(&proxy_url);
+    // Proxy: default socks5h://127.0.0.1:5040; YTDLP_PROXY_URL=none per disabilitare
+    let proxy_url = env_opt("YTDLP_PROXY_URL").or_else(|| {
+        if env::var("YTDLP_PROXY_URL").is_ok() {
+            None
+        } else {
+            Some(default_ytdlp_proxy_url())
+        }
+    });
+    if let Some(ref proxy) = proxy_url {
+        send_log("info", &format!("yt-dlp proxy attivo: {}", proxy));
+        yt_dlp_cmd.arg("--proxy").arg(proxy);
+    } else {
+        send_log("info", "yt-dlp proxy disabilitato (YTDLP_PROXY_URL=none)");
+    }
 
-    // Cookie browser configurabile via env (default: chromium)
-    let cookie_browser =
-        env::var("YTDLP_COOKIE_BROWSER").unwrap_or_else(|_| "chromium".to_string());
-    yt_dlp_cmd
-        .arg("--cookies-from-browser")
-        .arg(&cookie_browser);
+    // Cookie browser: default disabilitato su Linux; YTDLP_COOKIE_BROWSER=chromium per forzarli
+    let cookie_browser = env_opt("YTDLP_COOKIE_BROWSER").or_else(|| {
+        if env::var("YTDLP_COOKIE_BROWSER").is_ok() {
+            None
+        } else {
+            default_ytdlp_cookie_browser()
+        }
+    });
+    if let Some(ref browser) = cookie_browser {
+        yt_dlp_cmd.arg("--cookies-from-browser").arg(browser);
+    } else {
+        send_log(
+            "info",
+            "yt-dlp cookies-from-browser disabilitato (YTDLP_COOKIE_BROWSER=none)",
+        );
+    }
     yt_dlp_cmd.arg("--mark-watched");
 
     // Fallback al file cookies se esiste
@@ -379,6 +432,9 @@ fn download_and_decode_advanced(
         .take()
         .ok_or(anyhow!("Failed to open yt-dlp stderr"))?;
 
+    let stderr_lines: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stderr_lines_cap = stderr_lines.clone();
     let cancel_stderr_yt = cancel.clone();
     thread::spawn(move || {
         let reader = BufReader::new(yt_dlp_stderr);
@@ -388,7 +444,22 @@ fn download_and_decode_advanced(
             }
             if let Ok(l) = line {
                 let trimmed = l.trim();
-                if !trimmed.is_empty() && trimmed.to_lowercase().contains("error") {
+                if trimmed.is_empty() {
+                    continue;
+                }
+                if let Ok(mut buf) = stderr_lines_cap.lock() {
+                    if buf.len() >= 40 {
+                        buf.remove(0);
+                    }
+                    buf.push(trimmed.to_string());
+                }
+                let lower = trimmed.to_lowercase();
+                if lower.contains("error")
+                    || lower.contains("unable")
+                    || lower.contains("failed")
+                    || lower.contains("blocked")
+                    || lower.contains("sign in")
+                {
                     send_log("error", &format!("[yt-dlp] {}", trimmed));
                 }
             }
@@ -591,6 +662,23 @@ fn download_and_decode_advanced(
                             "error",
                             &format!("Verifica: (2) L'URL YouTube è valido e accessibile"),
                         );
+                        send_log(
+                            "error",
+                            &format!(
+                                "Verifica: (3) Proxy/tunnel SOCKS attivo (proxy: {})",
+                                proxy_url
+                                    .as_deref()
+                                    .unwrap_or("nessuno")
+                            ),
+                        );
+                        if let Ok(buf) = stderr_lines.lock() {
+                            if !buf.is_empty() {
+                                send_log("error", "Ultimi messaggi yt-dlp stderr:");
+                                for line in buf.iter().rev().take(8).rev() {
+                                    send_log("error", &format!("[yt-dlp] {}", line));
+                                }
+                            }
+                        }
                     } else if audio_seconds < 10 {
                         // PREMATURA TERMINAZIONE - importante loggare
                         send_log("error", &format!("⚠️ FINE STREAM PREMATURA: solo {} secondi di audio dopo {}ms di streaming!", audio_seconds, stream_duration_ms));

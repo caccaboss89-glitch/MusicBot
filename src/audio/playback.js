@@ -103,6 +103,15 @@ async function restartCurrentSong(guildId) {
         currentDeck = 'A';
         serverQueue.currentDeck = 'A';
     }
+
+    // Download fallito (nessun buffer_ready): replay deve ri-scaricare, non riprodurre silenzio
+    if (!serverQueue.bufferReady?.[currentDeck]) {
+        console.warn(`⚠️ [REPLAY] Deck ${currentDeck} senza audio bufferizzato, ricarico da URL`);
+        serverQueue.currentDeckLoaded = null;
+        await playSong(guildId);
+        return true;
+    }
+
     console.log(`[REPLAY] Restart Deck ${currentDeck} dall'inizio`);
 
     safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.restartDeck(currentDeck));

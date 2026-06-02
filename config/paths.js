@@ -13,6 +13,29 @@ const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
 const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web';
 const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
+function isEnvDisabled(value) {
+    if (!value || !String(value).trim()) return true;
+    const v = String(value).trim().toLowerCase();
+    return v === 'none' || v === 'off' || v === 'false' || v === '0' || v === 'no';
+}
+
+function resolveYtDlpProxyUrl() {
+    if (process.env.YTDLP_PROXY_URL !== undefined) {
+        const raw = process.env.YTDLP_PROXY_URL.trim();
+        return isEnvDisabled(raw) ? '' : raw;
+    }
+    return DEFAULT_YTDLP_PROXY_URL;
+}
+
+function resolveYtDlpCookieBrowser() {
+    if (process.env.YTDLP_COOKIE_BROWSER !== undefined) {
+        const raw = process.env.YTDLP_COOKIE_BROWSER.trim();
+        return isEnvDisabled(raw) ? null : raw;
+    }
+    // Su VPS Linux i cookie Chromium spesso danno solo immagini / niente bestaudio
+    return IS_WINDOWS ? 'chromium' : null;
+}
+
 // --- PERCORSI FILE DATI ---
 const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
 const QUEUE_FILE = path.join(ROOT_DIR, 'data', 'queue_backup.json');
@@ -35,13 +58,12 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
 function getYtDlpCommand(additionalArgs = []) {
-    // Usa i cookie dal browser Chromium anzichè da file
-    const cookiesFromBrowserArgs = ['--cookies-from-browser', 'chromium'];
-    const rawProxyUrl = process.env.YTDLP_PROXY_URL;
-    const proxyUrl = (rawProxyUrl && rawProxyUrl.trim())
-        ? rawProxyUrl.trim()
-        : DEFAULT_YTDLP_PROXY_URL;
+    const proxyUrl = resolveYtDlpProxyUrl();
     const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
+    const cookieBrowser = resolveYtDlpCookieBrowser();
+    const cookiesFromBrowserArgs = cookieBrowser
+        ? ['--cookies-from-browser', cookieBrowser]
+        : [];
     const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
     const extractorArgsValue = (rawExtractorArgs && rawExtractorArgs.trim())
         ? rawExtractorArgs.trim()
@@ -71,5 +93,8 @@ module.exports = {
     RUST_ENGINE_PATH,
 
     // Funzioni
-    getYtDlpCommand
+    getYtDlpCommand,
+    resolveYtDlpProxyUrl,
+    resolveYtDlpCookieBrowser,
+    isEnvDisabled
 };
