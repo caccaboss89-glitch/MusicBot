@@ -4,7 +4,7 @@
  */
 
 const { EmbedBuilder } = require('discord.js');
-const { sanitizeTitle } = require('../utils/sanitize');
+const { displayTitle } = require('../utils/sanitize');
 const { getCurrentSong } = require('../queue/QueueManager');
 
 /**
@@ -32,8 +32,13 @@ function createCurrentSongEmbed(serverQueue) {
 
     const embed = new EmbedBuilder()
         .setColor(song.isLive ? 0xFF0000 : 0x0099FF)
-        .setTitle('🎶 In Riproduzione')
-        .setDescription(`**[${sanitizeTitle(song.title)}](${song.url})**`)
+        // "🎶 In Riproduzione" come header (author): il TITOLO dell'embed diventa la canzone.
+        // Discord NON interpreta il markdown nei titoli degli embed, quindi il titolo viene
+        // mostrato RAW (anche con ** o altri simboli) senza rompersi e senza backslash visibili,
+        // ed è cliccabile grazie a setURL().
+        .setAuthor({ name: '🎶 In Riproduzione' })
+        .setTitle(displayTitle(song.title))
+        .setURL(song.url)
         .setThumbnail(song.thumbnail)
         .addFields({ name: 'Richiesta da', value: `<@${song.requester}>`, inline: true });
 
@@ -51,12 +56,20 @@ function createCurrentSongEmbed(serverQueue) {
  * @returns {EmbedBuilder} L'embed di coda terminata
  */
 function createFinishedEmbed(lastSong) {
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setColor(0x555555)
-        .setTitle('🚫 Coda Terminata')
-        .setDescription(lastSong ? `Ultima riproduzione:\n**[${sanitizeTitle(lastSong.title)}](${lastSong.url})**` : 'Aggiungi canzoni per ripartire!')
+        .setAuthor({ name: '🚫 Coda Terminata' })
         .setThumbnail(lastSong ? lastSong.thumbnail : null)
         .setFooter({ text: "Premi 🔁 per riascoltare l'ultima canzone" });
+
+    if (lastSong) {
+        // Titolo RAW e cliccabile (vedi nota in createCurrentSongEmbed): niente masked link.
+        embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Ultima riproduzione:');
+    } else {
+        embed.setTitle('Nessuna canzone').setDescription('Aggiungi canzoni per ripartire!');
+    }
+
+    return embed;
 }
 
 module.exports = {

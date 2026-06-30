@@ -16,26 +16,43 @@ function safeParseInt(value, defaultValue = 0) {
 }
 
 /**
- * Sanitizza il titolo di una canzone per la visualizzazione negli embed Discord.
+ * Sanitizza il titolo per i contesti MASKED LINK `[titolo](url)` (es. liste playlist),
+ * dove Discord interpreta il markdown DENTRO l'etichetta del link.
  *
- * Obiettivo (fix parsing titoli): mostrare il titolo ORIGINALE il più fedele possibile.
- * In passato venivano aggiunti backslash di escape (es. `I'M DAT N\*\*\*\*`) che però
- * comparivano LETTERALMENTE nell'embed. Il titolo viene sempre inserito dentro un
- * masked link `[titolo](url)`: lì gli unici caratteri che possono davvero "rompere" il
- * link sono le parentesi quadre `[` `]`. Tutto il resto (`*`, `_`, `~`, `` ` ``, `|`)
- * lo lasciamo intatto: niente backslash visibili, titolo pulito.
+ * Il problema reale visto in produzione: un titolo come "I'M DAT N**" contiene `**`
+ * che, dentro `**[...]**` o `[...]`, collide con il markdown bold e ROMPE il link
+ * (non più cliccabile, sintassi raw che fuoriesce). In passato si usava l'escape `\*`
+ * che però compariva LETTERALMENTE. Soluzione: niente backslash, sostituiamo l'asterisco
+ * con un carattere quasi identico (U+2217 ASTERISK OPERATOR) che NON è markdown. Risultato:
+ * link sempre cliccabile, titolo visivamente fedele, zero backslash.
  *
  * @param {string} title - Titolo originale
- * @returns {string} - Titolo sicuro per masked link, senza escape visibili
+ * @returns {string} - Titolo sicuro per masked link
  */
 function sanitizeTitle(title) {
     if (!title) return "Titolo Sconosciuto";
     const cleaned = String(title)
         .replace(/\[/g, '(')   // le quadre romperebbero la sintassi [testo](url)
         .replace(/\]/g, ')')
+        .replace(/\*/g, '∗')   // U+2217: evita bold/italic accidentali senza backslash visibili
         .replace(/\r?\n/g, ' ') // niente a capo dentro la descrizione
         .trim();
     return cleaned || "Titolo Sconosciuto";
+}
+
+/**
+ * Titolo per `EmbedBuilder.setTitle()`. Discord NON interpreta il markdown nei titoli
+ * degli embed: possiamo mostrare il titolo COMPLETAMENTE RAW (compresi `**`, `_`, `~`...),
+ * cliccabile tramite setURL(). Togliamo solo gli a-capo e rispettiamo il limite di 256.
+ *
+ * @param {string} title - Titolo originale
+ * @returns {string}
+ */
+function displayTitle(title) {
+    if (!title) return "Titolo Sconosciuto";
+    const cleaned = String(title).replace(/\r?\n/g, ' ').trim();
+    if (!cleaned) return "Titolo Sconosciuto";
+    return cleaned.length > 256 ? cleaned.slice(0, 255) + '…' : cleaned;
 }
 
 /**
@@ -155,6 +172,7 @@ function areSameSong(url1, url2) {
 module.exports = {
     safeParseInt,
     sanitizeTitle,
+    displayTitle,
     safeJSONParse,
     getYoutubeId,
     areSameSong,
