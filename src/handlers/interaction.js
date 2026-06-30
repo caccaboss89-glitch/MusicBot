@@ -205,16 +205,16 @@ async function handleFade(interaction, serverQueue, guildId) {
 }
 
 async function handleLyrics(interaction, serverQueue, guildId) {
-    // Risposta SEMPRE effimera (visibile solo all'utente), come i menu playlist.
-    // Il dispatcher ha già fatto deferUpdate sulla dashboard, quindi usiamo followUp.
+    // Risposta effimera editabile: deferReply + editReply (i followUp effimeri non si possono modificare).
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(() => { });
+
     const song = getCurrentSong(serverQueue);
     if (!song || !song.title) {
-        await interaction.followUp({ content: '❌ Nessuna canzone in riproduzione.', flags: MessageFlags.Ephemeral }).catch(() => { });
+        await interaction.editReply({ content: '❌ Nessuna canzone in riproduzione.' }).catch(() => { });
         return;
     }
 
-    let statusMsg = null;
-    try { statusMsg = await interaction.followUp({ content: `🔎 Cerco il testo di **${sanitizeTitle(song.title)}**...`, flags: MessageFlags.Ephemeral }); } catch (e) { }
+    await interaction.editReply({ content: `🔎 Cerco il testo di **${sanitizeTitle(song.title)}**...` }).catch(() => { });
 
     let lyrics = null;
     try {
@@ -225,9 +225,7 @@ async function handleLyrics(interaction, serverQueue, guildId) {
     }
 
     if (!lyrics) {
-        const content = `📜 Testo non trovato per **${sanitizeTitle(song.title)}**.`;
-        if (statusMsg) await statusMsg.edit({ content }).catch(() => { });
-        else await interaction.followUp({ content, flags: MessageFlags.Ephemeral }).catch(() => { });
+        await interaction.editReply({ content: `📜 Testo non trovato per **${sanitizeTitle(song.title)}**.` }).catch(() => { });
         return;
     }
 
@@ -236,8 +234,7 @@ async function handleLyrics(interaction, serverQueue, guildId) {
     // Primo chunk include l'header: lascia margine per non superare i 2000 caratteri.
     const chunks = chunkLyrics(lyrics, 2000 - header.length - 10);
 
-    if (statusMsg) await statusMsg.edit({ content: header + chunks[0] }).catch(() => { });
-    else await interaction.followUp({ content: header + chunks[0], flags: MessageFlags.Ephemeral }).catch(() => { });
+    await interaction.editReply({ content: header + chunks[0] }).catch(() => { });
 
     for (let i = 1; i < chunks.length; i++) {
         await interaction.followUp({ content: chunks[i], flags: MessageFlags.Ephemeral }).catch(() => { });
@@ -289,9 +286,10 @@ module.exports = function registerInteractionHandlers(client, deps) {
 
                 // Defer dell'update (salvo bottoni ad aggiornamento immediato o che aprono modal)
                 const immediateUpdateButtons = ['btn_loop', 'btn_shuffle', 'btn_fade'];
+                const deferReplyButtons = ['btn_lyrics'];
                 const modalButtons = ['plist_create', 'plist_search_server'];
                 const isModalButton = modalButtons.includes(customId) || customId.startsWith('plist_rename_likes_') || customId.startsWith('plist_search_likes_');
-                if (!immediateUpdateButtons.includes(customId) && !isModalButton) {
+                if (!immediateUpdateButtons.includes(customId) && !deferReplyButtons.includes(customId) && !isModalButton) {
                     try { await interaction.deferUpdate(); } catch (e) { }
                 }
 
