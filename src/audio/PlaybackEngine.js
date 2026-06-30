@@ -169,6 +169,7 @@ function preloadNextSong(guildId) {
         const playIndexBefore = sq.playIndex || 0;
         const songCountBefore = (sq.songs && sq.songs.length) || 0;
         const nextSongUrlBefore = nextSong.url;
+        const nextIndexBefore = playIndexBefore + 1; // indice della canzone che stiamo precaricando
 
         // Non fermare il deck per il preload - il Rust resetterà il buffer al load
         sq.bufferReady = sq.bufferReady || {};
@@ -198,6 +199,9 @@ function preloadNextSong(guildId) {
 
             sq.nextDeckLoaded = nextSong.url;
             sq.nextDeckTarget = nextDeck;
+            // Lega il deck precaricato alla canzone "successiva": è la fonte di verità
+            // usata da auto-gapless/crossfade per conoscere l'indice reale.
+            try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch (e) { }
             console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
         }).catch(err => {
             console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);

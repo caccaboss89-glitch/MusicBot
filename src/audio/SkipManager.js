@@ -27,6 +27,8 @@ const { CROSSFADE_DURATION_MS, SKIP_THROTTLE_MS } = require('../../config');
 const { sanitizeTitle } = require('../utils/sanitize');
 const { saveQueueState } = require('../queue/persistence');
 const { isMixerAlive } = require('../queue/QueueManager');
+const { bindDeckSong } = require('../queue/QueueManager');
+const { clearDeckBindings } = require('../queue/QueueManager');
 const bridge = require('./audio-bridge');
 
 // Throttle per prevenire spam di skip ravvicinati
@@ -177,6 +179,13 @@ async function performTransition(guildId, targetIndex, reason) {
             sq.bufferReady = sq.bufferReady || {};
             sq.bufferReady[targetDeck] = false;
 
+            // Stiamo sovrascrivendo il deck che era usato per il preload "next": invalida
+            // il vecchio preload e lega il deck alla canzone target REALE. Così qualunque
+            // evento successivo (buffer_ready, auto-gapless) conosce l'indice corretto.
+            sq.nextDeckLoaded = null;
+            sq.nextDeckTarget = null;
+            bindDeckSong(sq, targetDeck, targetIndex, targetUrl);
+
             // SERIALIZZA il comando load
             await commandQueue.enqueue(
                 guildId,
@@ -245,6 +254,9 @@ async function performTransition(guildId, targetIndex, reason) {
         sq.songStartTime = Date.now();
         sq.loadingFooter = null;
         sq._lastTransitionTime = Date.now();
+        // Conferma il binding deck→canzone e azzera quello dell'altro deck
+        bindDeckSong(sq, targetDeck, targetIndex, targetSong.url);
+        bindDeckSong(sq, oldDeck, null, null);
 
         // ── STATS: nuova canzone avviata (transizione) ──
         try {
@@ -412,6 +424,7 @@ async function endQueue(guildId) {
     sq.loadingFooter = null;
     sq.currentDeck = 'A';
     sq.isPaused = false;
+    clearDeckBindings(sq);
     // Annulla eventuale pending transition
     if (sq.pendingTransition) {
         if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
@@ -470,6 +483,8 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     const targetSong = sq.songs[pt.targetIndex];
     if (!targetSong || targetSong.url !== pt.targetUrl) {
         console.warn(`⚠️  [SKIP] Pending transition invalidata: canzone rimossa dalla coda`);
+        // Il deck target ha caricato audio di una canzone non più in coda: invalida il binding.
+        bindDeckSong(sq, pt.targetDeck, null, null);
         sq.loadingFooter = null;
         try { bridge.call('refreshDashboard', sq); } catch (e) { }
         return;
@@ -508,6 +523,9 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     sq.songStartTime = Date.now();
     sq.loadingFooter = null;
     sq._lastTransitionTime = Date.now();
+    // Conferma binding: il deck target ora suona la canzone all'indice target
+    bindDeckSong(sq, pt.targetDeck, pt.targetIndex, pt.targetUrl);
+    bindDeckSong(sq, (pt.targetDeck === 'A' ? 'B' : 'A'), null, null);
 
     try {
         const stats = require('../database/stats');

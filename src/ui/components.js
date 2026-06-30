@@ -13,7 +13,7 @@ const {
 const { EmbedBuilder } = require('discord.js');
 const { sanitizeTitle } = require('../utils/sanitize');
 const { areSameSong } = require('../utils/sanitize');
-const { getCurrentSong, isValidSong } = require('../queue/QueueManager');
+const { getCurrentSong, getPlayingIndex, isValidSong } = require('../queue/QueueManager');
 const { loadDatabase, getUserData, getUserPlaylistNames } = require('../database/playlists');
 const { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } = require('../../config');
 
@@ -159,7 +159,7 @@ function createDashboardComponents(serverQueue, userId = null) {
     const song = serverQueue ? getCurrentSong(serverQueue) : null;
     const isSongValid = isValidSong(song);
     const queueList = serverQueue ? (serverQueue.songs || []) : [];
-    const canGoPrev = serverQueue && (serverQueue.playIndex || 0) > 0;
+    const canGoPrev = serverQueue && getPlayingIndex(serverQueue) > 0;
     // Rileva stato terminato: nessun deck corrente ma c'è ancora musica (per replay)
     const isTerminated = serverQueue && !serverQueue.currentDeckLoaded;
 
@@ -193,7 +193,9 @@ function createDashboardComponents(serverQueue, userId = null) {
     const rowSecondary = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('btn_loop').setEmoji('🔄').setStyle(loopState ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated || !isSongValid),
         new ButtonBuilder().setCustomId('btn_shuffle').setEmoji('🔀').setStyle(ButtonStyle.Secondary).setDisabled(isTerminated || !queueHasMultiple),
-        new ButtonBuilder().setCustomId('btn_fade').setEmoji('🔗').setStyle(fadeState ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated)
+        new ButtonBuilder().setCustomId('btn_fade').setEmoji('🔗').setStyle(fadeState ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated),
+        // 📜 Testo della canzone corrente (messaggio effimero). Affianco al cross-fade.
+        new ButtonBuilder().setCustomId('btn_lyrics').setEmoji('📜').setStyle(ButtonStyle.Secondary).setDisabled(isTerminated || !isSongValid)
     );
 
     const rowPlaylists = new ActionRowBuilder().addComponents(
@@ -206,8 +208,9 @@ function createDashboardComponents(serverQueue, userId = null) {
 
 
     const rowSelect = new ActionRowBuilder();
-    // Usa playIndex per determinare la posizione corrente
-    const currentIndex = serverQueue ? (serverQueue.playIndex || 0) : 0;
+    // Usa l'indice della canzone EFFETTIVAMENTE in riproduzione sul deck attivo
+    // (coerente con l'embed) invece del solo playIndex.
+    const currentIndex = serverQueue ? getPlayingIndex(serverQueue) : 0;
 
     const songsInQueue = queueList ? Math.max(0, queueList.length - (currentIndex + 1)) : 0;
     const nextSongs = queueList ? queueList.slice(currentIndex + 1, currentIndex + 26) : [];

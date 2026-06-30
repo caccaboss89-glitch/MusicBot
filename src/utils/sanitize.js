@@ -16,15 +16,26 @@ function safeParseInt(value, defaultValue = 0) {
 }
 
 /**
- * Sanitizza il titolo di una canzone per evitare problemi con markdown Discord
+ * Sanitizza il titolo di una canzone per la visualizzazione negli embed Discord.
+ *
+ * Obiettivo (fix parsing titoli): mostrare il titolo ORIGINALE il più fedele possibile.
+ * In passato venivano aggiunti backslash di escape (es. `I'M DAT N\*\*\*\*`) che però
+ * comparivano LETTERALMENTE nell'embed. Il titolo viene sempre inserito dentro un
+ * masked link `[titolo](url)`: lì gli unici caratteri che possono davvero "rompere" il
+ * link sono le parentesi quadre `[` `]`. Tutto il resto (`*`, `_`, `~`, `` ` ``, `|`)
+ * lo lasciamo intatto: niente backslash visibili, titolo pulito.
+ *
  * @param {string} title - Titolo originale
- * @returns {string} - Titolo sanitizzato
+ * @returns {string} - Titolo sicuro per masked link, senza escape visibili
  */
 function sanitizeTitle(title) {
     if (!title) return "Titolo Sconosciuto";
-    return title
-        .replace(/\[/g, '(').replace(/\]/g, ')')
-        .replace(/([`*~|])/g, '\\$1');
+    const cleaned = String(title)
+        .replace(/\[/g, '(')   // le quadre romperebbero la sintassi [testo](url)
+        .replace(/\]/g, ')')
+        .replace(/\r?\n/g, ' ') // niente a capo dentro la descrizione
+        .trim();
+    return cleaned || "Titolo Sconosciuto";
 }
 
 /**

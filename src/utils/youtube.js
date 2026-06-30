@@ -122,6 +122,14 @@ async function getVideoInfo(query) {
             '--force-ipv4',
             '--paths', `home:${LOCAL_TEMP_DIR}`,
             '--skip-download',
+            // ⚠️ CRITICO (fix link video singoli): per un video singolo yt-dlp esegue
+            // la selezione del formato; con il client ANDROID_MUSIC questa spesso fallisce
+            // ("Requested format is not available") e l'output diventa null → "Nessun risultato".
+            // Le ricerche/playlist usano l'estrazione flat e non toccano i formati, quindi
+            // funzionavano. Qui ci servono SOLO i metadati (titolo, url, durata): il download
+            // reale e la scelta del formato avvengono nel motore Rust. Ignorando l'errore di
+            // formato otteniamo comunque i metadati anche per i video singoli.
+            '--ignore-no-formats-error',
             '--compat-options', 'no-youtube-unavailable-videos',
             '--yes-playlist'
         ];
@@ -172,7 +180,7 @@ async function getVideoInfo(query) {
                     if (info.entries && info.entries.length > 0) {
                         let results = info.entries.map(entry => ({
                             title: entry.title || "Titolo Sconosciuto",
-                            url: entry.url || `https://www.youtube.com/watch?v=${entry.id}`,
+                            url: normalizeYoutubeUrl(entry.url || `https://www.youtube.com/watch?v=${entry.id}`),
                             thumbnail: entry.thumbnails ? entry.thumbnails[0].url : 'https://i.imgur.com/AfFp7pu.png',
                             isLive: entry.is_live || false,
                             duration: entry.duration || 0
@@ -196,7 +204,7 @@ async function getVideoInfo(query) {
                     }
                     let result = {
                         title: info.title || "Titolo Sconosciuto",
-                        url: info.webpage_url || info.url,
+                        url: normalizeYoutubeUrl(info.webpage_url || info.url),
                         thumbnail: info.thumbnail || 'https://i.imgur.com/AfFp7pu.png',
                         isLive: info.is_live || false,
                         duration: info.duration || 0
@@ -208,7 +216,7 @@ async function getVideoInfo(query) {
                         const first = info.entries[0];
                         result = {
                             title: first.title || result.title,
-                            url: first.url || (first.id ? `https://www.youtube.com/watch?v=${first.id}` : result.url),
+                            url: normalizeYoutubeUrl(first.url || (first.id ? `https://www.youtube.com/watch?v=${first.id}` : result.url)),
                             thumbnail: (first.thumbnails && first.thumbnails[0] ? first.thumbnails[0].url : result.thumbnail),
                             isLive: first.is_live || result.isLive,
                             duration: first.duration || result.duration

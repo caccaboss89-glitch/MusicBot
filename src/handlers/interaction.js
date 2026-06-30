@@ -2,7 +2,7 @@ const { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle
 const { interactionCooldowns } = require('../state/globals');
 const { audioOperationBarrier } = require('./AudioOperationBarrier');
 const audio = require('../audio');
-const { getCurrentSong, clearFinishedQueue } = require('../queue/QueueManager');
+const { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong } = require('../queue/QueueManager');
 const { createDashboardComponents } = require('../ui');
 const { sanitizeTitle, areSameSong, safeParseInt, getYoutubeId } = require('../utils/sanitize');
 const { getVideoInfo } = require('../utils/youtube');
@@ -28,6 +28,11 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
     serverQueue.history = [];
     serverQueue.nextDeckLoaded = null;
     serverQueue.nextDeckTarget = null;
+    // Riallinea i binding: solo la canzone corrente resta in coda (indice 0 sul deck attivo).
+    clearDeckBindings(serverQueue);
+    if (currentSong && serverQueue.currentDeck) {
+        bindDeckSong(serverQueue, serverQueue.currentDeck, 0, currentSong.url);
+    }
     saveQueueState(guildId, serverQueue);
     try { await audio.updatePreloadAfterQueueChange(guildId); } catch (e) { }
     if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
@@ -199,6 +204,46 @@ async function handleFade(interaction, serverQueue, guildId) {
     catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
+async function handleLyrics(interaction, serverQueue, guildId) {
+    // Risposta SEMPRE effimera (visibile solo all'utente), come i menu playlist.
+    // Il dispatcher ha già fatto deferUpdate sulla dashboard, quindi usiamo followUp.
+    const song = getCurrentSong(serverQueue);
+    if (!song || !song.title) {
+        await interaction.followUp({ content: '❌ Nessuna canzone in riproduzione.', flags: MessageFlags.Ephemeral }).catch(() => { });
+        return;
+    }
+
+    let statusMsg = null;
+    try { statusMsg = await interaction.followUp({ content: `🔎 Cerco il testo di **${sanitizeTitle(song.title)}**...`, flags: MessageFlags.Ephemeral }); } catch (e) { }
+
+    let lyrics = null;
+    try {
+        const { getLyrics } = require('../utils/lyrics');
+        lyrics = await getLyrics(song);
+    } catch (e) {
+        console.error('❌ [LYRICS] Errore recupero testo:', e.message);
+    }
+
+    if (!lyrics) {
+        const content = `📜 Testo non trovato per **${sanitizeTitle(song.title)}**.`;
+        if (statusMsg) await statusMsg.edit({ content }).catch(() => { });
+        else await interaction.followUp({ content, flags: MessageFlags.Ephemeral }).catch(() => { });
+        return;
+    }
+
+    const { chunkLyrics } = require('../utils/lyrics');
+    const header = `📜 **${sanitizeTitle(song.title)}**\n\n`;
+    // Primo chunk include l'header: lascia margine per non superare i 2000 caratteri.
+    const chunks = chunkLyrics(lyrics, 2000 - header.length - 10);
+
+    if (statusMsg) await statusMsg.edit({ content: header + chunks[0] }).catch(() => { });
+    else await interaction.followUp({ content: header + chunks[0], flags: MessageFlags.Ephemeral }).catch(() => { });
+
+    for (let i = 1; i < chunks.length; i++) {
+        await interaction.followUp({ content: chunks[i], flags: MessageFlags.Ephemeral }).catch(() => { });
+    }
+}
+
 // ─── Button dispatch table ──────────────────────────────────
 
 const BUTTON_HANDLERS = {
@@ -212,6 +257,7 @@ const BUTTON_HANDLERS = {
     btn_loop: handleLoop,
     btn_shuffle: handleShuffle,
     btn_fade: handleFade,
+    btn_lyrics: handleLyrics,
 };
 
 // ─── Main Dispatcher ────────────────────────────────────────

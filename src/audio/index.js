@@ -8,7 +8,7 @@ const playback = require('./playback');
 const PlaybackEngine = require('./PlaybackEngine');
 const SkipManager = require('./SkipManager');
 const { queue } = require('../state/globals');
-const { isBotAloneInChannel, scheduleDisconnectIfAlone, getNextSong, getCurrentSong } = require('../queue/QueueManager');
+const { isBotAloneInChannel, scheduleDisconnectIfAlone, getNextSong, getCurrentSong, resolveDeckIndex, bindDeckSong, clearDeckBindings } = require('../queue/QueueManager');
 const { sanitizeTitle } = require('../utils/sanitize');
 const ui = require('../ui');
 
@@ -242,20 +242,36 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         const sq = queue.get(guildId);
         if (!sq) return;
 
-        // ── STATS: canzone completata (gapless auto-switch) ──
-        try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
-
         // Se c'è una transizione differita per questo deck (utente aveva già premuto skip
         // mentre il deck era in download), lascia che completePendingTransition gestisca
         // il tutto: conosce l'indice corretto (potrebbe essere ≠ nextIndex).
         if (sq.pendingTransition && sq.pendingTransition.targetDeck === newDeck) {
+            try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
             console.log(`⚡ [AUTO-GAPLESS] Deck ${newDeck} ha pending transition – delego completePendingTransition`);
             sq.currentDeck = newDeck; // aggiorna currentDeck per riflettere realtà Rust
             await SkipManager.completePendingTransition(guildId, true /* alreadySwitched */);
             return;
         }
 
-        const nextIndex = (sq.playIndex || 0) + 1;
+        // ── Idempotenza ──
+        // Se siamo GIÀ sul deck a cui il Rust dice di aver switchato, un altro percorso
+        // (es. completePendingTransition via buffer_ready) ha già gestito la transizione.
+        // Questo evento è un duplicato: NON avanzare di nuovo (causerebbe il salto di una
+        // canzone e la desincronizzazione embed/menu). Riallinea solo il preload.
+        if (sq.currentDeck === newDeck) {
+            console.log(`↩️  [AUTO-GAPLESS] Evento duplicato per deck ${newDeck} già attivo – ignoro (no doppio avanzamento)`);
+            PlaybackEngine.onSongStart(guildId);
+            return;
+        }
+
+        // ── STATS: canzone completata (gapless auto-switch) ──
+        try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
+
+        // FONTE DI VERITÀ: il Rust ha switchato al deck `newDeck`; l'indice REALE della
+        // canzone ora in riproduzione è quello legato a quel deck (binding), non un
+        // generico playIndex+1. Fallback a playIndex+1 solo se il binding è assente.
+        let nextIndex = resolveDeckIndex(sq, newDeck);
+        if (nextIndex == null) nextIndex = (sq.playIndex || 0) + 1;
 
         // Se non ci sono più canzoni, termina la coda
         if (nextIndex >= sq.songs.length) {
@@ -275,6 +291,9 @@ async function handleAutoEndSwitch(guildId, newDeck) {
         sq.songStartTime = Date.now();
         sq.loadingFooter = null;
         sq._lastTransitionTime = Date.now();
+        // Riallinea i binding: il deck attivo ha la canzone corrente, l'altro è libero
+        bindDeckSong(sq, newDeck, nextIndex, nextSong ? nextSong.url : null);
+        bindDeckSong(sq, (newDeck === 'A' ? 'B' : 'A'), null, null);
 
         // ── STATS: nuova canzone avviata (auto-gapless) ──
         try {
@@ -398,6 +417,7 @@ function handleMixerCrash(guildId, reason) {
         sq.currentDeckLoaded = null;
         sq.nextDeckLoaded = null;
         sq.nextDeckTarget = null;
+        clearDeckBindings(sq);
 
         // Svuota comandi pendenti che aspetterebbero un mixer ormai morto
         try { require('./CommandQueue').commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch (e) { /* ignora */ }
@@ -429,6 +449,12 @@ async function updatePreloadAfterQueueChange(guildId) {
         // Invalida preload corrente e ri-precarica
         sq.nextDeckLoaded = null;
         sq.nextDeckTarget = null;
+        // Invalida anche il binding del deck NON attivo (era il deck di preload):
+        // verrà riscritto dal nuovo preload con la canzone corretta.
+        if (sq.currentDeck) {
+            const otherDeck = sq.currentDeck === 'A' ? 'B' : 'A';
+            bindDeckSong(sq, otherDeck, null, null);
+        }
         PlaybackEngine.preloadNextSong(guildId);
     } catch (e) {
         console.error('❌ [PRELOAD-UPDATE] Errore:', e);

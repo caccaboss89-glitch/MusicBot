@@ -52,9 +52,31 @@ function clearFinishedQueue(serverQueue) {
  * @param {object} serverQueue - Coda del server
  * @returns {object|null}
  */
+/**
+ * Ottieni la canzone corrente.
+ *
+ * FONTE DI VERITÀ: se il mixer è attivo e il deck corrente ha un binding valido,
+ * l'indice "reale" della canzone in riproduzione è quello legato al deck attivo,
+ * non il semplice playIndex (che in rarissime finestre di race potrebbe essere
+ * temporaneamente disallineato). Il binding è validato per URL: se non è più valido
+ * si ricade su playIndex, quindi nel peggiore dei casi il comportamento è identico
+ * a prima. Questo garantisce che l'embed mostri SEMPRE ciò che suona sul mixer.
+ *
+ * @param {object} serverQueue - Coda del server
+ * @returns {object|null}
+ */
+function getPlayingIndex(serverQueue) {
+    if (!serverQueue) return 0;
+    if (serverQueue.currentDeck && serverQueue.currentDeckLoaded && isMixerAlive(serverQueue)) {
+        const idx = resolveDeckIndex(serverQueue, serverQueue.currentDeck);
+        if (idx != null) return idx;
+    }
+    return serverQueue.playIndex || 0;
+}
+
 function getCurrentSong(serverQueue) {
     if (!serverQueue || !serverQueue.songs || serverQueue.songs.length === 0) return null;
-    const index = serverQueue.playIndex || 0;
+    const index = getPlayingIndex(serverQueue);
     return index < serverQueue.songs.length ? serverQueue.songs[index] : null;
 }
 
@@ -78,6 +100,59 @@ function getNextSong(serverQueue) {
 function hasNextSong(serverQueue) {
     if (!serverQueue || !serverQueue.songs) return false;
     return (serverQueue.playIndex || 0) + 1 < serverQueue.songs.length;
+}
+
+// ─── Binding deck → canzone (sincronizzazione robusta embed/mixer) ──────────
+//
+// Il problema storico di desincronizzazione nasceva dal ricostruire l'indice della
+// canzone corrente "indovinando" (playIndex+1) in più punti, mentre il vero stato è
+// nel mixer Rust (quale deck è attivo). Legando esplicitamente ogni deck alla canzone
+// che ci carichiamo sopra, qualunque evento (skip manuale, crossfade, auto-gapless del
+// Rust) può risalire all'indice REALE della canzone in riproduzione.
+
+/**
+ * Registra quale canzone (indice + url) è caricata su un deck.
+ * Passare index=null per pulire il binding.
+ * @param {object} serverQueue
+ * @param {string} deck - 'A' | 'B'
+ * @param {number|null} index - indice in songs[]
+ * @param {string|null} url
+ */
+function bindDeckSong(serverQueue, deck, index, url) {
+    if (!serverQueue) return;
+    if (!serverQueue.deckSongs) serverQueue.deckSongs = { A: null, B: null };
+    serverQueue.deckSongs[deck] = (index != null && url) ? { index, url } : null;
+}
+
+/**
+ * Risolve l'indice REALE (in songs[]) della canzone caricata su un deck.
+ * Valida contro l'url salvato; se la coda è stata riordinata (insert/remove/shuffle)
+ * cerca per url. Restituisce null se il binding non è più valido.
+ * @param {object} serverQueue
+ * @param {string} deck - 'A' | 'B'
+ * @returns {number|null}
+ */
+function resolveDeckIndex(serverQueue, deck) {
+    if (!serverQueue || !serverQueue.deckSongs) return null;
+    const binding = serverQueue.deckSongs[deck];
+    if (!binding) return null;
+    const songs = serverQueue.songs || [];
+    if (songs[binding.index] && areSameSong(songs[binding.index].url, binding.url)) {
+        return binding.index;
+    }
+    const found = songs.findIndex(s => s && areSameSong(s.url, binding.url));
+    return found >= 0 ? found : null;
+}
+
+/**
+ * Azzera tutti i binding deck→canzone. Da chiamare nei cleanup (fine coda,
+ * disconnessione, crash, svuotamento coda) per evitare binding "fantasma" che
+ * potrebbero far risolvere un indice non più valido.
+ * @param {object} serverQueue
+ */
+function clearDeckBindings(serverQueue) {
+    if (!serverQueue) return;
+    serverQueue.deckSongs = { A: null, B: null };
 }
 
 
@@ -210,6 +285,14 @@ function removeSongAtIndex(serverQueue, index) {
                     serverQueue.nextDeckTarget = null;
                 }
 
+                // Invalida i binding deck→canzone che puntano alla canzone rimossa
+                if (serverQueue.deckSongs) {
+                    for (const d of ['A', 'B']) {
+                        const b = serverQueue.deckSongs[d];
+                        if (b && areSameSong(b.url, removed.url)) serverQueue.deckSongs[d] = null;
+                    }
+                }
+
                 console.log(`🗑️ [QUEUE-REMOVE] Rimossa "${sanitizeTitle(removed.title)}" da posizione ${index}`);
 
                 // Salva lo stato
@@ -318,6 +401,7 @@ function performDisconnectCleanup(serverQueue) {
         serverQueue.isPaused = false;
         serverQueue.songStartTime = null;
         serverQueue.nextDeckTarget = null;
+        clearDeckBindings(serverQueue);
 
         // Salva stato su disco
         try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) { }
@@ -402,8 +486,12 @@ module.exports = {
     isBotAloneInChannel,
     clearFinishedQueue,
     getCurrentSong,
+    getPlayingIndex,
     getNextSong,
     hasNextSong,
+    bindDeckSong,
+    resolveDeckIndex,
+    clearDeckBindings,
     isValidSong,
     insertSongAtIndex,
     removeSongAtIndex,

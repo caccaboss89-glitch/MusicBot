@@ -1,6 +1,6 @@
 {
   "name": "discord-music-bot",
-  "version": "2.1.0",
+  "version": "2.1.5",
   "description": "Bot musicale ibrido Node/Rust",
   "main": "index.js",
   "scripts": {

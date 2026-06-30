@@ -50,6 +50,12 @@ class ServerQueue {
         this.mixerStarting = false;
         this.mixerGeneration = null;
 
+        // ── Binding deck → canzone (fonte di verità per la sincronizzazione embed) ──
+        // Per ogni deck registra { index, url } della canzone effettivamente caricata.
+        // Quando il Rust commuta deck autonomamente (auto-gapless) sappiamo con certezza
+        // QUALE canzone (indice in songs[]) è ora in riproduzione, senza "indovinare" playIndex+1.
+        this.deckSongs = { A: null, B: null };
+
         // ── Crossfade ──
         this.isCrossfading = false;
         this.crossfadeStartTime = null;

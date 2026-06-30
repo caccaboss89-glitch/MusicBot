@@ -313,6 +313,11 @@ async function playSong(guildId, interaction = null) {
         serverQueue.nextDeckTarget = null;
         serverQueue.songStartTime = Date.now();
 
+        // ── Binding deck → canzone (fonte di verità per la sincronizzazione) ──
+        const { bindDeckSong } = require('../queue/QueueManager');
+        bindDeckSong(serverQueue, deck, serverQueue.playIndex || 0, song.url);
+        bindDeckSong(serverQueue, deck === 'A' ? 'B' : 'A', null, null);
+
         // Aggiorna UI
         const embed = createCurrentSongEmbed(serverQueue);
         const userId = interaction ? interaction.user.id : (song.requester || null);
