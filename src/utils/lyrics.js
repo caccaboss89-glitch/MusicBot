@@ -9,11 +9,13 @@
  *
  * Usa il modulo nativo `https` (nessuna dipendenza extra). LRCLIB è
  * raggiungibile direttamente: NON passa dal proxy SOCKS usato per YouTube.
+ * Se il titolo non include l'artista, usa YouTube oEmbed sul link del video.
  */
 
 const https = require('https');
 
 const LRCLIB_HOST = 'lrclib.net';
+const YOUTUBE_HOST = 'www.youtube.com';
 const USER_AGENT = 'DiscordMusicBot (https://github.com/discord-music-bot)';
 const REQUEST_TIMEOUT_MS = 8000;
 
@@ -22,15 +24,16 @@ const _cache = new Map();
 const CACHE_MAX = 200;
 
 /**
- * GET JSON da LRCLIB con timeout.
- * @param {string} path - path completo con query string
+ * GET JSON con timeout.
+ * @param {string} host
+ * @param {string} path
  * @returns {Promise<any|null>}
  */
-function _getJson(path) {
+function _getJson(host, path) {
     return new Promise((resolve) => {
         const req = https.get(
             {
-                host: LRCLIB_HOST,
+                host,
                 path,
                 headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }
             },
@@ -57,18 +60,32 @@ function _getJson(path) {
 
 /**
  * Pulisce un titolo YouTube per migliorare il match su LRCLIB.
- * Rimuove "(Official Video)", "[Lyrics]", "feat.", tag come HD/4K/Audio, ecc.
  * @param {string} str
  * @returns {string}
  */
 function cleanQuery(str) {
     if (!str) return '';
     return String(str)
-        .replace(/\([^)]*\)/g, ' ')              // (Official Video), (Audio)...
-        .replace(/\[[^\]]*\]/g, ' ')             // [Lyrics], [4K]...
-        .replace(/\b(feat\.?|ft\.?|featuring)\b.*$/i, ' ') // feat. X...
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/\[[^\]]*\]/g, ' ')
+        .replace(/\b(feat\.?|ft\.?|featuring)\b.*$/i, ' ')
         .replace(/\b(official|video|audio|lyrics?|lyric|visualizer|hd|4k|mv|m\/v|remaster(?:ed)?)\b/gi, ' ')
         .replace(/[|•·]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Pulisce il nome artista da suffissi tipici dei canali YouTube.
+ * @param {string} str
+ * @returns {string}
+ */
+function cleanArtist(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/\s*-\s*Topic\s*$/i, '')
+        .replace(/\s*VEVO\s*$/i, '')
+        .replace(/\s*Official\s*$/i, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -80,7 +97,6 @@ function cleanQuery(str) {
  */
 function splitArtistTrack(fullTitle) {
     const cleaned = cleanQuery(fullTitle);
-    // Separatori comuni: " - ", " – ", " — "
     const m = cleaned.split(/\s[-–—]\s/);
     if (m.length >= 2) {
         return { artist: m[0].trim(), track: m.slice(1).join(' ').trim() };
@@ -89,11 +105,69 @@ function splitArtistTrack(fullTitle) {
 }
 
 /**
- * Recupera il testo di una canzone.
- * Strategia: prima /api/search con artista+traccia, poi solo traccia.
- * Restituisce plainLyrics (preferito) o, in mancanza, syncedLyrics ripulito.
+ * Risolve artista e titolo affidabili per la ricerca lyrics.
+ * Usa metadati locali, poi oEmbed YouTube se l'artista manca.
  *
- * @param {{title: string, duration?: number}} song
+ * @param {{title?: string, url?: string, author?: string, uploader?: string}} song
+ * @returns {Promise<{artist: string, track: string}>}
+ */
+async function resolveTrackInfo(song) {
+    let artist = '';
+    let track = '';
+
+    const fromTitle = splitArtistTrack(song.title || '');
+    if (fromTitle.artist) {
+        artist = fromTitle.artist;
+        track = fromTitle.track;
+    } else {
+        track = fromTitle.track;
+        artist = cleanArtist(song.author || song.uploader || '');
+    }
+
+    const needsOembed = song.url && (
+        !artist ||
+        artist.length < 3 ||
+        artist.toLowerCase() === 'various artists'
+    );
+
+    if (needsOembed) {
+        const path = `/oembed?url=${encodeURIComponent(song.url)}&format=json`;
+        const oembed = await _getJson(YOUTUBE_HOST, path);
+        if (oembed) {
+            const oembedTitle = cleanQuery(oembed.title || '');
+            const oembedArtist = cleanArtist(oembed.author_name || '');
+            const fromOembedTitle = splitArtistTrack(oembed.title || '');
+
+            if (fromOembedTitle.artist) {
+                artist = fromOembedTitle.artist;
+                track = fromOembedTitle.track;
+            } else {
+                if (oembedArtist) artist = oembedArtist;
+                if (oembedTitle) track = oembedTitle;
+            }
+        }
+    }
+
+    return { artist: cleanArtist(artist), track: cleanQuery(track) };
+}
+
+/**
+ * Estrae testo plain o synced da un record LRCLIB.
+ * @param {any} record
+ * @returns {string|null}
+ */
+function extractLyrics(record) {
+    if (!record) return null;
+    let lyrics = record.plainLyrics || stripSyncedTimestamps(record.syncedLyrics) || null;
+    return lyrics ? lyrics.trim() || null : null;
+}
+
+/**
+ * Recupera il testo di una canzone.
+ * Strategia: risolvi artista/titolo → match preciso /api/get → ricerca mirata.
+ * Evita ricerche solo per titolo quando manca l'artista (rischio testo sbagliato).
+ *
+ * @param {{title: string, url?: string, duration?: number}} song
  * @returns {Promise<string|null>}
  */
 async function getLyrics(song) {
@@ -102,33 +176,41 @@ async function getLyrics(song) {
     const cacheKey = song.url || song.title;
     if (_cache.has(cacheKey)) return _cache.get(cacheKey);
 
-    const { artist, track } = splitArtistTrack(song.title);
+    const { artist, track } = await resolveTrackInfo(song);
     if (!track) return null;
 
-    const attempts = [];
-    if (artist) {
-        attempts.push(`/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`);
-    }
-    attempts.push(`/api/search?q=${encodeURIComponent(track + (artist ? ' ' + artist : ''))}`);
-    attempts.push(`/api/search?track_name=${encodeURIComponent(track)}`);
+    let lyrics = null;
 
-    let best = null;
-    for (const path of attempts) {
-        const results = await _getJson(path);
+    if (artist) {
+        const exact = await _getJson(
+            LRCLIB_HOST,
+            `/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`
+        );
+        lyrics = extractLyrics(exact);
+        if (lyrics) {
+            _setCache(cacheKey, lyrics);
+            return lyrics;
+        }
+
+        const searchPaths = [
+            `/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`,
+            `/api/search?q=${encodeURIComponent(`${artist} ${track}`)}`
+        ];
+        for (const path of searchPaths) {
+            const results = await _getJson(LRCLIB_HOST, path);
+            if (!Array.isArray(results) || results.length === 0) continue;
+            const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
+            lyrics = extractLyrics(best);
+            if (lyrics) break;
+        }
+    } else {
+        // Senza artista affidabile non usiamo track_name da solo: match troppo generici.
+        const results = await _getJson(LRCLIB_HOST, `/api/search?q=${encodeURIComponent(track)}`);
         if (Array.isArray(results) && results.length > 0) {
-            // Preferisci un risultato con plainLyrics
-            best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
-            if (best) break;
+            const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
+            lyrics = extractLyrics(best);
         }
     }
-
-    if (!best) {
-        _setCache(cacheKey, null);
-        return null;
-    }
-
-    let lyrics = best.plainLyrics || stripSyncedTimestamps(best.syncedLyrics) || null;
-    if (lyrics) lyrics = lyrics.trim() || null;
 
     _setCache(cacheKey, lyrics);
     return lyrics;
@@ -164,7 +246,6 @@ function chunkLyrics(text, maxLen = 1900) {
     for (const line of String(text).split('\n')) {
         if ((current + line + '\n').length > maxLen) {
             if (current) chunks.push(current);
-            // Se una singola riga è enorme, spezzala duramente
             if (line.length > maxLen) {
                 for (let i = 0; i < line.length; i += maxLen) chunks.push(line.slice(i, i + maxLen));
                 current = '';
@@ -179,4 +260,4 @@ function chunkLyrics(text, maxLen = 1900) {
     return chunks.length > 0 ? chunks : [String(text)];
 }
 
-module.exports = { getLyrics, chunkLyrics, cleanQuery, splitArtistTrack };
+module.exports = { getLyrics, chunkLyrics, cleanQuery, splitArtistTrack, resolveTrackInfo };
