@@ -1,7 +1,7 @@
 {
   "users": {
     "704006042819756083": {
-      "listeningTimeMs": 330612029,
+      "listeningTimeMs": 330902480,
       "serverPlaylistAdds": 217,
       "personalPlaylistAdds": 150,
       "songPlays": {
@@ -7704,7 +7704,7 @@
       "discriminator": "0"
     },
     "1373779309877006482": {
-      "listeningTimeMs": 287615028,
+      "listeningTimeMs": 287905479,
       "serverPlaylistAdds": 129,
       "personalPlaylistAdds": 1,
       "songPlays": {
@@ -30675,5 +30675,5 @@
       }
     }
   },
-  "lastUpdated": "2026-05-31T22:00:28.156Z"
+  "lastUpdated": "2026-07-01T01:21:54.419Z"
 }
