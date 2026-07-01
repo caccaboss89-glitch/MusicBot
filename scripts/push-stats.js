@@ -46,6 +46,14 @@ function getClosedMonthArchivePaths(now = new Date()) {
     return { yearMonth, dateStr, backupFileName: `stats-${dateStr}.json` };
 }
 
+/** Etichetta leggibile del mese chiuso (es. 1 luglio Roma → "giugno 2026"). */
+function formatClosedMonthLabel(now = new Date()) {
+    const { yearMonth } = getClosedMonthArchivePaths(now);
+    const [year, month] = yearMonth.split('-').map(Number);
+    const labelDate = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
+    return labelDate.toLocaleString('it-IT', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
 function shouldArchiveMonthlyStats(now = new Date()) {
     return getRomeCalendarParts(now).day === 1;
 }
@@ -177,7 +185,7 @@ function pushStats(forceArchive = false) {
 
         const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric', timeZone: ROME_TZ });
         const commitMsg = shouldArchive
-            ? `Monthly data snapshot - ${monthYear}`
+            ? `Monthly data snapshot - ${formatClosedMonthLabel()}`
             : `Data update - ${monthYear}`;
 
         const pathsToPush = shouldArchive
@@ -225,4 +233,4 @@ if (require.main === module) {
     process.exit(success ? 0 : 1);
 }
 
-module.exports = { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths };
+module.exports = { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths, formatClosedMonthLabel };
