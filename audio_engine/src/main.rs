@@ -350,6 +350,7 @@ fn download_and_decode_advanced(
     yt_dlp_cmd
         .arg("--no-update")
         .arg("-f").arg("bestaudio/best")
+        .arg("--ignore-no-formats-error")
         .arg("--force-ipv4")
         .arg("--user-agent").arg("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .arg("-o").arg("-")
