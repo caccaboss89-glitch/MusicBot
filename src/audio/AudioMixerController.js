@@ -6,7 +6,7 @@ const { spawn } = require('child_process');
 const readline = require('readline');
 const path = require('path');
 const fs = require('fs');
-const { ROOT_DIR, RUST_ENGINE_PATH, resolveYtDlpProxyUrl, resolveYtDlpCookieBrowser } = require('../../config');
+const { ROOT_DIR, RUST_ENGINE_PATH, resolveYtDlpProxyUrl, resolveYtDlpCookieBrowser, resolveYtDlpExtractorArgs } = require('../../config');
 const { CROSSFADE_DURATION_MS, MIN_CROSSFADE_MS, RESTART_COOLDOWN_MS } = require('../../config');
 const { getNextMixerGeneration } = require('../state/globals');
 
@@ -55,12 +55,14 @@ class AudioMixerController {
         // Passa DISCORD_BOT_PATH e config yt-dlp al processo Rust (stessi default di config/paths.js)
         const proxyUrl = resolveYtDlpProxyUrl();
         const cookieBrowser = resolveYtDlpCookieBrowser();
+        const extractorArgs = resolveYtDlpExtractorArgs();
         const env = {
             ...process.env,
             PATH: `${process.env.PATH}${path.delimiter}${ROOT_DIR}`,
             DISCORD_BOT_PATH: ROOT_DIR,
             YTDLP_PROXY_URL: proxyUrl || 'none',
-            YTDLP_COOKIE_BROWSER: cookieBrowser || 'none'
+            YTDLP_COOKIE_BROWSER: cookieBrowser || 'none',
+            YTDLP_EXTRACTOR_ARGS: extractorArgs
         };
 
         try {

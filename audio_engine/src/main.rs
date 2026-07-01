@@ -349,7 +349,7 @@ fn download_and_decode_advanced(
     let mut yt_dlp_cmd = ProcessCommand::new(yt_dlp_binary);
     yt_dlp_cmd
         .arg("--no-update")
-        .arg("-f").arg("bestaudio/best")
+        .arg("-f").arg("ba/b/bestaudio/best")
         .arg("--ignore-no-formats-error")
         .arg("--force-ipv4")
         .arg("--user-agent").arg("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -408,7 +408,7 @@ fn download_and_decode_advanced(
 
     // Extractor args configurabili via env
     let extractor_args = env::var("YTDLP_EXTRACTOR_ARGS").unwrap_or_else(|_| {
-        "youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web".to_string()
+        "youtube:player_client=web,android,ios,mweb".to_string()
     });
     send_log(
         "info",

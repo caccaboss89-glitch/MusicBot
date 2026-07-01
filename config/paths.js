@@ -10,7 +10,7 @@ const ROOT_DIR = path.join(__dirname, '..');
 const IS_WINDOWS = process.platform === 'win32';
 const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
-const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:client=ANDROID_MUSIC,WEB;player_client=android_music,web';
+const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:player_client=web,android,ios,mweb';
 const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function isEnvDisabled(value) {
@@ -57,6 +57,13 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @param {string} args - Gli argomenti aggiuntivi da passare a yt-dlp
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
+function resolveYtDlpExtractorArgs() {
+    const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
+    return (rawExtractorArgs && rawExtractorArgs.trim())
+        ? rawExtractorArgs.trim()
+        : DEFAULT_YTDLP_EXTRACTOR_ARGS;
+}
+
 function getYtDlpCommand(additionalArgs = []) {
     const proxyUrl = resolveYtDlpProxyUrl();
     const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
@@ -64,10 +71,7 @@ function getYtDlpCommand(additionalArgs = []) {
     const cookiesFromBrowserArgs = cookieBrowser
         ? ['--cookies-from-browser', cookieBrowser]
         : [];
-    const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
-    const extractorArgsValue = (rawExtractorArgs && rawExtractorArgs.trim())
-        ? rawExtractorArgs.trim()
-        : DEFAULT_YTDLP_EXTRACTOR_ARGS;
+    const extractorArgsValue = resolveYtDlpExtractorArgs();
     const extractorArgs = extractorArgsValue ? ['--extractor-args', extractorArgsValue] : [];
     const userAgentArgs = ['--user-agent', DEFAULT_YTDLP_USER_AGENT];
 
@@ -96,5 +100,6 @@ module.exports = {
     getYtDlpCommand,
     resolveYtDlpProxyUrl,
     resolveYtDlpCookieBrowser,
+    resolveYtDlpExtractorArgs,
     isEnvDisabled
 };
