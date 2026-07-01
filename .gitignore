@@ -7,5 +7,4 @@ temp/
 audio_engine/target/
 audio_engine/Cargo.lock
 data/
-data/monthly-stats/
 package-lock.json

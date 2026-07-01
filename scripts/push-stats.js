@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Script per versionare stats.json e playlists.json su GitHub.
- * L'archivio mensile (data/monthly-stats/) resta solo sul server, mai su git.
- * Flusso mensile: push GitHub → archiviazione locale → reset stats.json
+ * Script per versionare stats.json, playlists.json e archivio mensile su GitHub.
+ * Flusso mensile: push stats+playlists+monthly-stats (archivio fino al mese prima) → archiviazione locale → reset stats.json
  */
 
 const fs = require('fs');
@@ -16,7 +15,8 @@ const MONTHLY_STATS_DIR = path.join(PROJECT_ROOT, 'data', 'monthly-stats');
 const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 const ROME_TZ = 'Europe/Rome';
-const GIT_DATA_PATHS = 'data/stats.json data/playlists.json';
+const GIT_STATS_PATHS = ['data/stats.json', 'data/playlists.json'];
+const GIT_MONTHLY_ARCHIVE_PATH = 'data/monthly-stats';
 
 function getRomeCalendarParts(date = new Date()) {
     const fmt = new Intl.DateTimeFormat('en-US', {
@@ -60,16 +60,19 @@ function flushDataToDisk() {
 }
 
 /**
- * Commit e push di stats.json + playlists.json su GitHub.
+ * Commit e push dei path indicati su GitHub (--force per file sotto data/ in .gitignore).
  * @returns {boolean} false solo se push fallisce
  */
-function gitPushDataFiles(commitMsg) {
-    execSync(`git add --force ${GIT_DATA_PATHS}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+function gitPushPaths(paths, commitMsg, { skipIfEmpty = true } = {}) {
+    const pathList = paths.join(' ');
+    execSync(`git add --force ${pathList}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
-    const status = execSync(`git status --porcelain ${GIT_DATA_PATHS}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+    const status = execSync(`git status --porcelain ${pathList}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
     if (!status.trim()) {
-        console.log('ℹ️ Nessun cambiamento in stats.json / playlists.json da sincronizzare su GitHub');
+        if (skipIfEmpty) {
+            console.log(`ℹ️ Nessun cambiamento in ${pathList} da sincronizzare su GitHub`);
+        }
         return true;
     }
 
@@ -81,7 +84,7 @@ function gitPushDataFiles(commitMsg) {
 
     try {
         execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-        console.log('✅ stats.json e playlists.json pushati su GitHub');
+        console.log(`✅ Push completato: ${pathList}`);
     } catch (pushErr) {
         console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
         try {
@@ -97,7 +100,7 @@ function gitPushDataFiles(commitMsg) {
     return true;
 }
 
-/** Copia stats.json in monthly-stats/ (solo disco locale, mai git). */
+/** Copia stats.json in data/monthly-stats/YYYY-MM/. */
 function archiveMonthlyStats() {
     try {
         const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
@@ -177,13 +180,17 @@ function pushStats(forceArchive = false) {
             ? `Monthly data snapshot - ${monthYear}`
             : `Data update - ${monthYear}`;
 
-        // 1. Push GitHub: stats.json completo + playlists.json
-        console.log('📤 Push stats.json e playlists.json su GitHub...');
-        if (!gitPushDataFiles(commitMsg)) {
+        const pathsToPush = shouldArchive
+            ? [...GIT_STATS_PATHS, GIT_MONTHLY_ARCHIVE_PATH]
+            : GIT_STATS_PATHS;
+
+        // 1. Push GitHub (mensile: stats del mese chiuso + archivio mesi precedenti, senza duplicare il mese corrente)
+        console.log(`📤 Push su GitHub: ${pathsToPush.join(', ')}...`);
+        if (!gitPushPaths(pathsToPush, commitMsg)) {
             return false;
         }
 
-        // 2. Archiviazione locale + 3. reset (solo rollover mensile)
+        // 2. Archiviazione locale + reset (solo rollover mensile; il nuovo mese resta solo sul server)
         if (shouldArchive) {
             const closed = getClosedMonthArchivePaths();
             console.log(`📦 Archiviazione locale mese chiuso (Roma): ${closed.yearMonth}`);
@@ -192,6 +199,7 @@ function pushStats(forceArchive = false) {
                 console.error(`❌ Push ok ma archiviazione locale fallita: ${archiveResult.error}`);
                 return false;
             }
+
             if (!resetStatsFile()) {
                 console.error('❌ Archiviazione ok ma reset stats.json fallito');
                 return false;
