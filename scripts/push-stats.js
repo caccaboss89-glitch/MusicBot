@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Script per versionare stats.json, playlists.json e archivio mensile su GitHub.
- * Flusso mensile: push stats+playlists+monthly-stats (archivio fino al mese prima) → archiviazione locale → reset stats.json
+ * Script per versionare stats.json, playlists.json e data/monthly-stats/ su GitHub.
+ * Flusso mensile (es. 1 luglio): push GitHub (stats+playlists+archivio) → archiviazione locale → reset stats.json
  */
 
 const fs = require('fs');
@@ -15,8 +15,7 @@ const MONTHLY_STATS_DIR = path.join(PROJECT_ROOT, 'data', 'monthly-stats');
 const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 const ROME_TZ = 'Europe/Rome';
-const GIT_STATS_PATHS = ['data/stats.json', 'data/playlists.json'];
-const GIT_MONTHLY_ARCHIVE_PATH = 'data/monthly-stats';
+const GIT_DATA_FILES = ['data/stats.json', 'data/playlists.json'];
 
 function getRomeCalendarParts(date = new Date()) {
     const fmt = new Intl.DateTimeFormat('en-US', {
@@ -46,12 +45,20 @@ function getClosedMonthArchivePaths(now = new Date()) {
     return { yearMonth, dateStr, backupFileName: `stats-${dateStr}.json` };
 }
 
-/** Etichetta leggibile del mese chiuso (es. 1 luglio Roma → "giugno 2026"). */
-function formatClosedMonthLabel(now = new Date()) {
+/** Etichetta italiana del mese chiuso (es. 1 luglio → "giugno 2026"). */
+function getClosedMonthLabel(now = new Date()) {
     const { yearMonth } = getClosedMonthArchivePaths(now);
     const [year, month] = yearMonth.split('-').map(Number);
-    const labelDate = new Date(Date.UTC(year, month - 1, 1, 12, 0, 0));
+    const labelDate = new Date(Date.UTC(year, month - 1, 15, 12, 0, 0));
     return labelDate.toLocaleString('it-IT', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
+function getGitDataPaths() {
+    const paths = [...GIT_DATA_FILES];
+    if (fs.existsSync(MONTHLY_STATS_DIR)) {
+        paths.push('data/monthly-stats');
+    }
+    return paths;
 }
 
 function shouldArchiveMonthlyStats(now = new Date()) {
@@ -68,19 +75,18 @@ function flushDataToDisk() {
 }
 
 /**
- * Commit e push dei path indicati su GitHub (--force per file sotto data/ in .gitignore).
+ * Commit e push di stats.json, playlists.json e monthly-stats/ su GitHub.
  * @returns {boolean} false solo se push fallisce
  */
-function gitPushPaths(paths, commitMsg, { skipIfEmpty = true } = {}) {
-    const pathList = paths.join(' ');
-    execSync(`git add --force ${pathList}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+function gitPushDataFiles(commitMsg) {
+    const gitPaths = getGitDataPaths();
+    const gitPathsArg = gitPaths.join(' ');
+    execSync(`git add --force ${gitPathsArg}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
-    const status = execSync(`git status --porcelain ${pathList}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+    const status = execSync(`git status --porcelain ${gitPathsArg}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
     if (!status.trim()) {
-        if (skipIfEmpty) {
-            console.log(`ℹ️ Nessun cambiamento in ${pathList} da sincronizzare su GitHub`);
-        }
+        console.log('ℹ️ Nessun cambiamento in stats.json / playlists.json / monthly-stats da sincronizzare su GitHub');
         return true;
     }
 
@@ -92,7 +98,7 @@ function gitPushPaths(paths, commitMsg, { skipIfEmpty = true } = {}) {
 
     try {
         execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-        console.log(`✅ Push completato: ${pathList}`);
+        console.log('✅ stats.json, playlists.json e monthly-stats pushati su GitHub');
     } catch (pushErr) {
         console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
         try {
@@ -108,7 +114,7 @@ function gitPushPaths(paths, commitMsg, { skipIfEmpty = true } = {}) {
     return true;
 }
 
-/** Copia stats.json in data/monthly-stats/YYYY-MM/. */
+/** Copia stats.json in monthly-stats/ (locale; il push GitHub avviene prima del rollover). */
 function archiveMonthlyStats() {
     try {
         const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
@@ -184,21 +190,18 @@ function pushStats(forceArchive = false) {
         flushDataToDisk();
 
         const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric', timeZone: ROME_TZ });
+        const closedMonthLabel = getClosedMonthLabel();
         const commitMsg = shouldArchive
-            ? `Monthly data snapshot - ${formatClosedMonthLabel()}`
+            ? `Monthly data snapshot - ${closedMonthLabel}`
             : `Data update - ${monthYear}`;
 
-        const pathsToPush = shouldArchive
-            ? [...GIT_STATS_PATHS, GIT_MONTHLY_ARCHIVE_PATH]
-            : GIT_STATS_PATHS;
-
-        // 1. Push GitHub (mensile: stats del mese chiuso + archivio mesi precedenti, senza duplicare il mese corrente)
-        console.log(`📤 Push su GitHub: ${pathsToPush.join(', ')}...`);
-        if (!gitPushPaths(pathsToPush, commitMsg)) {
+        // 1. Push GitHub: stats.json + playlists.json + monthly-stats/ (prima dell'archivio locale)
+        console.log('📤 Push stats.json, playlists.json e monthly-stats su GitHub...');
+        if (!gitPushDataFiles(commitMsg)) {
             return false;
         }
 
-        // 2. Archiviazione locale + reset (solo rollover mensile; il nuovo mese resta solo sul server)
+        // 2. Archiviazione locale + 3. reset (solo rollover mensile)
         if (shouldArchive) {
             const closed = getClosedMonthArchivePaths();
             console.log(`📦 Archiviazione locale mese chiuso (Roma): ${closed.yearMonth}`);
@@ -207,7 +210,6 @@ function pushStats(forceArchive = false) {
                 console.error(`❌ Push ok ma archiviazione locale fallita: ${archiveResult.error}`);
                 return false;
             }
-
             if (!resetStatsFile()) {
                 console.error('❌ Archiviazione ok ma reset stats.json fallito');
                 return false;
@@ -233,4 +235,4 @@ if (require.main === module) {
     process.exit(success ? 0 : 1);
 }
 
-module.exports = { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths, formatClosedMonthLabel };
+module.exports = { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths, getClosedMonthLabel };
