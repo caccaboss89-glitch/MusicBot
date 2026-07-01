@@ -355,7 +355,6 @@ fn download_and_decode_advanced(
         .arg("--user-agent").arg("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .arg("-o").arg("-")
         .arg("-q")
-        .arg("--no-warnings")
         .arg("--no-cache-dir")
         .arg("--no-playlist")
         .arg("--socket-timeout").arg("30")
@@ -363,7 +362,7 @@ fn download_and_decode_advanced(
         .arg("--fragment-retries").arg("5")
         .arg("--concurrent-fragments").arg("1")
         .arg("--js-runtimes").arg("node")
-        .arg("--impersonate").arg("chrome");
+        .arg("--remote-components").arg("ejs:github");
 
     yt_dlp_cmd.env("PATH", env::var("PATH").unwrap_or_default());
 
@@ -408,7 +407,7 @@ fn download_and_decode_advanced(
 
     // Extractor args configurabili via env
     let extractor_args = env::var("YTDLP_EXTRACTOR_ARGS").unwrap_or_else(|_| {
-        "youtube:player_client=web,android,ios,mweb".to_string()
+        "youtube:player_client=tv_embedded,android_vr,web,android".to_string()
     });
     send_log(
         "info",
@@ -460,6 +459,7 @@ fn download_and_decode_advanced(
                     || lower.contains("failed")
                     || lower.contains("blocked")
                     || lower.contains("sign in")
+                    || lower.contains("warning")
                 {
                     send_log("error", &format!("[yt-dlp] {}", trimmed));
                 }
@@ -541,6 +541,7 @@ fn download_and_decode_advanced(
     let first_data_arrived = Arc::new(AtomicBool::new(false));
     let first_data_wd = first_data_arrived.clone();
     let deck_name_wd = deck_name.to_string();
+    let stderr_lines_wd = stderr_lines.clone();
     thread::spawn(move || {
         let watchdog_secs = get_download_watchdog_secs();
         send_log(
@@ -558,6 +559,14 @@ fn download_and_decode_advanced(
         // Timeout senza dati → kill processi bloccati
         send_log("error", &format!("⏰ [Deck {}] Download watchdog: {}s senza dati, killing yt-dlp (PID {}) + ffmpeg (PID {})",
             deck_name_wd, watchdog_secs, yt_dlp_pid, ffmpeg_pid));
+        if let Ok(buf) = stderr_lines_wd.lock() {
+            if !buf.is_empty() {
+                send_log("error", "Ultimi messaggi yt-dlp stderr (watchdog):");
+                for line in buf.iter() {
+                    send_log("error", &format!("[yt-dlp] {}", line));
+                }
+            }
+        }
         #[cfg(windows)]
         {
             // /F = force, /T = tree (uccide anche sotto-processi)
