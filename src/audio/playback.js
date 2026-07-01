@@ -118,7 +118,11 @@ async function restartCurrentSong(guildId) {
     serverQueue.songStartTime = Date.now();
 
     // ── STATS: canzone avviata (replay/restart) ──
-    try { require('../database/stats').incrementSongsStarted(); } catch (e) { }
+    try {
+        const stats = require('../database/stats');
+        stats.incrementSongsStarted();
+        stats.recordSongPlay(guildId, currentSong, serverQueue.voiceChannel);
+    } catch (e) { }
 
     // Se la canzone era in pausa, riprendila
     await resumeIfPaused(serverQueue, guildId, currentDeck);

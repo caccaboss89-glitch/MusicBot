@@ -326,17 +326,21 @@ function handleAutoLoopRestart(guildId, deck) {
 
         sq.songStartTime = Date.now();
 
+        const currentSong = sq.songs[sq.playIndex || 0];
+
         // ── STATS: canzone completata + riniziata (loop) ──
         try {
             const stats = require('../database/stats');
             stats.incrementSongsCompleted();
             stats.incrementSongsStarted();
+            if (currentSong) {
+                stats.recordSongPlay(guildId, currentSong, sq.voiceChannel);
+            }
         } catch (e) { }
 
         // Riavvia il timer di preload per la prossima canzone
         PlaybackEngine.onSongStart(guildId);
 
-        const currentSong = sq.songs[sq.playIndex || 0];
         console.log(`🔁 [AUTO-LOOP] "${currentSong ? sanitizeTitle(currentSong.title) : '?'}" riavviata (deck ${deck})`);
     } catch (e) {
         console.error('❌ [AUTO-LOOP] Errore handleAutoLoopRestart:', e);

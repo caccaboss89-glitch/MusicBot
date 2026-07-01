@@ -186,12 +186,13 @@ client.once('clientReady', () => {
                 // Flush eventuali dati in memoria su disco prima del push (altrimenti non include i listener attivi)
                 try {
                     flushAllGuildsAndSave();
+                    require('./src/database/playlists').flushDatabaseSync();
                 } catch (flushErr) {
                     console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
                 }
 
                 console.log('📤 [STATS-PUSH] Pushing stats del mese alle', `${String(romaParts.hour).padStart(2, '0')}:00`);
-                const success = pushStats();
+                const success = pushStats(true);
                 if (success) {
                     pushState.lastPushDate = dateKey; // Segna che ha fatto push
                     savePushState(pushState); // Salva su disco
