@@ -116,26 +116,34 @@ function normalizeYoutubeUrl(url) {
             const list = parsed.searchParams.get('list');
             const index = parsed.searchParams.get('index');
 
-            let base;
             if (parsed.hostname === 'youtu.be' && parsed.pathname.length > 1) {
                 const id = parsed.pathname.slice(1).split(/[?#]/)[0];
-                base = `https://www.youtube.com/watch?v=${id}`;
-            } else if (v) {
-                base = `https://www.youtube.com/watch?v=${v}`;
-            } else if (parsed.pathname.includes('/playlist')) {
-                // Playlist page: mantieni il path e solo il list param
-                const qs = list ? `?list=${list}` : '';
-                return `https://www.youtube.com${parsed.pathname}${qs}`;
-            } else {
-                // Non è un video singolo riconoscibile, restituisci con dominio normalizzato
-                return u.replace(/^https?:\/\/[^/]+/, 'https://www.youtube.com');
+                const outUrl = new URL('https://www.youtube.com/watch');
+                outUrl.searchParams.set('v', id);
+                if (list) outUrl.searchParams.set('list', list);
+                if (index && list) outUrl.searchParams.set('index', index);
+                return outUrl.toString();
             }
 
-            const params = new URLSearchParams();
-            if (list) params.set('list', list);
-            if (index && list) params.set('index', index);
-            const qs = params.toString();
-            return qs ? `${base}?${qs}` : base;
+            if (parsed.pathname.includes('/playlist')) {
+                const qs = list ? `?list=${list}` : '';
+                return `https://www.youtube.com${parsed.pathname}${qs}`;
+            }
+
+            if (v) {
+                const outUrl = new URL('https://www.youtube.com/watch');
+                outUrl.searchParams.set('v', v);
+                if (list) outUrl.searchParams.set('list', list);
+                if (index && list) outUrl.searchParams.set('index', index);
+                return outUrl.toString();
+            }
+
+            if (list) {
+                return `https://www.youtube.com/playlist?list=${list}`;
+            }
+
+            // Non è un video singolo riconoscibile, restituisci con dominio normalizzato
+            return u.replace(/^https?:\/\/[^/]+/, 'https://www.youtube.com');
         }
     } catch (_) {
         // Fallback regex semplice
