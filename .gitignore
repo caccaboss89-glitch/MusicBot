@@ -1,6 +1,6 @@
 node_modules/
-.kiro/
-.cursor/
+.grok/
+AGENTS.md
 .env
 logs/
 temp/

@@ -23,6 +23,7 @@ setInterval(() => {
 
 /**
  * Gestisce tutte le interazioni playlist (plist_*, act_*, srch_*, open_plist_*, btn_toggle_*).
+ * L'eliminazione di una playlist personale richiede conferma (plist_delete_confirm / cancel).
  * @returns {boolean} true se l'interazione è stata gestita
  */
 async function handlePlaylist(interaction, serverQueue, guildId, customId, deps) {
@@ -271,7 +272,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         return true;
     }
 
-    // --- Elimina playlist ---
+    // --- Elimina playlist: richiesta di conferma ---
     if (customId && customId.startsWith('plist_delete_likes_')) {
         const plName = customId.replace('plist_delete_likes_', '');
         if (plName === DEFAULT_PLAYLIST_NAME) {
@@ -284,6 +285,38 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
             await safeReply(interaction, { content: '❌ Playlist non trovata.', flags: MessageFlags.Ephemeral });
             return true;
         }
+        const songCount = userData.playlists[plName].length;
+        const songLabel = songCount === 1 ? 'canzone' : 'canzoni';
+        const embed = new EmbedBuilder()
+            .setColor(0xFF0000)
+            .setTitle('⚠️ Conferma eliminazione')
+            .setDescription(
+                `Sei sicuro di voler eliminare la playlist **${plName}**?\n\n` +
+                `Contiene **${songCount}** ${songLabel}.\n` +
+                `Questa azione non può essere annullata.`
+            );
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`plist_delete_confirm_likes_${plName}`).setLabel('Conferma').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
+            new ButtonBuilder().setCustomId(`plist_delete_cancel_likes_${plName}`).setLabel('Annulla').setEmoji('🔙').setStyle(ButtonStyle.Secondary)
+        );
+        await interaction.editReply({ embeds: [embed], components: [row] });
+        return true;
+    }
+
+    // --- Elimina playlist: conferma ---
+    if (customId && customId.startsWith('plist_delete_confirm_likes_')) {
+        const plName = customId.replace('plist_delete_confirm_likes_', '');
+        if (plName === DEFAULT_PLAYLIST_NAME) {
+            await safeReply(interaction, { content: `❌ La playlist "${DEFAULT_PLAYLIST_NAME}" non può essere eliminata.`, flags: MessageFlags.Ephemeral });
+            return true;
+        }
+        const db = loadDatabase();
+        const userData = getUserData(db, interaction.user.id);
+        if (!userData.playlists[plName]) {
+            await safeReply(interaction, { content: '❌ Playlist non trovata.', flags: MessageFlags.Ephemeral });
+            await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
+            return true;
+        }
         const deletedCount = userData.playlists[plName].length;
         delete userData.playlists[plName];
         if (userData.activePlaylist === plName) userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
@@ -292,6 +325,16 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         saveDatabase(db);
         await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
         await safeReply(interaction, { content: `🗑️ Playlist **${plName}** eliminata (${deletedCount} canzoni rimosse).`, flags: MessageFlags.Ephemeral });
+        return true;
+    }
+
+    // --- Elimina playlist: annulla ---
+    if (customId && customId.startsWith('plist_delete_cancel_likes_')) {
+        const plName = customId.replace('plist_delete_cancel_likes_', '');
+        const db = loadDatabase();
+        const userData = getUserData(db, interaction.user.id);
+        const targetPl = userData.playlists[plName] ? plName : DEFAULT_PLAYLIST_NAME;
+        await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, targetPl));
         return true;
     }
 
