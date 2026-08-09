@@ -168,7 +168,7 @@ client.on('guildDelete', async (guild) => {
     globals.queue.delete(guildId);
 
     console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
-  } catch {
+  } catch (e) {
     console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);
   }
 });

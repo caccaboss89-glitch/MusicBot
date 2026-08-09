@@ -222,7 +222,7 @@ function insertSongAtIndex(serverQueue, song, index) {
 
       return { success: true };
 
-    } catch {
+    } catch (e) {
       // ROLLBACK se il salvataggio fallisce
       console.error('❌ [QUEUE-INSERT] Errore, rollback:', e.message);
       serverQueue.songs = previousSongs;
@@ -235,7 +235,7 @@ function insertSongAtIndex(serverQueue, song, index) {
       return { success: false, error: `Failed to insert song: ${e.message}` };
     }
 
-  } catch {
+  } catch (e) {
     console.error('❌ [QUEUE-INSERT] Fatal error:', e);
     return { success: false, error: e.message };
   }
@@ -316,7 +316,7 @@ async function removeSongAtIndex(serverQueue, index) {
 
       return { success: false, error: 'Failed to remove song' };
 
-    } catch {
+    } catch (e) {
       // ROLLBACK se il salvataggio fallisce
       console.error('❌ [QUEUE-REMOVE] Errore, rollback:', e.message);
       serverQueue.songs = previousSongs;
@@ -331,7 +331,7 @@ async function removeSongAtIndex(serverQueue, index) {
       return { success: false, error: `Failed to remove song: ${e.message}` };
     }
 
-  } catch {
+  } catch (e) {
     console.error('❌ [QUEUE-REMOVE] Fatal error:', e);
     return { success: false, error: e.message };
   }
