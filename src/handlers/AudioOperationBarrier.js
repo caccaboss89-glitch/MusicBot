@@ -3,8 +3,8 @@
  * Previene race condition quando l'utente spamma skip, pause, ecc.
  */
 
-const { queue } = require('../state/globals');
-const { stateVersionManager } = require('../state/StateVersion');
+import { queue } from '../state/globals.js';
+import { stateVersionManager } from '../state/StateVersion.js';
 
 class AudioOperationBarrier {
   constructor() {
@@ -145,7 +145,7 @@ class AudioOperationBarrier {
           executionTimeMs: executionTime
         });
 
-      } catch {
+      } catch (e) {
         console.error(`❌ [AUDIO-BARRIER] '${operation.name}' failed:`, error.message);
         operation.error = error;
         operation.promise.resolve({ success: false, error });
@@ -216,7 +216,7 @@ class AudioOperationBarrier {
 // Singleton instance
 const audioOperationBarrier = new AudioOperationBarrier();
 
-module.exports = {
+export {
   AudioOperationBarrier,
   audioOperationBarrier
 };

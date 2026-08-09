@@ -3,15 +3,15 @@
  * Estratti da interaction.js per modularità e crash-independence.
  */
 
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
-const { loadDatabase, saveDatabase, getUserData, getUserPlaylist, getActivePlaylistName, setActivePlaylist } = require('../database/playlists');
-const { generatePlaylistView, generateSearchResultsView, createDashboardComponents } = require('../ui');
-const { sanitizeTitle, areSameSong, safeParseInt } = require('../utils/sanitize');
-const { clearFinishedQueue, insertSongAtIndex, getCurrentSong } = require('../queue/QueueManager');
-const { saveQueueState } = require('../queue/persistence');
-const { safeReply } = require('../utils/discord');
-const { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } = require('../../config');
-const audio = require('../audio');
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
+import { loadDatabase, saveDatabase, getUserData, getUserPlaylist, getActivePlaylistName, setActivePlaylist } from '../database/playlists.js';
+import { generatePlaylistView, generateSearchResultsView, createDashboardComponents } from '../ui/index.js';
+import { sanitizeTitle, areSameSong, safeParseInt } from '../utils/sanitize.js';
+import { clearFinishedQueue, insertSongAtIndex, getCurrentSong } from '../queue/QueueManager.js';
+import { saveQueueState } from '../queue/persistence.js';
+import { safeReply } from '../utils/discord.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
+import * as audio from '../audio/index.js';
 
 // Mappa in-memory per query di ricerca attive (per paginazione risultati)
 const activeSearches = new Map();
@@ -379,7 +379,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     } else {
       if (!db.server) db.server = [];
       db.server.push({ ...song, addedBy: interaction.user.id });
-      try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'server'); } catch { }
+      try { (await import('../database/stats.js')).default.recordPlaylistAdd(interaction.user.id, 'server'); } catch { }
     }
     saveDatabase(db);
     if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
@@ -402,7 +402,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     } else {
       playlist.push({ ...song });
       await safeReply(interaction, { content: `✅ Aggiunta a: **${activePlName}**!`, flags: MessageFlags.Ephemeral });
-      try { require('../database/stats').recordPlaylistAdd(interaction.user.id, 'personal'); } catch { }
+      try { (await import('../database/stats.js')).default.recordPlaylistAdd(interaction.user.id, 'personal'); } catch { }
     }
     saveDatabase(db);
     return true;
@@ -411,4 +411,4 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
   return false;
 }
 
-module.exports = { handlePlaylist, activeSearches };
+export { handlePlaylist, activeSearches };

@@ -3,9 +3,9 @@
  * Funzioni per la creazione di embed Discord
  */
 
-const { EmbedBuilder } = require('discord.js');
-const { displayTitle } = require('../utils/sanitize');
-const { getCurrentSong } = require('../queue/QueueManager');
+import { EmbedBuilder } from 'discord.js';
+import { displayTitle } from '../utils/sanitize.js';
+import { getCurrentSong } from '../queue/QueueManager.js';
 
 /**
  * Crea l'embed della canzone corrente
@@ -19,7 +19,7 @@ function createCurrentSongEmbed(serverQueue) {
     if (serverQueue) {
       song = getCurrentSong(serverQueue);
     }
-  } catch {
+  } catch (e) {
     console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
   }
 
@@ -72,7 +72,7 @@ function createFinishedEmbed(lastSong) {
   return embed;
 }
 
-module.exports = {
+export {
   createCurrentSongEmbed,
   createFinishedEmbed
 };

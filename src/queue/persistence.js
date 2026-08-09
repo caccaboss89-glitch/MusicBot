@@ -2,9 +2,9 @@
  * Gestione persistenza della coda (backup/restore)
  */
 
-const fs = require('fs');
-const { QUEUE_FILE } = require('../../config');
-const { safeJSONParse } = require('../utils/sanitize');
+import fs from 'fs';
+import { QUEUE_FILE } from '../../config/index.js';
+import { safeJSONParse } from '../utils/sanitize.js';
 
 // ─── Cache in-memory per evitare letture da disco ripetute ──
 let _queueCache = null;
@@ -22,7 +22,7 @@ function _flushQueueCache() {
     const tmpFile = QUEUE_FILE + '.tmp';
     fs.writeFileSync(tmpFile, JSON.stringify(_queueCache, null, 2));
     fs.renameSync(tmpFile, QUEUE_FILE);
-  } catch {
+  } catch (e) {
     console.error('❌ [PERSISTENCE] Errore scrittura cache:', e.message);
   }
 }
@@ -32,7 +32,7 @@ function _flushQueueCache() {
  * @param {string} guildId - ID della guild
  * @returns {object|null} - Dati della coda o null se non esiste
  */
-function loadQueueBackup(guildId) {
+export function loadQueueBackup(guildId) {
   const data = _getQueueCache();
   const backup = data[guildId];
   if (!backup) return null;
@@ -67,7 +67,7 @@ function loadQueueBackup(guildId) {
  * @param {string|null} dashboardMessageId - ID del messaggio embed della dashboard
  * @param {string|null} textChannelId - ID del canale testo dove è il dashboard
  */
-function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = false, loopEnabled = false, fadeEnabled = false, currentDeckLoaded = null, dashboardMessageId = null, textChannelId = null) {
+export function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = false, loopEnabled = false, fadeEnabled = false, currentDeckLoaded = null, dashboardMessageId = null, textChannelId = null) {
   try {
     if ((!songs || songs.length === 0) && (!history || history.length === 0)) {
       deleteQueueBackup(guildId);
@@ -96,20 +96,20 @@ function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = fals
       textChannelId
     };
     _flushQueueCache();
-  } catch {
+  } catch (e) {
     console.error('❌ [PERSISTENCE] Errore salvataggio backup:', e.message);
   }
 }
 
 // Funzione privata per eliminare il backup (usata internamente da saveQueueBackup)
-function deleteQueueBackup(guildId) {
+export function deleteQueueBackup(guildId) {
   try {
     const data = _getQueueCache();
     if (data[guildId]) {
       delete data[guildId];
       _flushQueueCache();
     }
-  } catch {
+  } catch (e) {
     console.error('❌ [PERSISTENCE] Errore eliminazione backup:', e.message);
   }
 }
@@ -140,7 +140,7 @@ function _doSaveQueueState(guildId, serverQueue) {
  * @param {string} guildId - ID della guild
  * @param {object} serverQueue - Oggetto coda del server
  */
-function saveQueueState(guildId, serverQueue) {
+export function saveQueueState(guildId, serverQueue) {
   if (!serverQueue) return;
 
   _savePending.set(guildId, serverQueue);
@@ -178,7 +178,7 @@ function saveQueueState(guildId, serverQueue) {
  * @param {string} guildId
  * @param {object} serverQueue
  */
-function saveQueueStateImmediate(guildId, serverQueue) {
+export function saveQueueStateImmediate(guildId, serverQueue) {
   if (!serverQueue) return;
   if (_saveTimers.has(guildId)) {
     clearTimeout(_saveTimers.get(guildId));
@@ -191,7 +191,7 @@ function saveQueueStateImmediate(guildId, serverQueue) {
 /**
  * Flush di tutti i salvataggi pendenti (chiamare durante shutdown).
  */
-function flushPendingSaves() {
+export function flushPendingSaves() {
   for (const [, timer] of _saveTimers) clearTimeout(timer);
   _saveTimers.clear();
   for (const [guildId, sq] of _savePending) {
@@ -203,7 +203,7 @@ function flushPendingSaves() {
 /**
  * Pulisce timer e stato pendente per una guild (da chiamare su guildDelete)
  */
-function cleanupGuild(guildId) {
+export function cleanupGuild(guildId) {
   if (_saveTimers.has(guildId)) {
     clearTimeout(_saveTimers.get(guildId));
     _saveTimers.delete(guildId);
@@ -211,13 +211,3 @@ function cleanupGuild(guildId) {
   _savePending.delete(guildId);
   _lastSaveTime.delete(guildId);
 }
-
-module.exports = {
-  loadQueueBackup,
-  saveQueueBackup,
-  deleteQueueBackup,
-  saveQueueState,
-  saveQueueStateImmediate,
-  flushPendingSaves,
-  cleanupGuild
-};

@@ -2,7 +2,7 @@
  * Funzioni di utilità per parsing e sanitizzazione
  */
 
-const fs = require('fs');
+import fs from 'fs';
 
 /**
  * Parsing sicuro di un intero con valore di default
@@ -10,7 +10,7 @@ const fs = require('fs');
  * @param {number} defaultValue - Valore di default se parsing fallisce
  * @returns {number} - Intero >= 0
  */
-function safeParseInt(value, defaultValue = 0) {
+export function safeParseInt(value, defaultValue = 0) {
   const parsed = parseInt(value);
   return isNaN(parsed) ? defaultValue : Math.max(0, parsed);
 }
@@ -29,7 +29,7 @@ function safeParseInt(value, defaultValue = 0) {
  * @param {string} title - Titolo originale
  * @returns {string} - Titolo sicuro per masked link
  */
-function sanitizeTitle(title) {
+export function sanitizeTitle(title) {
   if (!title) return 'Titolo Sconosciuto';
   const cleaned = String(title)
     .replace(/\[/g, '(')   // le quadre romperebbero la sintassi [testo](url)
@@ -48,7 +48,7 @@ function sanitizeTitle(title) {
  * @param {string} title - Titolo originale
  * @returns {string}
  */
-function displayTitle(title) {
+export function displayTitle(title) {
   if (!title) return 'Titolo Sconosciuto';
   const cleaned = String(title).replace(/\r?\n/g, ' ').trim();
   if (!cleaned) return 'Titolo Sconosciuto';
@@ -61,7 +61,7 @@ function displayTitle(title) {
  * @param {any} defaultData - Dati di default se file non esiste o è corrotto
  * @returns {any} - Dati parsati o default
  */
-function safeJSONParse(filename, defaultData) {
+export function safeJSONParse(filename, defaultData) {
   if (!fs.existsSync(filename)) {
     try {
       fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2));
@@ -86,7 +86,7 @@ function safeJSONParse(filename, defaultData) {
  * @param {string} url - URL YouTube
  * @returns {string|null} - ID video o null
  */
-function getYoutubeId(url) {
+export function getYoutubeId(url) {
   if (!url) return null;
   const match = url.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);
   return (match && match[1]) ? match[1] : null;
@@ -101,7 +101,7 @@ function getYoutubeId(url) {
  * @param {string} url
  * @returns {string}
  */
-function normalizeYoutubeUrl(url) {
+export function normalizeYoutubeUrl(url) {
   if (!url || typeof url !== 'string') return url;
   let u = url.trim();
 
@@ -169,20 +169,10 @@ function normalizeYoutubeUrl(url) {
  * @param {string} url2 - Secondo URL
  * @returns {boolean} - true se sono la stessa canzone
  */
-function areSameSong(url1, url2) {
+export function areSameSong(url1, url2) {
   if (url1 === url2) return true;
   const id1 = getYoutubeId(url1);
   const id2 = getYoutubeId(url2);
   if (id1 && id2 && id1.length >= 11 && id2.length >= 11) return id1 === id2;
   return false;
 }
-
-module.exports = {
-  safeParseInt,
-  sanitizeTitle,
-  displayTitle,
-  safeJSONParse,
-  getYoutubeId,
-  areSameSong,
-  normalizeYoutubeUrl
-};

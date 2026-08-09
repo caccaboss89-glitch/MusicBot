@@ -1,9 +1,9 @@
-const { queue } = require('../state/globals');
-const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
-const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS } = require('../../config');
-const stats = require('../database/stats');
+import { queue } from '../state/globals.js';
+import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../queue/QueueManager.js';
+import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS } from '../../config/index.js';
+import * as stats from '../database/stats.js';
 
-module.exports = (client) => {
+export default (client) => {
   client.on('voiceStateUpdate', (oldState, newState) => {
     try {
       const guildId = oldState?.guild?.id || newState?.guild?.id;
@@ -69,7 +69,7 @@ module.exports = (client) => {
         else cancelScheduledDisconnect(serverQueue);
       }
 
-    } catch {
+    } catch (e) {
       console.error('Errore in voiceStateUpdate:', e);
     }
   });

@@ -3,11 +3,11 @@
  * Barrel module per le funzioni UI
  */
 
-const { createCurrentSongEmbed, createFinishedEmbed } = require('./embeds');
-const { generatePlaylistView, generateSearchResultsView, createDashboardComponents } = require('./components');
-const { updateDashboard, updateDashboardToFinished, refreshDashboard } = require('./dashboard');
+import { createCurrentSongEmbed, createFinishedEmbed } from './embeds.js';
+import { generatePlaylistView, generateSearchResultsView, createDashboardComponents } from './components.js';
+import { updateDashboard, updateDashboardToFinished, refreshDashboard } from './dashboard.js';
 
-module.exports = {
+export {
   createCurrentSongEmbed,
   createFinishedEmbed,
   generatePlaylistView,

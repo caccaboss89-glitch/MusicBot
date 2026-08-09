@@ -5,11 +5,13 @@
  * TRANSAZIONI: Le operazioni critiche sono wrappate con state versioning e rollback support
  */
 
-const { sanitizeTitle, areSameSong } = require('../utils/sanitize');
-const { saveQueueState } = require('./persistence');
-const { disconnectTimers } = require('../state/globals');
-const { stateVersionManager } = require('../state/StateVersion');
-const { DISCONNECT_TIMEOUT_MS } = require('../../config');
+import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
+import { saveQueueState } from './persistence.js';
+import { disconnectTimers } from '../state/globals.js';
+import { stateVersionManager } from '../state/StateVersion.js';
+import { DISCONNECT_TIMEOUT_MS } from '../../config/index.js';
+// Lazy imports to avoid circular dependencies
+let audioModule, statsModule, playCommandModule, playbackModule, skipManagerModule;
 
 // Funzioni utility per la gestione della coda
 
@@ -24,7 +26,7 @@ function isBotAloneInChannel(serverQueue) {
     const channel = serverQueue.voiceChannel;
     if (!channel || !channel.members) return true;
     return channel.members.size <= 1;
-  } catch {
+  } catch (e) {
     console.warn(`⚠️ [BOT-ALONE-CHECK] Errore: ${e.message}`);
     return true;
   }
@@ -245,7 +247,7 @@ function insertSongAtIndex(serverQueue, song, index) {
  * @param {number} index - Indice da rimuovere
  * @returns {{success: boolean, removed?: object, error?: string}}
  */
-function removeSongAtIndex(serverQueue, index) {
+async function removeSongAtIndex(serverQueue, index) {
   try {
     const guildId = serverQueue.guildId;
     const stateVersion = stateVersionManager.get(guildId);
@@ -304,7 +306,10 @@ function removeSongAtIndex(serverQueue, index) {
         });
 
         // Notifica preload update
-        try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch { }
+        try {
+          if (!audioModule) audioModule = await import('../audio/index.js');
+          audioModule.updatePreloadAfterQueueChange(guildId);
+        } catch { }
 
         return { success: true, removed };
       }
@@ -351,7 +356,7 @@ function isMixerAlive(serverQueue) {
  * Pulizia completa alla disconnessione forzata (bot rimasto solo o disconnect)
  * @param {object} serverQueue
  */
-function performDisconnectCleanup(serverQueue) {
+async function performDisconnectCleanup(serverQueue) {
   if (!serverQueue) return;
   if (serverQueue._cleaningUp) return; // Guard contro re-entry (evita cascade)
   if (serverQueue._isReconnecting) return; // Non interferire con riconnessione in corso
@@ -373,8 +378,8 @@ function performDisconnectCleanup(serverQueue) {
 
     // ── STATS: ferma timer ascolto e salva su disco ──
     try {
-      const stats = require('../database/stats');
-      stats.flushGuildAndSave(serverQueue.guildId);
+      if (!statsModule) statsModule = await import('../database/stats.js');
+      statsModule.flushGuildAndSave(serverQueue.guildId);
     } catch { }
 
     // Ferma il player
@@ -388,10 +393,22 @@ function performDisconnectCleanup(serverQueue) {
     try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch { }
 
     // Cleanup stato audio per-guild
-    try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch { }
-    try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch { }
-    try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch { }
-    try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch { }
+    try {
+      if (!audioModule) audioModule = await import('../audio/index.js');
+      audioModule.clearStreamErrors(serverQueue.guildId);
+    } catch { }
+    try {
+      if (!playbackModule) playbackModule = await import('../audio/playback.js');
+      playbackModule.cleanupPlaybackState(serverQueue.guildId);
+    } catch { }
+    try {
+      if (!skipManagerModule) skipManagerModule = await import('../audio/SkipManager.js');
+      skipManagerModule.default.cleanupSkipState(serverQueue.guildId);
+    } catch { }
+    try {
+      if (!playCommandModule) playCommandModule = await import('../commands/play.js');
+      playCommandModule.cleanupLastCleanupTime(serverQueue.guildId);
+    } catch { }
 
     // Resetta alcuni campi dello stato della coda
     serverQueue.connection = null;
@@ -481,7 +498,7 @@ function cancelScheduledDisconnect(serverQueue) {
   return true;
 }
 
-module.exports = {
+export {
   isBotAloneInChannel,
   clearFinishedQueue,
   getCurrentSong,

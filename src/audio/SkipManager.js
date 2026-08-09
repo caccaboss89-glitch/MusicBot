@@ -20,16 +20,16 @@
  * race conditions causate da letture stale dello stato.
  */
 
-const { queue } = require('../state/globals');
-const { stateVersionManager } = require('../state/StateVersion');
-const { commandQueue } = require('./CommandQueue');
-const { CROSSFADE_DURATION_MS, SKIP_THROTTLE_MS } = require('../../config');
-const { sanitizeTitle } = require('../utils/sanitize');
-const { saveQueueState } = require('../queue/persistence');
-const { isMixerAlive } = require('../queue/QueueManager');
-const { bindDeckSong } = require('../queue/QueueManager');
-const { clearDeckBindings } = require('../queue/QueueManager');
-const bridge = require('./audio-bridge');
+import { queue } from '../state/globals.js';
+import { stateVersionManager } from '../state/StateVersion.js';
+import { commandQueue } from './CommandQueue.js';
+import { CROSSFADE_DURATION_MS, SKIP_THROTTLE_MS } from '../../config/index.js';
+import { sanitizeTitle } from '../utils/sanitize.js';
+import { saveQueueState } from '../queue/persistence.js';
+import { isMixerAlive } from '../queue/QueueManager.js';
+import { bindDeckSong } from '../queue/QueueManager.js';
+import { clearDeckBindings } from '../queue/QueueManager.js';
+import { call, register } from './audio-bridge.js';
 
 // Throttle per prevenire spam di skip ravvicinati
 const skipThrottle = new Map();  // guildId -> timestamp
@@ -120,7 +120,7 @@ async function performTransition(guildId, targetIndex, reason) {
             && sq.bufferReady && sq.bufferReady[targetDeck];
 
     // Pulisci timer del brano corrente (preload / end-monitor)
-    bridge.call('clearAllTimers', guildId);
+    call('clearAllTimers', guildId);
 
     if (isPreloaded) {
       // ── FAST PATH: precaricata ──
@@ -179,7 +179,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
       if (reason !== 'auto') {
         sq.loadingFooter = '⏳ Caricamento in corso...';
-        try { bridge.call('refreshDashboard', sq); } catch { /* ignora */ }
+        try { call('refreshDashboard', sq); } catch { /* ignora */ }
       }
 
       // ── TRANSIZIONE DIFFERITA ──
@@ -210,7 +210,7 @@ async function performTransition(guildId, targetIndex, reason) {
           console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
           sq2.pendingTransition = null;
           sq2.loadingFooter = null;
-          try { bridge.call('refreshDashboard', sq2); } catch { }
+          try { call('refreshDashboard', sq2); } catch { }
         }
       }, timeoutMs);
 
@@ -243,7 +243,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
     // ── STATS: nuova canzone avviata (transizione) ──
     try {
-      const stats = require('../database/stats');
+      const stats = (await import('../database/stats.js')).default;
       stats.incrementSongsStarted();
       stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
     } catch { }
@@ -257,22 +257,22 @@ async function performTransition(guildId, targetIndex, reason) {
 
     // Salva e aggiorna UI
     saveQueueState(guildId, sq);
-    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch { /* ignora */ }
+    try { call('refreshDashboard', sq, targetSong.requester); } catch { /* ignora */ }
 
     // Avvia ciclo preload + monitoraggio fine per la nuova canzone
-    bridge.call('onSongStart', guildId);
+    call('onSongStart', guildId);
 
     // Se era in pausa durante lo skip, riprendi automaticamente
     try {
-      await bridge.call('resumeIfPaused', sq, guildId, targetDeck);
-    } catch {
+      await call('resumeIfPaused', sq, guildId, targetDeck);
+    } catch (e) {
       console.warn('⚠️  [SKIP] Errore durante resumeIfPaused:', e.message);
     }
 
     console.log(`✅ [SKIP] ${reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${targetIndex}, deck=${targetDeck}, fade=${fadeEnabled})`);
     return true;
 
-  } catch {
+  } catch (e) {
     console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
     stateVersion.incrementVersion('skip_error', { reason, error: e.message });
     // Cleanup crossfade flags solo in caso di errore
@@ -307,7 +307,7 @@ async function skipNext(guildId) {
 
   // Loop → riavvia canzone corrente
   if (sq.loopEnabled) {
-    await bridge.call('restartCurrentSong', guildId);
+    await call('restartCurrentSong', guildId);
     return true;
   }
 
@@ -359,11 +359,11 @@ async function autoSkip(guildId) {
   if (!sq) return false;
 
   // ── STATS: canzone completata (fine naturale) ──
-  try { require('../database/stats').incrementSongsCompleted(); } catch { }
+  try { (await import('../database/stats.js')).default.incrementSongsCompleted(); } catch { }
 
   // Loop → riavvia canzone corrente
   if (sq.loopEnabled) {
-    await bridge.call('restartCurrentSong', guildId);
+    await call('restartCurrentSong', guildId);
     return true;
   }
 
@@ -385,11 +385,11 @@ async function endQueue(guildId) {
   const sq = queue.get(guildId);
   if (!sq) return;
 
-  bridge.call('clearAllTimers', guildId);
+  call('clearAllTimers', guildId);
 
   // ── STATS: ferma timer ascolto e salva ──
   try {
-    const stats = require('../database/stats');
+    const stats = (await import('../database/stats.js')).default;
     stats.flushGuildAndSave(guildId);
   } catch { }
 
@@ -425,7 +425,8 @@ async function endQueue(guildId) {
   try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { /* ignora */ }
 
   saveQueueState(guildId, sq);
-  await require('../ui').updateDashboardToFinished(sq, lastSong);
+  const uiModule = await import('../ui/index.js');
+  await uiModule.default.updateDashboardToFinished(sq, lastSong);
 
   console.log(`🏁 [QUEUE-END] Coda terminata${lastSong ? ' (replay: ' + sanitizeTitle(lastSong.title) + ')' : ''}`);
 }
@@ -469,7 +470,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     // Il deck target ha caricato audio di una canzone non più in coda: invalida il binding.
     bindDeckSong(sq, pt.targetDeck, null, null);
     sq.loadingFooter = null;
-    try { bridge.call('refreshDashboard', sq); } catch { }
+    try { call('refreshDashboard', sq); } catch { }
     return;
   }
 
@@ -488,7 +489,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
         sq.mixer.skipTo(pt.targetDeck);
         console.log(`⚡ [SKIP] → deck ${pt.targetDeck} (${pt.reason}, deferred)`);
       }
-    } catch {
+    } catch (e) {
       console.error('❌ [SKIP] Errore comando pending transition:', e.message);
       sq.isCrossfading = false;
       sq.crossfadeStartTime = null;
@@ -511,7 +512,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   bindDeckSong(sq, (pt.targetDeck === 'A' ? 'B' : 'A'), null, null);
 
   try {
-    const stats = require('../database/stats');
+    const stats = (await import('../database/stats.js')).default;
     stats.incrementSongsStarted();
     stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
   } catch { }
@@ -523,12 +524,12 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   });
 
   saveQueueState(guildId, sq);
-  try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch { }
+  try { call('refreshDashboard', sq, targetSong.requester); } catch { }
 
-  bridge.call('onSongStart', guildId);
+  call('onSongStart', guildId);
 
   try {
-    await bridge.call('resumeIfPaused', sq, guildId, pt.targetDeck);
+    await call('resumeIfPaused', sq, guildId, pt.targetDeck);
   } catch { }
 
   console.log(`✅ [SKIP] ${pt.reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${pt.targetIndex}, deck=${pt.targetDeck}, fade=${pt.fadeEnabled}, deferred)`);
@@ -536,12 +537,12 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
 
 // ─── Bridge registrations ───────────────────────────────────
 
-bridge.register('autoSkip', autoSkip);
-bridge.register('endQueue', endQueue);
-bridge.register('hasSkipInProgress', hasSkipInProgress);
-bridge.register('completePendingTransition', completePendingTransition);
+register('autoSkip', autoSkip);
+register('endQueue', endQueue);
+register('hasSkipInProgress', hasSkipInProgress);
+register('completePendingTransition', completePendingTransition);
 
-module.exports = {
+export {
   skipNext,
   skipPrev,
   skipToIndex,

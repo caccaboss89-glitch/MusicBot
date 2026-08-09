@@ -3,10 +3,10 @@
  * Supporta playlist multiple per utente con migrazione automatica dal formato legacy
  */
 
-const fs = require('fs');
-const { PLAYLIST_FILE } = require('../../config');
-const { safeJSONParse } = require('../utils/sanitize');
-const { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } = require('../../config');
+import fs from 'fs';
+import { PLAYLIST_FILE } from '../../config/index.js';
+import { safeJSONParse } from '../utils/sanitize.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
 
 // ─── Cache singleton per evitare race condition read-modify-write ──────
 let _dbCache = null;
@@ -58,7 +58,7 @@ function _flushToFile() {
     fs.writeFileSync(tmpFile, JSON.stringify(_dbCache, null, 2));
     fs.renameSync(tmpFile, PLAYLIST_FILE);
     _dbDirty = false;
-  } catch {
+  } catch (e) {
     console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
   }
 }
@@ -173,7 +173,7 @@ function validatePlaylistName(name) {
   return { valid: true };
 }
 
-module.exports = {
+export {
   loadDatabase,
   saveDatabase,
   flushDatabaseSync,

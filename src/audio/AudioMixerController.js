@@ -2,13 +2,13 @@
  * Controller per il mixer audio Rust (integrazione sidecar)
  */
 
-const { spawn } = require('child_process');
-const readline = require('readline');
-const path = require('path');
-const fs = require('fs');
-const { ROOT_DIR, RUST_ENGINE_PATH, resolveYtDlpProxyUrl, resolveYtDlpCookieBrowser, resolveYtDlpExtractorArgs } = require('../../config');
-const { CROSSFADE_DURATION_MS, MIN_CROSSFADE_MS, RESTART_COOLDOWN_MS } = require('../../config');
-const { getNextMixerGeneration } = require('../state/globals');
+import { spawn } from 'child_process';
+import readline from 'readline';
+import path from 'path';
+import fs from 'fs';
+import { ROOT_DIR, RUST_ENGINE_PATH, resolveYtDlpProxyUrl, resolveYtDlpCookieBrowser, resolveYtDlpExtractorArgs } from '../../config/index.js';
+import { CROSSFADE_DURATION_MS, MIN_CROSSFADE_MS, RESTART_COOLDOWN_MS } from '../../config/index.js';
+import { getNextMixerGeneration } from '../state/globals.js';
 
 /**
  * Controller per il processo Rust del mixer audio
@@ -70,7 +70,7 @@ class AudioMixerController {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: env
       });
-    } catch {
+    } catch (e) {
       console.error(`❌ [RUST] Impossibile avviare processo: ${e.message}`);
       this.isAlive = false;
       return;
@@ -110,7 +110,7 @@ class AudioMixerController {
 
       try {
         let log = null;
-        try { log = JSON.parse(line); } catch {
+        try { log = JSON.parse(line); } catch (e) {
           // ignora le righe non JSON ma conserva un minimo di debug
         }
         if (!log) return;
@@ -225,7 +225,7 @@ class AudioMixerController {
     try {
       this.process.stdin.write(JSON.stringify(cmd) + '\n');
       return true;
-    } catch {
+    } catch (e) {
       console.error('❌ [MIXER] Errore invio comando:', e.message);
       this.isAlive = false;
       return false;
@@ -293,4 +293,4 @@ class AudioMixerController {
   needsRestart() { return !this.isAlive || this.stdoutClosed || this.process === null; }
 }
 
-module.exports = AudioMixerController;
+export default AudioMixerController;

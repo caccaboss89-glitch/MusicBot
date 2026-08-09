@@ -3,15 +3,15 @@
  * Estratti da interaction.js per modularità e crash-independence.
  */
 
-const { MessageFlags } = require('discord.js');
-const { loadDatabase, saveDatabase, getUserData, validatePlaylistName } = require('../database/playlists');
-const { generateSearchResultsView, createDashboardComponents } = require('../ui');
-const { getVideoInfo } = require('../utils/youtube');
-const { clearFinishedQueue } = require('../queue/QueueManager');
-const { saveQueueState } = require('../queue/persistence');
-const { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER } = require('../../config');
-const { activeSearches } = require('./playlistHandlers');
-const audio = require('../audio');
+import { MessageFlags } from 'discord.js';
+import { loadDatabase, saveDatabase, getUserData, validatePlaylistName } from '../database/playlists.js';
+import { generateSearchResultsView, createDashboardComponents } from '../ui/index.js';
+import { getVideoInfo } from '../utils/youtube.js';
+import { clearFinishedQueue } from '../queue/QueueManager.js';
+import { saveQueueState } from '../queue/persistence.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER } from '../../config/index.js';
+import { activeSearches } from './playlistHandlers.js';
+import * as audio from '../audio/index.js';
 
 /**
  * Gestisce tutte le submission dei modal.
@@ -27,7 +27,7 @@ async function handleModal(interaction, guildId, deps) {
       if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
       activeSearches.set(`${interaction.user.id}_server_`, query);
       return await interaction.editReply(generateSearchResultsView('server', interaction.user.id, query, 0));
-    } catch {
+    } catch (e) {
       console.error('❌ [MODAL_SEARCH_SERVER] Errore:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
@@ -42,7 +42,7 @@ async function handleModal(interaction, guildId, deps) {
       if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
       activeSearches.set(`${interaction.user.id}_likes_${plName}`, query);
       return await interaction.editReply(generateSearchResultsView('likes', interaction.user.id, query, 0, plName));
-    } catch {
+    } catch (e) {
       console.error('❌ [MODAL_SEARCH_LIKES] Errore:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
@@ -69,7 +69,7 @@ async function handleModal(interaction, guildId, deps) {
       userData.activePlaylist = trimmedName;
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist **${trimmedName}** creata! Ora è la tua playlist attiva.`);
-    } catch {
+    } catch (e) {
       console.error('❌ [MODAL_CREATE_PLAYLIST] Errore:', e);
       return await interaction.editReply('❌ Errore durante la creazione della playlist.');
     }
@@ -98,7 +98,7 @@ async function handleModal(interaction, guildId, deps) {
       if (userData.activePlaylist === oldName) userData.activePlaylist = trimmedName;
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist rinominata: **${oldName}** → **${trimmedName}**`);
-    } catch {
+    } catch (e) {
       console.error('❌ [MODAL_RENAME_PLAYLIST] Errore:', e);
       return await interaction.editReply('❌ Errore durante la rinomina della playlist.');
     }
@@ -145,4 +145,4 @@ async function handleModal(interaction, guildId, deps) {
   } finally { serverQueue.isTaskRunning = false; }
 }
 
-module.exports = handleModal;
+export default handleModal;

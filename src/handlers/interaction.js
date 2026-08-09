@@ -1,18 +1,18 @@
-const { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
-const { interactionCooldowns } = require('../state/globals');
-const { audioOperationBarrier } = require('./AudioOperationBarrier');
-const audio = require('../audio');
-const { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong } = require('../queue/QueueManager');
-const { createDashboardComponents } = require('../ui');
-const { sanitizeTitle, areSameSong, safeParseInt, getYoutubeId } = require('../utils/sanitize');
-const { getVideoInfo } = require('../utils/youtube');
-const { loadDatabase } = require('../database/playlists');
-const { saveQueueState } = require('../queue/persistence');
-const { safeReply } = require('../utils/discord');
-const { MAX_QUEUE_SIZE } = require('../../config');
-const SkipManager = require('../audio/SkipManager');
-const { handlePlaylist } = require('./playlistHandlers');
-const handleModal = require('./modalHandlers');
+import { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
+import { interactionCooldowns } from '../state/globals.js';
+import { audioOperationBarrier } from './AudioOperationBarrier.js';
+import * as audio from '../audio/index.js';
+import { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong } from '../queue/QueueManager.js';
+import { createDashboardComponents } from '../ui/index.js';
+import { sanitizeTitle, areSameSong, safeParseInt, getYoutubeId } from '../utils/sanitize.js';
+import { getVideoInfo } from '../utils/youtube.js';
+import { loadDatabase } from '../database/playlists.js';
+import { saveQueueState } from '../queue/persistence.js';
+import { safeReply } from '../utils/discord.js';
+import { MAX_QUEUE_SIZE } from '../../config/index.js';
+import * as SkipManager from '../audio/SkipManager.js';
+import { handlePlaylist } from './playlistHandlers.js';
+import handleModal from './modalHandlers.js';
 
 // ─── Button Handlers ────────────────────────────────────────
 
@@ -80,7 +80,7 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
       }
       if (statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
     } else { if (statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => { }); }
-  } catch {
+  } catch (e) {
     console.error('Errore Mix:', e);
     if (statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => { });
   } finally { serverQueue.isTaskRunning = false; }
@@ -218,9 +218,9 @@ async function handleLyrics(interaction, serverQueue) {
 
   let lyrics = null;
   try {
-    const { getLyrics } = require('../utils/lyrics');
+    const { getLyrics } = await import('../utils/lyrics.js');
     lyrics = await getLyrics(song);
-  } catch {
+  } catch (e) {
     console.error('❌ [LYRICS] Errore recupero testo:', e.message);
   }
 
@@ -229,7 +229,7 @@ async function handleLyrics(interaction, serverQueue) {
     return;
   }
 
-  const { chunkLyrics } = require('../utils/lyrics');
+  const { chunkLyrics } = await import('../utils/lyrics.js');
   const header = `📜 **${sanitizeTitle(song.title)}**\n\n`;
   // Primo chunk include l'header: lascia margine per non superare i 2000 caratteri.
   const chunks = chunkLyrics(lyrics, 2000 - header.length - 10);
@@ -259,12 +259,12 @@ const BUTTON_HANDLERS = {
 
 // ─── Main Dispatcher ────────────────────────────────────────
 
-module.exports = function registerInteractionHandlers(client, deps) {
+export default function registerInteractionHandlers(client, deps) {
   client.on(Events.InteractionCreate, async interaction => {
     try {
       if (interaction.isChatInputCommand()) {
         let commands = {};
-        try { commands = require('../commands'); } catch { }
+        try { const commandsModule = await import('../commands/index.js'); commands = commandsModule.default || commandsModule; } catch { }
         const cmd = commands[interaction.commandName];
         if (cmd && typeof cmd.execute === 'function') {
           try { await cmd.execute(interaction, deps); } catch { console.error('Command execute error', e); }
@@ -323,4 +323,4 @@ module.exports = function registerInteractionHandlers(client, deps) {
       }
     } catch { console.error('Errore Handler:', e); }
   });
-};
+}

@@ -4,9 +4,13 @@
  * Flusso mensile (es. 1 luglio): push GitHub (stats+playlists+archivio) → archiviazione locale → reset stats.json
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const STATS_FILE = path.join(PROJECT_ROOT, 'data', 'stats.json');
@@ -65,11 +69,12 @@ function shouldArchiveMonthlyStats(now = new Date()) {
   return getRomeCalendarParts(now).day === 1;
 }
 
-function flushDataToDisk() {
+async function flushDataToDisk() {
   try {
-    require('../src/database/playlists').flushDatabaseSync();
+    const playlistsModule = await import('../src/database/playlists.js');
+    playlistsModule.flushDatabaseSync();
     console.log('💾 Playlist flush su disco completato');
-  } catch {
+  } catch (e) {
     console.warn('⚠️ Playlist flush fallito:', e.message);
   }
 }
@@ -115,16 +120,16 @@ function gitPushDataFiles(commitMsg) {
 }
 
 /** Copia stats.json in monthly-stats/ (locale; il push GitHub avviene prima del rollover). */
-function archiveMonthlyStats() {
+async function archiveMonthlyStats() {
   try {
     const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
     const statsData = JSON.parse(statsContent);
 
     try {
-      const { computeTopSongs } = require('../src/database/stats');
-      computeTopSongs(statsData, 5);
+      const statsModule = await import('../src/database/stats.js');
+      statsModule.computeTopSongs(statsData, 5);
       console.log('🏆 Top songs calcolate per backup locale');
-    } catch {
+    } catch (e) {
       console.warn('⚠️ Errore nel calcolo top songs:', e.message);
     }
 
@@ -140,7 +145,7 @@ function archiveMonthlyStats() {
     console.log(`📊 Archivio locale: ${backupFilePath}`);
 
     return { success: true, backupFilePath };
-  } catch {
+  } catch (e) {
     console.error('❌ Error archiving monthly stats:', e.message);
     return { success: false, error: e.message };
   }
@@ -155,13 +160,13 @@ function resetStatsFile() {
     fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
     console.log('🧹 stats.json resettato per il nuovo mese');
     return true;
-  } catch {
+  } catch (e) {
     console.error('❌ Error resetting stats file:', e.message);
     return false;
   }
 }
 
-function pushStats(forceArchive = false) {
+async function pushStats(forceArchive = false) {
   try {
     if (!fs.existsSync(STATS_FILE)) {
       console.log('❌ Stats file not found:', STATS_FILE);
@@ -178,7 +183,7 @@ function pushStats(forceArchive = false) {
     try {
       execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-    } catch {
+    } catch (e) {
       console.warn('⚠️ Git config may be already set:', e.message);
     }
 
@@ -187,7 +192,7 @@ function pushStats(forceArchive = false) {
       console.warn(`⚠️ Branch corrente: ${currentBranch} (non 'main'), procederò comunque`);
     }
 
-    flushDataToDisk();
+    await flushDataToDisk();
 
     const monthYear = new Date().toLocaleString('it-IT', { month: 'long', year: 'numeric', timeZone: ROME_TZ });
     const closedMonthLabel = getClosedMonthLabel();
@@ -205,7 +210,7 @@ function pushStats(forceArchive = false) {
     if (shouldArchive) {
       const closed = getClosedMonthArchivePaths();
       console.log(`📦 Archiviazione locale mese chiuso (Roma): ${closed.yearMonth}`);
-      const archiveResult = archiveMonthlyStats();
+      const archiveResult = await archiveMonthlyStats();
       if (!archiveResult.success) {
         console.error(`❌ Push ok ma archiviazione locale fallita: ${archiveResult.error}`);
         return false;
@@ -218,7 +223,7 @@ function pushStats(forceArchive = false) {
 
     return true;
 
-  } catch {
+  } catch (e) {
     console.error('❌ Error pushing stats:', e.message);
     if (e.stderr) console.error('Stderr:', e.stderr.toString());
     if (e.stdout) console.error('Stdout:', e.stdout.toString());
@@ -226,13 +231,13 @@ function pushStats(forceArchive = false) {
   }
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const forceArchive = process.argv.includes('--force') || process.argv.includes('--archive');
   if (forceArchive) {
     console.log('📦 Force archive mode enabled');
   }
-  const success = pushStats(forceArchive);
+  const success = await pushStats(forceArchive);
   process.exit(success ? 0 : 1);
 }
 
-module.exports = { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths, getClosedMonthLabel };
+export { pushStats, getRomeCalendarParts, getClosedMonthArchivePaths, getClosedMonthLabel };

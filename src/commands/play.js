@@ -1,20 +1,20 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { queue } = require('../state/globals');
-const { getVideoInfo } = require('../utils/youtube');
-const { saveQueueState } = require('../queue/persistence');
-const { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished } = require('../ui');
-const { cleanupOldMessages } = require('../utils/cleanup');
+import { SlashCommandBuilder } from 'discord.js';
+import { queue } from '../state/globals.js';
+import { getVideoInfo } from '../utils/youtube.js';
+import { saveQueueState } from '../queue/persistence.js';
+import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished } from '../ui/index.js';
+import { cleanupOldMessages } from '../utils/cleanup.js';
+import { MAX_QUEUE_SIZE } from '../../config/index.js';
+import { clearFinishedQueue } from '../queue/QueueManager.js';
+
 const _lastCleanupTime = new Map(); // guildId -> timestamp (debounce cleanup)
-const { MAX_QUEUE_SIZE } = require('../../config');
-const { clearFinishedQueue } = require('../queue/QueueManager');
 
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('play')
-    .setDescription('Avvia il player musicale')
-    .addStringOption(option => option.setName('cerca').setDescription('Titolo, Link o Playlist').setRequired(false)),
+const data = new SlashCommandBuilder()
+  .setName('play')
+  .setDescription('Avvia il player musicale')
+  .addStringOption(option => option.setName('cerca').setDescription('Titolo, Link o Playlist').setRequired(false));
 
-  async execute(interaction, deps) {
+async function execute(interaction, deps) {
     const { guild, member, channel } = interaction;
     if (!member.voice.channel) return interaction.reply({ content: '❌ Entra in vocale!', flags: 64 /* Ephemeral */ });
 
@@ -55,7 +55,7 @@ module.exports = {
             serverQueue.isTaskRunning = false;
             if (ok) return interaction.editReply('✅ Dashboard aperta.');
             return interaction.editReply('❌ Impossibile aprire la dashboard.');
-          } catch {
+          } catch (e) {
             serverQueue.isTaskRunning = false;
             return interaction.editReply('❌ Impossibile aprire la dashboard.');
           }
@@ -77,7 +77,7 @@ module.exports = {
           // la dashboard così il messaggio del player appare nel canale di testo.
           try {
             if (!serverQueue.dashboardMessage) {
-              try { await require('../ui').refreshDashboard(serverQueue); } catch { }
+              try { const uiModule = await import('../ui/index.js'); await uiModule.default.refreshDashboard(serverQueue); } catch { }
             }
           } catch { }
           serverQueue.isTaskRunning = false;
@@ -93,7 +93,7 @@ module.exports = {
             serverQueue.isTaskRunning = false;
             return interaction.editReply('✅ Dashboard (Coda terminata) aperta.');
           }
-        } catch {
+        } catch (e) {
           serverQueue.isTaskRunning = false;
           return interaction.editReply('❌ Impossibile aprire la dashboard.');
         }
@@ -123,7 +123,7 @@ module.exports = {
         try {
           await deps.playSong(guild.id, interaction);
           await interaction.editReply(serverQueue.sessionRestored ? '✅ **Sessione Ripristinata e Aggiornata!**' : '✅ Avvio riproduzione...');
-        } catch {
+        } catch (e) {
           console.error('Errore playSong:', e);
           try { await interaction.editReply('❌ Errore avvio riproduzione.'); } catch { }
         }
@@ -134,9 +134,10 @@ module.exports = {
         if (serverQueue.songs.length === 2) deps.preloadNextSongs(guild.id);
       }
     } finally { if (serverQueue) serverQueue.isTaskRunning = false; }
-  },
+}
 
-  cleanupLastCleanupTime(guildId) {
-    _lastCleanupTime.delete(guildId);
-  }
-};
+function cleanupLastCleanupTime(guildId) {
+  _lastCleanupTime.delete(guildId);
+}
+
+export { data, execute, cleanupLastCleanupTime };

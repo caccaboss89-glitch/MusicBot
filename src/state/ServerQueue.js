@@ -5,7 +5,7 @@
  * che tutte le proprietà siano dichiarate esplicitamente.
  */
 
-const { createAudioPlayer } = require('@discordjs/voice');
+import { createAudioPlayer } from '@discordjs/voice';
 
 class ServerQueue {
   /**
@@ -80,4 +80,4 @@ class ServerQueue {
   }
 }
 
-module.exports = ServerQueue;
+export default ServerQueue;

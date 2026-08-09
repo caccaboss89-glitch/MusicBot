@@ -6,15 +6,15 @@
 
 // ─── CODA PER GUILD ───────────────────────────────────────
 // Map<guildId, serverQueue>
-const queue = new Map();
+export const queue = new Map();
 
 // ─── TIMER DISCONNESSIONE ───────────────────────────────────
 // Map<guildId, timeoutId> - Timer per disconnettere il bot quando resta solo
-const disconnectTimers = new Map();
+export const disconnectTimers = new Map();
 
 // --- COOLDOWN INTERAZIONI ---
 // Map<guildId, Map<interactionId, timestamp>> - Previene spam di bottoni
-const interactionCooldowns = new Map();
+export const interactionCooldowns = new Map();
 
 // NOTA: I pending skip sono gestiti internamente da SkipManager v3 (skipLock).
 
@@ -26,7 +26,7 @@ let globalMixerGeneration = 0;
  * Incrementa e restituisce la nuova generazione mixer
  * @returns {number} Nuova generazione
  */
-function getNextMixerGeneration() {
+export function getNextMixerGeneration() {
   return ++globalMixerGeneration;
 }
 
@@ -37,12 +37,3 @@ setInterval(() => {
     if (now - timestamp > 60000) interactionCooldowns.delete(key);
   }
 }, 5 * 60 * 1000);
-
-module.exports = {
-  // Map principali
-  queue,
-  disconnectTimers,
-  interactionCooldowns,
-  // Funzione generazione mixer
-  getNextMixerGeneration
-};

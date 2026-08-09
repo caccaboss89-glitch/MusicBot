@@ -3,23 +3,27 @@
  * Tutti i percorsi sono relativi alla root del progetto
  */
 
-const path = require('path');
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Root del progetto (una directory sopra config/)
-const ROOT_DIR = path.join(__dirname, '..');
-const IS_WINDOWS = process.platform === 'win32';
-const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
-const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
-const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:player_client=web,android,ios,mweb';
-const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+export const ROOT_DIR = path.join(__dirname, '..');
+export const IS_WINDOWS = process.platform === 'win32';
+export const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
+export const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
+export const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:player_client=web,android,ios,mweb';
+export const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-function isEnvDisabled(value) {
+export function isEnvDisabled(value) {
   if (!value || !String(value).trim()) return true;
   const v = String(value).trim().toLowerCase();
   return v === 'none' || v === 'off' || v === 'false' || v === '0' || v === 'no';
 }
 
-function resolveYtDlpProxyUrl() {
+export function resolveYtDlpProxyUrl() {
   if (process.env.YTDLP_PROXY_URL !== undefined) {
     const raw = process.env.YTDLP_PROXY_URL.trim();
     return isEnvDisabled(raw) ? '' : raw;
@@ -27,7 +31,7 @@ function resolveYtDlpProxyUrl() {
   return DEFAULT_YTDLP_PROXY_URL;
 }
 
-function resolveYtDlpCookieBrowser() {
+export function resolveYtDlpCookieBrowser() {
   if (process.env.YTDLP_COOKIE_BROWSER !== undefined) {
     const raw = process.env.YTDLP_COOKIE_BROWSER.trim();
     return isEnvDisabled(raw) ? null : raw;
@@ -37,18 +41,18 @@ function resolveYtDlpCookieBrowser() {
 }
 
 // --- PERCORSI FILE DATI ---
-const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
-const QUEUE_FILE = path.join(ROOT_DIR, 'data', 'queue_backup.json');
-const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
+export const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
+export const QUEUE_FILE = path.join(ROOT_DIR, 'data', 'queue_backup.json');
+export const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
 
 // --- PERCORSI BINARI ---
-const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Binario precompilato yt-dlp (ARM64 Linux)
-const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
-const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
+export const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Binario precompilato yt-dlp (ARM64 Linux)
+export const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
+export const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
 
 // --- PERCORSI DIRECTORY ---
-const LOCAL_TEMP_DIR = path.join(ROOT_DIR, 'temp');
-const DATA_DIR = path.join(ROOT_DIR, 'data');
+export const LOCAL_TEMP_DIR = path.join(ROOT_DIR, 'temp');
+export const DATA_DIR = path.join(ROOT_DIR, 'data');
 
 // --- UTILITY FUNZIONE PER YT-DLP ---
 /**
@@ -57,14 +61,14 @@ const DATA_DIR = path.join(ROOT_DIR, 'data');
  * @param {string} args - Gli argomenti aggiuntivi da passare a yt-dlp
  * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
  */
-function resolveYtDlpExtractorArgs() {
+export function resolveYtDlpExtractorArgs() {
   const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
   return (rawExtractorArgs && rawExtractorArgs.trim())
     ? rawExtractorArgs.trim()
     : DEFAULT_YTDLP_EXTRACTOR_ARGS;
 }
 
-function getYtDlpCommand(additionalArgs = []) {
+export function getYtDlpCommand(additionalArgs = []) {
   const proxyUrl = resolveYtDlpProxyUrl();
   const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];
   const cookieBrowser = resolveYtDlpCookieBrowser();
@@ -80,26 +84,3 @@ function getYtDlpCommand(additionalArgs = []) {
     args: ['-m', 'yt_dlp', ...proxyArgs, ...cookiesFromBrowserArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
   };
 }
-
-module.exports = {
-  // Directory
-  ROOT_DIR,
-  LOCAL_TEMP_DIR,
-  DATA_DIR,
-
-  // File
-  PLAYLIST_FILE,
-  QUEUE_FILE,
-  STATS_FILE,
-
-  // Binari
-  YT_DLP_PATH,
-  RUST_ENGINE_PATH,
-
-  // Funzioni
-  getYtDlpCommand,
-  resolveYtDlpProxyUrl,
-  resolveYtDlpCookieBrowser,
-  resolveYtDlpExtractorArgs,
-  isEnvDisabled
-};

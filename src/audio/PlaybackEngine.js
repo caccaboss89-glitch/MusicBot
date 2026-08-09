@@ -11,11 +11,11 @@
  * NON usa timer legati alla fine della canzone. Usa solo l'evento 'end' dal Rust.
  */
 
-const { queue } = require('../state/globals');
-const { sanitizeTitle, areSameSong } = require('../utils/sanitize');
-const { CROSSFADE_DURATION_MS } = require('../../config');
-const { isMixerAlive } = require('../queue/QueueManager');
-const bridge = require('./audio-bridge');
+import { queue } from '../state/globals.js';
+import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
+import { CROSSFADE_DURATION_MS } from '../../config/index.js';
+import { isMixerAlive } from '../queue/QueueManager.js';
+import { call, register } from './audio-bridge.js';
 
 const PRELOAD_DELAY_MS = 5000; // Precarica 5 secondi dopo l'inizio della canzone (per dare tempo ai chunk audio iniziali)
 const PRELOAD_RETRY_MIN_DELAY_MS = 250;
@@ -115,7 +115,7 @@ function onSongStart(guildId) {
  * Invalida il preload solo se la coda è effettivamente cambiata (playIndex, songs array),
  * non se è cambiato qualcosa di generico come buffer ready o loop mode.
  */
-function preloadNextSong(guildId) {
+async function preloadNextSong(guildId) {
   const sq = queue.get(guildId);
   if (!sq || !isMixerAlive(sq)) return;
 
@@ -177,13 +177,13 @@ function preloadNextSong(guildId) {
 
     // Carica la canzone (autoplay=false: il deck resta in pausa, pronto per skip/crossfade)
     // SERIALIZZA il comando load attraverso command queue
-    const { commandQueue } = require('./CommandQueue');
+    const { commandQueue } = await import('./CommandQueue.js');
     commandQueue.enqueue(
       guildId,
       'preload_load',
       () => { sq.mixer.load(nextSong.url, nextDeck, false); },
       { timeout: 8000, retries: 1 }
-    ).then(() => {
+    ).then(async () => {
       // Invalida SOLO se la coda è stata modificata (skip, clear, add songs)
       // NON invalida se la versione è cambiata per motivi indipendenti (buffer ready, etc)
       const playIndexAfter = sq.playIndex || 0;
@@ -201,7 +201,7 @@ function preloadNextSong(guildId) {
       sq.nextDeckTarget = nextDeck;
       // Lega il deck precaricato alla canzone "successiva": è la fonte di verità
       // usata da auto-gapless/crossfade per conoscere l'indice reale.
-      try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch { }
+      try { (await import('../queue/QueueManager.js')).bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch { }
       console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
     }).catch(err => {
       console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
@@ -209,7 +209,7 @@ function preloadNextSong(guildId) {
       sq.nextDeckTarget = null;
     });
 
-  } catch {
+  } catch (e) {
     console.error(`❌ [PRELOAD] Errore: ${e.message}`);
   }
 }
@@ -254,10 +254,10 @@ async function handleTrackEnd(guildId) {
   // Procedi con auto-skip se c'è una canzone successiva
   if (hasNextSong(sq)) {
     console.log('⏭️  [TRACK-END] Fine naturale, skip automatico');
-    await bridge.call('autoSkip', guildId);
+    await call('autoSkip', guildId);
   } else {
     console.log('🏁 [TRACK-END] Ultima canzone terminata, fine coda');
-    await bridge.call('endQueue', guildId);
+    await call('endQueue', guildId);
   }
 }
 
@@ -270,12 +270,12 @@ function handleDeckChanged(guildId, newDeck) {
 }
 // ─── Bridge registrations ───────────────────────────────────
 
-bridge.register('onSongStart', onSongStart);
-bridge.register('clearAllTimers', clearAllTimers);
-bridge.register('preloadNextSong', preloadNextSong);
+register('onSongStart', onSongStart);
+register('clearAllTimers', clearAllTimers);
+register('preloadNextSong', preloadNextSong);
 // ─── Exports ────────────────────────────────────────────────
 
-module.exports = {
+export {
   onSongStart,
   preloadNextSong,
   handleTrackEnd,

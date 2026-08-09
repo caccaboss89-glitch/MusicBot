@@ -3,8 +3,8 @@
  * Previene race conditions mandando 1 comando alla volta.
  */
 
-const { queue } = require('../state/globals');
-const { stateVersionManager } = require('../state/StateVersion');
+import { queue } from '../state/globals.js';
+import { stateVersionManager } from '../state/StateVersion.js';
 
 class CommandQueue {
   constructor() {
@@ -157,7 +157,7 @@ class CommandQueue {
           executionTimeMs: executionTime
         });
 
-      } catch {
+      } catch (e) {
         console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, error.message);
 
         // Retry logic con backoff esponenziale
@@ -254,7 +254,7 @@ class CommandQueue {
 // Singleton instance
 const commandQueue = new CommandQueue();
 
-module.exports = {
+export {
   CommandQueue,
   commandQueue
 };

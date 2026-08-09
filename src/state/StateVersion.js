@@ -194,8 +194,9 @@ class StateVersionManager {
   }
 }
 
-module.exports = {
+export {
   QueueStateVersion,
-  StateVersionManager,
-  stateVersionManager: new StateVersionManager()
+  StateVersionManager
 };
+
+export const stateVersionManager = new StateVersionManager();

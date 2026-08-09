@@ -12,7 +12,7 @@
  * Se il titolo non include l'artista, usa YouTube oEmbed sul link del video.
  */
 
-const https = require('https');
+import https from 'https';
 
 const LRCLIB_HOST = 'lrclib.net';
 const YOUTUBE_HOST = 'www.youtube.com';
@@ -260,4 +260,4 @@ function chunkLyrics(text, maxLen = 1900) {
   return chunks.length > 0 ? chunks : [String(text)];
 }
 
-module.exports = { getLyrics, chunkLyrics, cleanQuery, splitArtistTrack, resolveTrackInfo };
+export { getLyrics, chunkLyrics, cleanQuery, splitArtistTrack, resolveTrackInfo };

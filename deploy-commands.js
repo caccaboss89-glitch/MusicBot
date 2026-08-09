@@ -1,5 +1,5 @@
-require('dotenv').config();
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
+import 'dotenv/config';
+import { REST, Routes, SlashCommandBuilder } from 'discord.js';
 
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
@@ -23,7 +23,7 @@ const rest = new REST({ version: '10' }).setToken(token);
     console.log('🧹 Reimposto i comandi di Discord, mantenendo solo /play...');
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
     console.log('✅ Comando /play registrato.');
-  } catch {
+  } catch (error) {
     console.error(error);
   }
 })();

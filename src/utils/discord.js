@@ -15,11 +15,11 @@ async function safeReply(interaction, data) {
     } else {
       await interaction.reply(data);
     }
-  } catch {
+  } catch (e) {
     // Ignora errori di interazione scaduta o già gestita
   }
 }
 
-module.exports = {
+export {
   safeReply
 };

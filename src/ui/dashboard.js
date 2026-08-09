@@ -3,8 +3,8 @@
  * Funzioni per la gestione della dashboard
  */
 
-const { createCurrentSongEmbed, createFinishedEmbed } = require('./embeds');
-const { createDashboardComponents } = require('./components');
+import { createCurrentSongEmbed, createFinishedEmbed } from './embeds.js';
+import { createDashboardComponents } from './components.js';
 
 /**
  * Tenta di recuperare il messaggio dashboard dal canale usando l'ID salvato
@@ -21,7 +21,7 @@ async function tryRestoreDashboardMessage(serverQueue) {
       serverQueue.dashboardMessage = message;
       return message;
     }
-  } catch {
+  } catch (e) {
     // Messaggio non trovato (cancellato o scaduto)
     console.warn(`⚠️ [DASHBOARD] Messaggio salvato non trovato (id=${serverQueue.dashboardMessageId}):`, e.message);
     serverQueue.dashboardMessageId = null;
@@ -81,7 +81,7 @@ async function updateDashboard(serverQueue, embed, components) {
           } else {
             await serverQueue.dashboardMessage.edit({ embeds: [dataToUse.embed], components: dataToUse.components });
           }
-        } catch {
+        } catch (e) {
           // Se qualcosa fallisce, tenta di reinviare la dashboard
           try {
             serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
@@ -93,7 +93,7 @@ async function updateDashboard(serverQueue, embed, components) {
         serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
       }
       state.lastUpdate = Date.now();
-    } catch {
+    } catch (e) {
       console.error('⚠️ [DASHBOARD] Rate Limit/Error:', e.message);
       state.isUpdating = false;
       return false;
@@ -184,13 +184,13 @@ async function refreshDashboard(serverQueue, userId = null) {
     const embed = createCurrentSongEmbed(serverQueue);
     const components = createDashboardComponents(serverQueue, userId);
     return await updateDashboard(serverQueue, embed, components);
-  } catch {
+  } catch (e) {
     console.error('⚠️ [DASHBOARD] refreshDashboard error:', e);
     return false;
   }
 }
 
-module.exports = {
+export {
   updateDashboard,
   updateDashboardToFinished,
   // Re-export per comodità

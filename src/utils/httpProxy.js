@@ -3,7 +3,7 @@
  * Usare solo per endpoint YouTube/bloccati, non per Discord API.
  */
 
-const { SocksProxyAgent } = require('socks-proxy-agent');
+import { SocksProxyAgent } from 'socks-proxy-agent.js';
 
 const DEFAULT_PROXY = process.platform === 'win32' ? '' : 'socks5://127.0.0.1:5040';
 
@@ -31,7 +31,7 @@ function getYoutubeSocksAgent() {
   return new SocksProxyAgent(normalized);
 }
 
-module.exports = {
+export {
   getYoutubeProxyUrl,
   getYoutubeSocksAgent
 };

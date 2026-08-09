@@ -1,10 +1,10 @@
-const { queue } = require('../state/globals');
-const ServerQueue = require('../state/ServerQueue');
-const { joinVoiceChannel, entersState, VoiceConnectionStatus, createAudioPlayer } = require('@discordjs/voice');
-const { scheduleDisconnectIfAlone, cancelScheduledDisconnect } = require('../queue/QueueManager');
-const { loadQueueBackup } = require('../queue/persistence');
-const { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } = require('../../config');
-const { safeReply } = require('../utils/discord');
+import { queue } from '../state/globals.js';
+import ServerQueue from '../state/ServerQueue.js';
+import { joinVoiceChannel, entersState, VoiceConnectionStatus, createAudioPlayer } from '@discordjs/voice';
+import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../queue/QueueManager.js';
+import { loadQueueBackup } from '../queue/persistence.js';
+import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } from '../../config/index.js';
+import { safeReply } from '../utils/discord.js';
 
 async function ensureBotConnection(interaction) {
   if (!interaction || !interaction.guildId) return null;
@@ -36,7 +36,7 @@ async function ensureBotConnection(interaction) {
         serverQueue.currentDeckLoaded = null;
         serverQueue.sessionRestored = true;
       }
-    } catch { console.error('Errore caricamento backup coda:', e); }
+    } catch (e) { console.error('Errore caricamento backup coda:', e); }
   } else {
     if (!serverQueue.player || typeof serverQueue.player.play !== 'function') serverQueue.player = createAudioPlayer();
     serverQueue.textChannel = serverQueue.textChannel || interaction.channel || null;
@@ -73,7 +73,7 @@ async function connectToVoice(serverQueue, interaction) {
           serverQueue._isReconnecting = false;
           return true;
         }
-      } catch {
+      } catch (e) {
         // fallthrough: ricrea la connessione
       }
       // Connessione esistente obsoleta o nel canale sbagliato — rimuovi listener PRIMA di distruggere
@@ -168,7 +168,7 @@ async function connectToVoice(serverQueue, interaction) {
     try { serverQueue.connection.subscribe(serverQueue.player); } catch { }
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
-    } catch {
+    } catch (e) {
       console.error('Connessione vocale fallita:', e);
       // Rimuovi listener PRIMA di distruggere per evitare cascade di cleanup
       try { connection.off('stateChange', serverQueue._connStateHandler); } catch { }
@@ -183,11 +183,11 @@ async function connectToVoice(serverQueue, interaction) {
     }
     serverQueue._isReconnecting = false;
     return true;
-  } catch {
+  } catch (e) {
     console.error('Errore connectToVoice:', e);
     if (serverQueue) serverQueue._isReconnecting = false;
     return false;
   }
 }
 
-module.exports = { ensureBotConnection, connectToVoice };
+export { ensureBotConnection, connectToVoice };

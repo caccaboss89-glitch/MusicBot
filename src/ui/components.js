@@ -3,19 +3,19 @@
  * Funzioni per la creazione di componenti Discord (bottoni, menu)
  */
 
-const {
+import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
-  MessageFlags
-} = require('discord.js');
-const { EmbedBuilder } = require('discord.js');
-const { sanitizeTitle } = require('../utils/sanitize');
-const { areSameSong } = require('../utils/sanitize');
-const { getCurrentSong, getPlayingIndex, isValidSong } = require('../queue/QueueManager');
-const { loadDatabase, getUserData, getUserPlaylistNames } = require('../database/playlists');
-const { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } = require('../../config');
+  MessageFlags,
+  EmbedBuilder
+} from 'discord.js';
+import { sanitizeTitle } from '../utils/sanitize.js';
+import { areSameSong } from '../utils/sanitize.js';
+import { getCurrentSong, getPlayingIndex, isValidSong } from '../queue/QueueManager.js';
+import { loadDatabase, getUserData, getUserPlaylistNames } from '../database/playlists.js';
+import { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } from '../../config/index.js';
 
 /**
  * Genera la vista di una playlist con paginazione
@@ -339,7 +339,7 @@ function generateSearchResultsView(type, userId, query, page, playlistName = nul
   return { embeds: [embed], components, flags: MessageFlags.Ephemeral };
 }
 
-module.exports = {
+export {
   generatePlaylistView,
   generateSearchResultsView,
   createDashboardComponents

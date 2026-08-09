@@ -2,10 +2,5 @@
  * Export centralizzato delle configurazioni
  */
 
-const paths = require('./paths');
-const constants = require('./constants');
-
-module.exports = {
-  ...paths,
-  ...constants
-};
+export * from './paths.js';
+export * from './constants.js';

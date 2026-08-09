@@ -1,7 +1,7 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+import 'dotenv/config';
+import { Client, GatewayIntentBits } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
 
 // ─── GLOBAL ERROR HANDLERS ────────────────────────────────────
 const logsDir = './logs';
@@ -17,24 +17,30 @@ process.on('unhandledRejection', (reason) => {
   } catch { /* ignore */ }
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   console.error('🚨 [UNCAUGHT-EXCEPTION] Eccezione non catturata:');
   console.error('Error:', error.message || String(error));
   console.error('Stack:', error.stack || 'N/A');
 
   // Salva lo stato prima di terminare
   try {
-    const { queue } = require('./src/state/globals');
-    const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
-    flushPendingSaves();
-    queue.forEach((sq, guildId) => {
-      try { saveQueueStateImmediate(guildId, sq); } catch { /* ignore */ }
+    const globalsModule = await import('./src/state/globals.js');
+    const persistenceModule = await import('./src/queue/persistence.js');
+    persistenceModule.flushPendingSaves();
+    globalsModule.queue.forEach((sq, guildId) => {
+      try { persistenceModule.saveQueueStateImmediate(guildId, sq); } catch { /* ignore */ }
     });
   } catch { /* ignore */ }
 
   // Flush dei dati importanti
-  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch { /* ignore */ }
-  try { require('./src/database/playlists').flushDatabaseSync(); } catch { /* ignore */ }
+  try {
+    const statsModule = await import('./src/database/stats.js');
+    statsModule.flushAllGuildsAndSave();
+  } catch { /* ignore */ }
+  try {
+    const playlistsModule = await import('./src/database/playlists.js');
+    playlistsModule.flushDatabaseSync();
+  } catch { /* ignore */ }
 
   try {
     const logEntry = `[${new Date().toISOString()}] UNCAUGHT-EXCEPTION: ${error.message}\n${error.stack}\n\n`;
@@ -69,10 +75,11 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 
 const token = process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
 
-const connectionHelpers = require('./src/bootstrap/connection');
-const audio = require('./src/audio');
+const connectionHelpers = await import('./src/bootstrap/connection.js');
+const audio = await import('./src/audio/index.js');
 
-require('./src/handlers/interaction')(client, {
+const interactionHandler = await import('./src/handlers/interaction.js');
+interactionHandler.default(client, {
   ensureBotConnection: connectionHelpers.ensureBotConnection,
   connectToVoice: connectionHelpers.connectToVoice,
   playSong: audio.playSong,
@@ -82,17 +89,24 @@ require('./src/handlers/interaction')(client, {
 });
 
 // Gestore dello stato vocale: gestisce timer di disconnessione e reazioni
-require('./src/handlers/voiceState')(client);
+const voiceStateHandler = await import('./src/handlers/voiceState.js');
+voiceStateHandler.default(client);
 
 // ─── CLEANUP HANDLER ───────────────────────────────────────
 // Pulisce lo stato di versioning, command queue, audio barrier, e timers quando bot lascia una guild
-const { stateVersionManager } = require('./src/state/StateVersion');
-const { commandQueue } = require('./src/audio/CommandQueue');
-const { audioOperationBarrier } = require('./src/handlers/AudioOperationBarrier');
-const PlaybackEngine = require('./src/audio/PlaybackEngine');
-const SkipManager = require('./src/audio/SkipManager');
+const StateVersionModule = await import('./src/state/StateVersion.js');
+const CommandQueueModule = await import('./src/audio/CommandQueue.js');
+const AudioOperationBarrierModule = await import('./src/handlers/AudioOperationBarrier.js');
+const PlaybackEngineModule = await import('./src/audio/PlaybackEngine.js');
+const SkipManagerModule = await import('./src/audio/SkipManager.js');
 
-client.on('guildDelete', (guild) => {
+const { stateVersionManager } = StateVersionModule;
+const { commandQueue } = CommandQueueModule;
+const { audioOperationBarrier } = AudioOperationBarrierModule;
+const PlaybackEngine = PlaybackEngineModule.default;
+const SkipManager = SkipManagerModule.default;
+
+client.on('guildDelete', async (guild) => {
   const guildId = guild.id;
   try {
     console.log(`🚀 [CLEANUP] Bot left guild ${guildId} - cleaning up state`);
@@ -110,22 +124,27 @@ client.on('guildDelete', (guild) => {
     audioOperationBarrier.cleanup(guildId);
 
     // Pulisci persistence timers
-    require('./src/queue/persistence').cleanupGuild(guildId);
+    const persistenceModule = await import('./src/queue/persistence.js');
+    persistenceModule.cleanupGuild(guildId);
 
     // Pulisci playback state (lastMixerCrashTime)
-    require('./src/audio/playback').cleanupPlaybackState(guildId);
+    const playbackModule = await import('./src/audio/playback.js');
+    playbackModule.cleanupPlaybackState(guildId);
 
     // Pulisci stream error tracking
-    require('./src/audio').clearStreamErrors(guildId);
+    const audioIndexModule = await import('./src/audio/index.js');
+    audioIndexModule.clearStreamErrors(guildId);
 
     // Pulisci skip throttle state
     SkipManager.cleanupSkipState(guildId);
 
     // Pulisci cleanup debounce (play.js)
-    require('./src/commands/play').cleanupLastCleanupTime(guildId);
+    const playCommandModule = await import('./src/commands/play.js');
+    playCommandModule.cleanupLastCleanupTime(guildId);
 
     // Pulisci dashboard timer, disconnect timer, cooldowns e rimuovi dalla queue
-    const globals = require('./src/state/globals');
+    const globalsModule = await import('./src/state/globals.js');
+    const globals = globalsModule;
     const sq = globals.queue.get(guildId);
     if (sq && sq.dashboardState && sq.dashboardState.timer) {
       clearTimeout(sq.dashboardState.timer);
@@ -154,15 +173,15 @@ client.on('guildDelete', (guild) => {
   }
 });
 
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
   console.log(`Logged in as ${client.user?.tag}`);
 
   // ── AUTO-PUSH STATS (Daily check per garantire push il 1° del mese) ────────────────────────────────────────────
   // Controlla ogni minuto se deve pushare i stats (il 1° del mese dalle 10:00 in poi)
-  const { pushStats } = require('./scripts/push-stats');
-  const { flushAllGuildsAndSave } = require('./src/database/stats');
+  const { pushStats } = await import('./scripts/push-stats.js');
+  const { flushAllGuildsAndSave } = await import('./src/database/stats.js');
 
-  const tryPushStats = () => {
+  const tryPushStats = async () => {
     try {
       const now = new Date();
       // Roma time: estrai componenti via Intl.DateTimeFormat (robusto, non dipende dal formato locale)
@@ -186,13 +205,14 @@ client.once('clientReady', () => {
         // Flush eventuali dati in memoria su disco prima del push (altrimenti non include i listener attivi)
         try {
           flushAllGuildsAndSave();
-          require('./src/database/playlists').flushDatabaseSync();
+          const playlistsModule = await import('./src/database/playlists.js');
+          playlistsModule.flushDatabaseSync();
         } catch (flushErr) {
           console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
         }
 
         console.log('📤 [STATS-PUSH] Pushing stats del mese alle', `${String(romaParts.hour).padStart(2, '0')}:00`);
-        const success = pushStats(true);
+        const success = await pushStats(true);
         if (success) {
           pushState.lastPushDate = dateKey; // Segna che ha fatto push
           savePushState(pushState); // Salva su disco
@@ -201,7 +221,7 @@ client.once('clientReady', () => {
           console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
         }
       }
-    } catch {
+    } catch (e) {
       console.error('❌ [STATS-PUSH] Errore durante interval check:', e.message);
     }
   };
@@ -213,18 +233,25 @@ client.once('clientReady', () => {
 
 // ─── GRACEFUL SHUTDOWN ───────────────────────────────────────────
 // Flush statistiche e salva stato coda alla chiusura del programma
-function gracefulShutdown(signal) {
+async function gracefulShutdown(signal) {
   console.log(`\n🚫 [SHUTDOWN] Ricevuto ${signal}, salvataggio in corso...`);
   try {
-    const { queue: q } = require('./src/state/globals');
-    const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
-    flushPendingSaves();
+    const globalsModule = await import('./src/state/globals.js');
+    const persistenceModule = await import('./src/queue/persistence.js');
+    const q = globalsModule.queue;
+    persistenceModule.flushPendingSaves();
     q.forEach((sq, gId) => {
-      try { saveQueueStateImmediate(gId, sq); } catch { /* ignore */ }
+      try { persistenceModule.saveQueueStateImmediate(gId, sq); } catch { /* ignore */ }
     });
   } catch { /* ignore */ }
-  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch { /* ignore */ }
-  try { require('./src/database/playlists').flushDatabaseSync(); } catch { /* ignore */ }
+  try {
+    const statsModule = await import('./src/database/stats.js');
+    statsModule.flushAllGuildsAndSave();
+  } catch { /* ignore */ }
+  try {
+    const playlistsModule = await import('./src/database/playlists.js');
+    playlistsModule.flushDatabaseSync();
+  } catch { /* ignore */ }
   console.log('✅ [SHUTDOWN] Salvataggio completato.');
   process.exit(0);
 }
