@@ -146,14 +146,14 @@ class AudioOperationBarrier {
         });
 
       } catch (e) {
-        console.error(`❌ [AUDIO-BARRIER] '${operation.name}' failed:`, error.message);
-        operation.error = error;
-        operation.promise.resolve({ success: false, error });
+        console.error(`❌ [AUDIO-BARRIER] '${operation.name}' failed:`, e.message);
+        operation.error = e;
+        operation.promise.resolve({ success: false, error: e });
         operationQueue.lastOperationTime = Date.now();
 
         stateVersion.incrementVersion('audio_operation_failed', {
           operationName: operation.name,
-          error: error.message
+          error: e.message
         });
 
       } finally {

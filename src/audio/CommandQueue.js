@@ -158,7 +158,7 @@ class CommandQueue {
         });
 
       } catch (e) {
-        console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, error.message);
+        console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, e.message);
 
         // Retry logic con backoff esponenziale
         if (commandEntry.retries > 0) {
