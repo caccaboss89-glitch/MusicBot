@@ -94,7 +94,7 @@ class CommandQueue {
     console.log(`📤 [CMD-QUEUE] Enqueued '${commandName}' (queue size: ${commandQueue.pending.length + (commandQueue.executing ? 1 : 0)})`);
 
     // Avvia il processor se non è già in esecuzione
-    this._processQueue(guildId).catch(err => {
+    this._processQueue(guildId).catch(e => {
       console.error(`❌ [CMD-QUEUE] Process queue error: ${err}`);
     });
 

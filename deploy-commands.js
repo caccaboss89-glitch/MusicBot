@@ -23,7 +23,7 @@ const rest = new REST({ version: '10' }).setToken(token);
     console.log('🧹 Reimposto i comandi di Discord, mantenendo solo /play...');
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
     console.log('✅ Comando /play registrato.');
-  } catch (error) {
+  } catch (e) {
     console.error(error);
   }
 })();

@@ -110,7 +110,7 @@ function gitPushDataFiles(commitMsg) {
       execSync('git pull --rebase origin main', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       console.log('✅ Push riuscito dopo rebase');
-    } catch (rebaseErr) {
+    } catch (e) {
       console.error('❌ [STATS-PUSH] Push fallito:', rebaseErr.message);
       return false;
     }

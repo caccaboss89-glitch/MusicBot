@@ -207,7 +207,7 @@ client.once('clientReady', async () => {
           flushAllGuildsAndSave();
           const playlistsModule = await import('./src/database/playlists.js');
           playlistsModule.flushDatabaseSync();
-        } catch (flushErr) {
+        } catch (e) {
           console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
         }
 

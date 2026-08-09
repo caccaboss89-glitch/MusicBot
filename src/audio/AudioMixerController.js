@@ -152,7 +152,7 @@ class AudioMixerController {
     });
 
     // Gestisci errori su stdout - CRITICO: marca il mixer come morto
-    this.process.stdout.on('error', (err) => {
+    this.process.stdout.on('error', (e) => {
       console.error(`❌ [RUST] Errore stdout (mixer morto): ${err && err.message ? err.message : String(err)}`);
       this.isAlive = false;
       this.stdoutClosed = true;
@@ -179,7 +179,7 @@ class AudioMixerController {
       try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} STDOUT_CLOSED\n`); this.logStream.end(); this.logStream = null; } } catch { }
     });
 
-    this.process.stdin.on('error', (err) => {
+    this.process.stdin.on('error', (e) => {
       console.error(`❌ [RUST] Errore stdin: ${err && err.message ? err.message : err}`);
       this.isAlive = false;
       if (this.process) {
@@ -204,7 +204,7 @@ class AudioMixerController {
       }
     });
 
-    this.process.on('error', (err) => {
+    this.process.on('error', (e) => {
       console.error(`❌ [RUST] Errore processo: ${err.message}`);
       this.process = null;
       this.isAlive = false;

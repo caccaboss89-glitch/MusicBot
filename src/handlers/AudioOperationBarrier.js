@@ -86,7 +86,7 @@ class AudioOperationBarrier {
     console.log(`📥 [AUDIO-BARRIER] Enqueued '${operationName}' (queue size: ${operationQueue.operations.length + (operationQueue.executing ? 1 : 0)})`);
 
     // Avvia il processor
-    this._processQueue(guildId).catch(err => {
+    this._processQueue(guildId).catch(e => {
       console.error(`❌ [AUDIO-BARRIER] Process error: ${err}`);
     });
 

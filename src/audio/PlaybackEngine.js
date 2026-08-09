@@ -203,7 +203,7 @@ async function preloadNextSong(guildId) {
       // usata da auto-gapless/crossfade per conoscere l'indice reale.
       try { (await import('../queue/QueueManager.js')).bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch { }
       console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
-    }).catch(err => {
+    }).catch(e => {
       console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
       sq.nextDeckLoaded = null;
       sq.nextDeckTarget = null;
