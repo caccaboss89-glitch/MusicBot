@@ -35,7 +35,7 @@ module.exports = {
     const oldTextChannelId = serverQueue.textChannel?.id;
     serverQueue.textChannel = channel;
     if (oldTextChannelId && oldTextChannelId !== channel.id && serverQueue.dashboardMessage) {
-      try { await serverQueue.dashboardMessage.delete(); } catch (_) { }
+      try { await serverQueue.dashboardMessage.delete(); } catch { }
       serverQueue.dashboardMessage = null;
       serverQueue.dashboardMessageId = null;
     }
@@ -55,7 +55,7 @@ module.exports = {
             serverQueue.isTaskRunning = false;
             if (ok) return interaction.editReply('✅ Dashboard aperta.');
             return interaction.editReply('❌ Impossibile aprire la dashboard.');
-          } catch (e) {
+          } catch {
             serverQueue.isTaskRunning = false;
             return interaction.editReply('❌ Impossibile aprire la dashboard.');
           }
@@ -65,7 +65,7 @@ module.exports = {
         const connected = await deps.connectToVoice(serverQueue, interaction);
         if (!connected) {
           serverQueue.isTaskRunning = false;
-          try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
+          try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch { /* ignora */ }
           return;
         }
 
@@ -77,9 +77,9 @@ module.exports = {
           // la dashboard così il messaggio del player appare nel canale di testo.
           try {
             if (!serverQueue.dashboardMessage) {
-              try { await require('../ui').refreshDashboard(serverQueue); } catch (e) { }
+              try { await require('../ui').refreshDashboard(serverQueue); } catch { }
             }
-          } catch (e) { }
+          } catch { }
           serverQueue.isTaskRunning = false;
           return interaction.editReply('✅ **Sessione ripresa!**');
         }
@@ -93,7 +93,7 @@ module.exports = {
             serverQueue.isTaskRunning = false;
             return interaction.editReply('✅ Dashboard (Coda terminata) aperta.');
           }
-        } catch (e) {
+        } catch {
           serverQueue.isTaskRunning = false;
           return interaction.editReply('❌ Impossibile aprire la dashboard.');
         }
@@ -104,12 +104,12 @@ module.exports = {
       const connected = await deps.connectToVoice(serverQueue, interaction);
       if (!connected) {
         serverQueue.isTaskRunning = false;
-        try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch (e) { /* ignora */ }
+        try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch { /* ignora */ }
         return;
       }
 
       let songsFound = [];
-      try { songsFound = await getVideoInfo(query); } catch (error) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
+      try { songsFound = await getVideoInfo(query); } catch { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
 
       if (songsFound.length === 0) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Nessun risultato.'); }
       if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ **Limite Coda!**'); }
@@ -123,9 +123,9 @@ module.exports = {
         try {
           await deps.playSong(guild.id, interaction);
           await interaction.editReply(serverQueue.sessionRestored ? '✅ **Sessione Ripristinata e Aggiornata!**' : '✅ Avvio riproduzione...');
-        } catch (e) {
+        } catch {
           console.error('Errore playSong:', e);
-          try { await interaction.editReply('❌ Errore avvio riproduzione.'); } catch (e) { }
+          try { await interaction.editReply('❌ Errore avvio riproduzione.'); } catch { }
         }
       } else {
         if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await deps.updatePreloadAfterQueueChange(guild.id); }

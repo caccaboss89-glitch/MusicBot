@@ -27,7 +27,7 @@ async function handleModal(interaction, guildId, deps) {
       if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
       activeSearches.set(`${interaction.user.id}_server_`, query);
       return await interaction.editReply(generateSearchResultsView('server', interaction.user.id, query, 0));
-    } catch (e) {
+    } catch {
       console.error('❌ [MODAL_SEARCH_SERVER] Errore:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
@@ -42,7 +42,7 @@ async function handleModal(interaction, guildId, deps) {
       if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
       activeSearches.set(`${interaction.user.id}_likes_${plName}`, query);
       return await interaction.editReply(generateSearchResultsView('likes', interaction.user.id, query, 0, plName));
-    } catch (e) {
+    } catch {
       console.error('❌ [MODAL_SEARCH_LIKES] Errore:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
@@ -69,7 +69,7 @@ async function handleModal(interaction, guildId, deps) {
       userData.activePlaylist = trimmedName;
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist **${trimmedName}** creata! Ora è la tua playlist attiva.`);
-    } catch (e) {
+    } catch {
       console.error('❌ [MODAL_CREATE_PLAYLIST] Errore:', e);
       return await interaction.editReply('❌ Errore durante la creazione della playlist.');
     }
@@ -98,7 +98,7 @@ async function handleModal(interaction, guildId, deps) {
       if (userData.activePlaylist === oldName) userData.activePlaylist = trimmedName;
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist rinominata: **${oldName}** → **${trimmedName}**`);
-    } catch (e) {
+    } catch {
       console.error('❌ [MODAL_RENAME_PLAYLIST] Errore:', e);
       return await interaction.editReply('❌ Errore durante la rinomina della playlist.');
     }
@@ -112,7 +112,7 @@ async function handleModal(interaction, guildId, deps) {
   try {
     let found = [];
     try { found = await getVideoInfo(interaction.fields.getTextInputValue('song_input')); }
-    catch (error) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
+    catch { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
 
     if (found.length > 0) {
       clearFinishedQueue(serverQueue);
@@ -126,12 +126,12 @@ async function handleModal(interaction, guildId, deps) {
             serverQueue.currentDeckLoaded = null;
             serverQueue.nextDeckLoaded = null;
             if (serverQueue.mixer) {
-              try { serverQueue.mixer.kill(); } catch (e) { }
+              try { serverQueue.mixer.kill(); } catch { }
             }
             serverQueue.mixer = null;
           }
           if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);
-          try { await audio.playSong(interaction.guild.id, interaction); } catch (e) { console.error('playSong error after modal add', e); }
+          try { await audio.playSong(interaction.guild.id, interaction); } catch { console.error('playSong error after modal add', e); }
         } else {
           if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
           if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });

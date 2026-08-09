@@ -14,7 +14,7 @@ process.on('unhandledRejection', (reason) => {
   try {
     const logEntry = `[${new Date().toISOString()}] UNHANDLED-REJECTION: ${reason instanceof Error ? reason.message : String(reason)}\n${reason instanceof Error ? reason.stack : 'N/A'}\n\n`;
     fs.appendFileSync(path.join(logsDir, 'unhandled-rejections.log'), logEntry);
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 });
 
 process.on('uncaughtException', (error) => {
@@ -28,18 +28,18 @@ process.on('uncaughtException', (error) => {
     const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
     flushPendingSaves();
     queue.forEach((sq, guildId) => {
-      try { saveQueueStateImmediate(guildId, sq); } catch (e) { /* ignore */ }
+      try { saveQueueStateImmediate(guildId, sq); } catch { /* ignore */ }
     });
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 
   // Flush dei dati importanti
-  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }
-  try { require('./src/database/playlists').flushDatabaseSync(); } catch (e) { /* ignore */ }
+  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch { /* ignore */ }
+  try { require('./src/database/playlists').flushDatabaseSync(); } catch { /* ignore */ }
 
   try {
     const logEntry = `[${new Date().toISOString()}] UNCAUGHT-EXCEPTION: ${error.message}\n${error.stack}\n\n`;
     fs.appendFileSync(path.join(logsDir, 'uncaught-exceptions.log'), logEntry);
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 
   process.exit(1);
 });
@@ -139,17 +139,17 @@ client.on('guildDelete', (guild) => {
 
     // Ferma player, mixer, connessione vocale e low-latency stream
     if (sq) {
-      try { if (sq.player) sq.player.stop(true); } catch (e) { }
+      try { if (sq.player) sq.player.stop(true); } catch { }
       sq.intentionalKill = true;
-      try { if (sq.mixer) { sq.mixer.kill(); sq.mixer = null; } } catch (e) { }
-      try { if (sq.connection) sq.connection.destroy(); } catch (e) { }
-      try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch (e) { }
+      try { if (sq.mixer) { sq.mixer.kill(); sq.mixer = null; } } catch { }
+      try { if (sq.connection) sq.connection.destroy(); } catch { }
+      try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { }
     }
 
     globals.queue.delete(guildId);
 
     console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
-  } catch (e) {
+  } catch {
     console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);
   }
 });
@@ -201,7 +201,7 @@ client.once('clientReady', () => {
           console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
         }
       }
-    } catch (e) {
+    } catch {
       console.error('❌ [STATS-PUSH] Errore durante interval check:', e.message);
     }
   };
@@ -220,11 +220,11 @@ function gracefulShutdown(signal) {
     const { saveQueueStateImmediate, flushPendingSaves } = require('./src/queue/persistence');
     flushPendingSaves();
     q.forEach((sq, gId) => {
-      try { saveQueueStateImmediate(gId, sq); } catch (e) { /* ignore */ }
+      try { saveQueueStateImmediate(gId, sq); } catch { /* ignore */ }
     });
-  } catch (e) { /* ignore */ }
-  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch (e) { /* ignore */ }
-  try { require('./src/database/playlists').flushDatabaseSync(); } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
+  try { require('./src/database/stats').flushAllGuildsAndSave(); } catch { /* ignore */ }
+  try { require('./src/database/playlists').flushDatabaseSync(); } catch { /* ignore */ }
   console.log('✅ [SHUTDOWN] Salvataggio completato.');
   process.exit(0);
 }

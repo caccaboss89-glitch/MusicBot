@@ -69,7 +69,7 @@ function flushDataToDisk() {
   try {
     require('../src/database/playlists').flushDatabaseSync();
     console.log('💾 Playlist flush su disco completato');
-  } catch (e) {
+  } catch {
     console.warn('⚠️ Playlist flush fallito:', e.message);
   }
 }
@@ -99,7 +99,7 @@ function gitPushDataFiles(commitMsg) {
   try {
     execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
     console.log('✅ stats.json, playlists.json e monthly-stats pushati su GitHub');
-  } catch (pushErr) {
+  } catch {
     console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
     try {
       execSync('git pull --rebase origin main', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
@@ -124,7 +124,7 @@ function archiveMonthlyStats() {
       const { computeTopSongs } = require('../src/database/stats');
       computeTopSongs(statsData, 5);
       console.log('🏆 Top songs calcolate per backup locale');
-    } catch (e) {
+    } catch {
       console.warn('⚠️ Errore nel calcolo top songs:', e.message);
     }
 
@@ -140,7 +140,7 @@ function archiveMonthlyStats() {
     console.log(`📊 Archivio locale: ${backupFilePath}`);
 
     return { success: true, backupFilePath };
-  } catch (e) {
+  } catch {
     console.error('❌ Error archiving monthly stats:', e.message);
     return { success: false, error: e.message };
   }
@@ -155,7 +155,7 @@ function resetStatsFile() {
     fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
     console.log('🧹 stats.json resettato per il nuovo mese');
     return true;
-  } catch (e) {
+  } catch {
     console.error('❌ Error resetting stats file:', e.message);
     return false;
   }
@@ -178,7 +178,7 @@ function pushStats(forceArchive = false) {
     try {
       execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-    } catch (e) {
+    } catch {
       console.warn('⚠️ Git config may be already set:', e.message);
     }
 
@@ -218,7 +218,7 @@ function pushStats(forceArchive = false) {
 
     return true;
 
-  } catch (e) {
+  } catch {
     console.error('❌ Error pushing stats:', e.message);
     if (e.stderr) console.error('Stderr:', e.stderr.toString());
     if (e.stdout) console.error('Stdout:', e.stdout.toString());

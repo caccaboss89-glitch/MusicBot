@@ -65,18 +65,18 @@ function safeJSONParse(filename, defaultData) {
   if (!fs.existsSync(filename)) {
     try {
       fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2));
-    } catch (e) { }
+    } catch { }
     return defaultData;
   }
   try {
     return JSON.parse(fs.readFileSync(filename, 'utf-8'));
-  } catch (e) {
+  } catch {
     // File corrotto: salva backup prima di sovrascrivere
     try {
       fs.copyFileSync(filename, filename + '.corrupted.bak');
       console.warn(`⚠️ [SANITIZE] File corrotto: ${filename} — backup salvato come ${filename}.corrupted.bak`);
-    } catch (backupErr) { /* ignore */ }
-    try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch (err) { /* ignoriamo */ }
+    } catch { /* ignore */ }
+    try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch { /* ignoriamo */ }
     return defaultData;
   }
 }
@@ -145,7 +145,7 @@ function normalizeYoutubeUrl(url) {
       // Non è un video singolo riconoscibile, restituisci con dominio normalizzato
       return u.replace(/^https?:\/\/[^/]+/, 'https://www.youtube.com');
     }
-  } catch (_) {
+  } catch {
     // Fallback regex semplice
   }
 

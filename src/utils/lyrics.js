@@ -46,13 +46,13 @@ function _getJson(host, path) {
         res.setEncoding('utf8');
         res.on('data', (c) => { data += c; });
         res.on('end', () => {
-          try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
+          try { resolve(JSON.parse(data)); } catch { resolve(null); }
         });
       }
     );
     req.on('error', () => resolve(null));
     req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-      try { req.destroy(); } catch (e) { /* ignore */ }
+      try { req.destroy(); } catch { /* ignore */ }
       resolve(null);
     });
   });

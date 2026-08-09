@@ -19,7 +19,7 @@ function createCurrentSongEmbed(serverQueue) {
     if (serverQueue) {
       song = getCurrentSong(serverQueue);
     }
-  } catch (e) {
+  } catch {
     console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
   }
 

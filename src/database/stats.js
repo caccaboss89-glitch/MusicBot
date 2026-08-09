@@ -19,7 +19,7 @@ const pendingTime = {};
 
 // Flush periodico del tempo pendente per ridurre perdita dati su crash non-graceful
 setInterval(() => {
-  try { flushPendingAndSave(); } catch (e) { }
+  try { flushPendingAndSave(); } catch { }
 }, 60 * 1000); // Ogni 60 secondi
 
 // ─── Caricamento / Salvataggio ──────────────────────────────
@@ -49,7 +49,7 @@ function loadStats() {
       if (!data.global.songPlays) data.global.songPlays = {};
       return data;
     }
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore caricamento stats:', e.message);
   }
   return getDefaultStats();
@@ -65,7 +65,7 @@ function saveStats(data) {
     const tmpFile = STATS_FILE + '.tmp';
     fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tmpFile, STATS_FILE);
-  } catch (e) {
+  } catch {
     console.error('❌ [STATS] Errore salvataggio stats:', e.message);
   }
 }
@@ -168,7 +168,7 @@ function startAllListeners(guildId, voiceChannel) {
         startListening(guildId, member.user.id);
       }
     });
-  } catch (e) {
+  } catch {
     console.warn('⚠️ [STATS] Errore startAllListeners:', e.message);
   }
 }
@@ -214,7 +214,7 @@ function flushPendingAndSave() {
     for (const key of Object.keys(pendingTime)) {
       delete pendingTime[key];
     }
-  } catch (e) {
+  } catch {
     console.error('❌ [STATS] Errore flushPendingAndSave:', e.message);
   }
 }
@@ -240,7 +240,7 @@ function flushAllGuildsAndSave() {
     }
     flushPendingAndSave();
     console.log(`📊 [STATS] Flush completo di tutte le guild (${guildIds.length} attive)`);
-  } catch (e) {
+  } catch {
     console.error('❌ [STATS] Errore flushAllGuildsAndSave:', e.message);
   }
 }
@@ -302,7 +302,7 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
     }
 
     saveStats(data);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore recordSongPlay:', e.message);
   }
 }
@@ -337,7 +337,7 @@ function incrementSongsStarted() {
     const data = loadStats();
     data.global.songsStarted = (data.global.songsStarted || 0) + 1;
     saveStats(data);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore incrementSongsStarted:', e.message);
   }
 }
@@ -347,7 +347,7 @@ function incrementSongsCompleted() {
     const data = loadStats();
     data.global.songsCompleted = (data.global.songsCompleted || 0) + 1;
     saveStats(data);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore incrementSongsCompleted:', e.message);
   }
 }
@@ -371,7 +371,7 @@ function recordPlaylistAdd(userId, type, discordUser = null) {
       data.users[userId].personalPlaylistAdds = (data.users[userId].personalPlaylistAdds || 0) + 1;
     }
     saveStats(data);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore recordPlaylistAdd:', e.message);
   }
 }
@@ -387,7 +387,7 @@ function updateUserDiscordInfo(userId, discordUser) {
     const data = loadStats();
     ensureUser(data, userId, discordUser);
     saveStats(data);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
   }
 }

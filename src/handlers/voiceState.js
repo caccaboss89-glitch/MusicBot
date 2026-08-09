@@ -22,7 +22,7 @@ module.exports = (client) => {
           // Se è in corso una riconnessione (cambio canale), non interferire
           if (serverQueue._isReconnecting) return;
           // Il bot è stato disconnesso/espulso - ferma tutti i timer ascolto
-          try { stats.stopAllListeners(guildId); } catch (e) { }
+          try { stats.stopAllListeners(guildId); } catch { }
           // Aggiorna lo stato della coda per riflettere l'assenza di canale
           serverQueue.voiceChannel = null;
           // Forza cleanup immediato
@@ -62,14 +62,14 @@ module.exports = (client) => {
               stats.startListening(guildId, memberId);
             }
           }
-        } catch (e) { }
+        } catch { }
 
         const humanCount = vc.members ? vc.members.filter(m => !m.user.bot).size : 0;
         if (humanCount === 0) scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
         else cancelScheduledDisconnect(serverQueue);
       }
 
-    } catch (e) {
+    } catch {
       console.error('Errore in voiceStateUpdate:', e);
     }
   });

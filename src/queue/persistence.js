@@ -22,7 +22,7 @@ function _flushQueueCache() {
     const tmpFile = QUEUE_FILE + '.tmp';
     fs.writeFileSync(tmpFile, JSON.stringify(_queueCache, null, 2));
     fs.renameSync(tmpFile, QUEUE_FILE);
-  } catch (e) {
+  } catch {
     console.error('❌ [PERSISTENCE] Errore scrittura cache:', e.message);
   }
 }
@@ -96,7 +96,7 @@ function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = fals
       textChannelId
     };
     _flushQueueCache();
-  } catch (e) {
+  } catch {
     console.error('❌ [PERSISTENCE] Errore salvataggio backup:', e.message);
   }
 }
@@ -109,7 +109,7 @@ function deleteQueueBackup(guildId) {
       delete data[guildId];
       _flushQueueCache();
     }
-  } catch (e) {
+  } catch {
     console.error('❌ [PERSISTENCE] Errore eliminazione backup:', e.message);
   }
 }

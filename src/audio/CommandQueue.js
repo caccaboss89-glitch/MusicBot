@@ -157,7 +157,7 @@ class CommandQueue {
           executionTimeMs: executionTime
         });
 
-      } catch (error) {
+      } catch {
         console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, error.message);
 
         // Retry logic con backoff esponenziale
@@ -226,7 +226,7 @@ class CommandQueue {
     const error = new Error(reason);
     const flushedCount = commandQueue.pending.length;
     commandQueue.pending.forEach(cmd => {
-      try { cmd.reject(error); } catch (e) { /* ignora */ }
+      try { cmd.reject(error); } catch { /* ignora */ }
     });
     commandQueue.pending = [];
     if (flushedCount > 0) {

@@ -15,7 +15,7 @@ async function safeReply(interaction, data) {
     } else {
       await interaction.reply(data);
     }
-  } catch (e) {
+  } catch {
     // Ignora errori di interazione scaduta o già gestita
   }
 }

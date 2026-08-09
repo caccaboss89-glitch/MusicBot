@@ -96,7 +96,7 @@ function handleBufferReady(guildId, deck) {
         console.error('❌ [BUFFER-READY] Errore completePendingTransition:', e);
       });
     }
-  } catch (e) {
+  } catch {
     console.error('❌ [BUFFER-READY] Errore:', e);
   }
 }
@@ -228,7 +228,7 @@ function handleRustEvent(guildId, log) {
     if (log.event === 'error' || log.event === 'yt_error') {
       console.error(`🦀 [RUST-${guildId}] ERRORE`, log.data || '');
     }
-  } catch (e) { /* ignora */ }
+  } catch { /* ignora */ }
 }
 
 // ─── Auto-gapless handlers ──────────────────────────────────
@@ -246,7 +246,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     // mentre il deck era in download), lascia che completePendingTransition gestisca
     // il tutto: conosce l'indice corretto (potrebbe essere ≠ nextIndex).
     if (sq.pendingTransition && sq.pendingTransition.targetDeck === newDeck) {
-      try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
+      try { require('../database/stats').incrementSongsCompleted(); } catch { }
       console.log(`⚡ [AUTO-GAPLESS] Deck ${newDeck} ha pending transition – delego completePendingTransition`);
       sq.currentDeck = newDeck; // aggiorna currentDeck per riflettere realtà Rust
       await SkipManager.completePendingTransition(guildId, true /* alreadySwitched */);
@@ -265,7 +265,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     }
 
     // ── STATS: canzone completata (gapless auto-switch) ──
-    try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
+    try { require('../database/stats').incrementSongsCompleted(); } catch { }
 
     // FONTE DI VERITÀ: il Rust ha switchato al deck `newDeck`; l'indice REALE della
     // canzone ora in riproduzione è quello legato a quel deck (binding), non un
@@ -300,7 +300,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
       const stats = require('../database/stats');
       stats.incrementSongsStarted();
       stats.recordSongPlay(guildId, nextSong, sq.voiceChannel);
-    } catch (e) { }
+    } catch { }
 
     // Salva stato e aggiorna UI
     const { saveQueueState } = require('../queue/persistence');
@@ -311,7 +311,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     PlaybackEngine.onSongStart(guildId);
 
     console.log(`⚡ [AUTO-GAPLESS] → "${nextSong ? sanitizeTitle(nextSong.title) : '?'}" (idx=${nextIndex}, deck=${newDeck})`);
-  } catch (e) {
+  } catch {
     console.error('❌ [AUTO-GAPLESS] Errore handleAutoEndSwitch:', e);
   }
 }
@@ -336,13 +336,13 @@ function handleAutoLoopRestart(guildId, deck) {
       if (currentSong) {
         stats.recordSongPlay(guildId, currentSong, sq.voiceChannel);
       }
-    } catch (e) { }
+    } catch { }
 
     // Riavvia il timer di preload per la prossima canzone
     PlaybackEngine.onSongStart(guildId);
 
     console.log(`🔁 [AUTO-LOOP] "${currentSong ? sanitizeTitle(currentSong.title) : '?'}" riavviata (deck ${deck})`);
-  } catch (e) {
+  } catch {
     console.error('❌ [AUTO-LOOP] Errore handleAutoLoopRestart:', e);
   }
 }
@@ -380,7 +380,7 @@ function handleMixerCrash(guildId, reason) {
     console.error(`🚨 [MIXER-CRASH] ${JSON.stringify(crashContext)}`);
 
     // ── STATS: ferma tutti i timer ascolto (il recovery li riavvierà in playSong) ──
-    try { require('../database/stats').stopAllListeners(guildId); } catch (e) { }
+    try { require('../database/stats').stopAllListeners(guildId); } catch { }
 
     // Log su file per post-mortem analysis
     try {
@@ -389,7 +389,7 @@ function handleMixerCrash(guildId, reason) {
       const logPath = path.join('./logs', 'mixer-crashes.log');
       const logEntry = `${JSON.stringify(crashContext)}\n`;
       fs.appendFileSync(logPath, logEntry);
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 
     // Se il mixer è stato intenzionalmente terminato (da endQueue), non riavviare
     if (sq.intentionalKill) {
@@ -398,7 +398,7 @@ function handleMixerCrash(guildId, reason) {
       return;
     }
 
-    try { playback.recordMixerCrashTime(guildId); } catch (e) { /* ignora */ }
+    try { playback.recordMixerCrashTime(guildId); } catch { /* ignora */ }
 
     sq.crashRecoveryAttempts = (sq.crashRecoveryAttempts || 0) + 1;
     console.warn(`⚠️  [CRASH-RECOVERY] Tentativo #${sq.crashRecoveryAttempts} per guild=${guildId}`);
@@ -416,7 +416,7 @@ function handleMixerCrash(guildId, reason) {
     }
 
     // Kill mixer e resetta stato deck
-    try { if (sq.mixer) sq.mixer.kill(); sq.mixer = null; } catch (e) { /* ignora */ }
+    try { if (sq.mixer) sq.mixer.kill(); sq.mixer = null; } catch { /* ignora */ }
     sq.currentDeck = null;
     sq.currentDeckLoaded = null;
     sq.nextDeckLoaded = null;
@@ -424,7 +424,7 @@ function handleMixerCrash(guildId, reason) {
     clearDeckBindings(sq);
 
     // Svuota comandi pendenti che aspetterebbero un mixer ormai morto
-    try { require('./CommandQueue').commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch (e) { /* ignora */ }
+    try { require('./CommandQueue').commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch { /* ignora */ }
 
     // Tenta restart se la connessione vocale è pronta
     try {
@@ -434,14 +434,14 @@ function handleMixerCrash(guildId, reason) {
         const delayMs = 500 + (sq.crashRecoveryAttempts * 500);
         console.log(`⏳ [CRASH-RECOVERY] Scheduling playSong restart in ${delayMs}ms`);
         setTimeout(() => {
-          try { playback.playSong(guildId); } catch (e) { console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e); }
+          try { playback.playSong(guildId); } catch { console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e); }
         }, delayMs);
       } else {
         console.log(`ℹ️  [CRASH-RECOVERY] Connessione vocale non pronta (status=${connReady ? 'ready' : 'not ready'}), skip recovery`);
         scheduleDisconnectIfAlone(sq, 0);
       }
-    } catch (e) { console.error('❌ [CRASH-RECOVERY] Error during recovery attempt:', e); }
-  } catch (e) { console.error('❌ [CRASH-RECOVERY] Fatal error in handleMixerCrash:', e); }
+    } catch { console.error('❌ [CRASH-RECOVERY] Error during recovery attempt:', e); }
+  } catch { console.error('❌ [CRASH-RECOVERY] Fatal error in handleMixerCrash:', e); }
 }
 
 // ─── Preload update ─────────────────────────────────────────
@@ -460,7 +460,7 @@ async function updatePreloadAfterQueueChange(guildId) {
       bindDeckSong(sq, otherDeck, null, null);
     }
     PlaybackEngine.preloadNextSong(guildId);
-  } catch (e) {
+  } catch {
     console.error('❌ [PRELOAD-UPDATE] Errore:', e);
   }
 }

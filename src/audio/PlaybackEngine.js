@@ -201,7 +201,7 @@ function preloadNextSong(guildId) {
       sq.nextDeckTarget = nextDeck;
       // Lega il deck precaricato alla canzone "successiva": è la fonte di verità
       // usata da auto-gapless/crossfade per conoscere l'indice reale.
-      try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch (e) { }
+      try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch { }
       console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
     }).catch(err => {
       console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
@@ -209,7 +209,7 @@ function preloadNextSong(guildId) {
       sq.nextDeckTarget = null;
     });
 
-  } catch (e) {
+  } catch {
     console.error(`❌ [PRELOAD] Errore: ${e.message}`);
   }
 }

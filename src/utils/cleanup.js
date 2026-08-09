@@ -23,7 +23,7 @@ async function cleanupOldMessages(channel, currentDashId = null, client) {
         await channel.bulkDelete(young).catch(() => { });
       }
     }
-  } catch (e) {
+  } catch {
     // Ignora errori di permessi o canale non accessibile
   }
 }

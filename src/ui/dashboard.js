@@ -21,7 +21,7 @@ async function tryRestoreDashboardMessage(serverQueue) {
       serverQueue.dashboardMessage = message;
       return message;
     }
-  } catch (e) {
+  } catch {
     // Messaggio non trovato (cancellato o scaduto)
     console.warn(`⚠️ [DASHBOARD] Messaggio salvato non trovato (id=${serverQueue.dashboardMessageId}):`, e.message);
     serverQueue.dashboardMessageId = null;
@@ -73,7 +73,7 @@ async function updateDashboard(serverQueue, embed, components) {
           const lastMsg = last.first();
           if (lastMsg && lastMsg.id !== serverQueue.dashboardMessage.id) {
             // Esiste una dashboard vecchia ma non è l'ultima: rimuovila e forza il reinvio
-            try { await serverQueue.dashboardMessage.delete().catch(() => { }); } catch (e) { }
+            try { await serverQueue.dashboardMessage.delete().catch(() => { }); } catch { }
             serverQueue.dashboardMessage = null;
             serverQueue.dashboardMessageId = null;
             serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
@@ -81,19 +81,19 @@ async function updateDashboard(serverQueue, embed, components) {
           } else {
             await serverQueue.dashboardMessage.edit({ embeds: [dataToUse.embed], components: dataToUse.components });
           }
-        } catch (e) {
+        } catch {
           // Se qualcosa fallisce, tenta di reinviare la dashboard
           try {
             serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
             serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
-          } catch (err) { throw err; }
+          } catch { throw err; }
         }
       } else {
         serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
         serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
       }
       state.lastUpdate = Date.now();
-    } catch (e) {
+    } catch {
       console.error('⚠️ [DASHBOARD] Rate Limit/Error:', e.message);
       state.isUpdating = false;
       return false;
@@ -135,11 +135,11 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
           try {
             serverQueue.dashboardMessage = await channel.send({ embeds: [createFinishedEmbed(lastSong)], components: createDashboardComponents(serverQueue) });
             serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
-          } catch (e) { console.error('⚠️ [DASH] failed to send finished dashboard:', e && e.message); }
+          } catch { console.error('⚠️ [DASH] failed to send finished dashboard:', e && e.message); }
         }
       }
     }
-  } catch (e) { console.error('⚠️ [DASH] updateDashboardToFinished preflight error', e); }
+  } catch { console.error('⚠️ [DASH] updateDashboardToFinished preflight error', e); }
   const embed = createFinishedEmbed(lastSong);
   const components = createDashboardComponents(serverQueue);
   if (lastSong) {
@@ -169,7 +169,7 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
         if (components[4].components[1]) components[4].components[1].setDisabled(!isTerminated); // mix solo quando terminata
         if (components[4].components[2]) components[4].components[2].setDisabled(true); // clear
       }
-    } catch (e) { /* ignora */ }
+    } catch { /* ignora */ }
   }
   await updateDashboard(serverQueue, embed, components);
 }
@@ -184,7 +184,7 @@ async function refreshDashboard(serverQueue, userId = null) {
     const embed = createCurrentSongEmbed(serverQueue);
     const components = createDashboardComponents(serverQueue, userId);
     return await updateDashboard(serverQueue, embed, components);
-  } catch (e) {
+  } catch {
     console.error('⚠️ [DASHBOARD] refreshDashboard error:', e);
     return false;
   }

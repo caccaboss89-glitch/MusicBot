@@ -34,7 +34,7 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
     bindDeckSong(serverQueue, serverQueue.currentDeck, 0, currentSong.url);
   }
   saveQueueState(guildId, serverQueue);
-  try { await audio.updatePreloadAfterQueueChange(guildId); } catch (e) { }
+  try { await audio.updatePreloadAfterQueueChange(guildId); } catch { }
   if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
 }
 
@@ -47,13 +47,13 @@ async function handlePause(interaction, serverQueue, guildId, deps) {
   }
   saveQueueState(guildId, serverQueue);
   try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 async function handleYtMix(interaction, serverQueue, guildId, deps) {
   serverQueue.isTaskRunning = true;
   let statusMsg = null;
-  try { statusMsg = await interaction.followUp({ content: '✨ **Generazione Mix YouTube in corso...**', flags: MessageFlags.Ephemeral }); } catch (e) { }
+  try { statusMsg = await interaction.followUp({ content: '✨ **Generazione Mix YouTube in corso...**', flags: MessageFlags.Ephemeral }); } catch { }
   try {
     const db = loadDatabase();
     const currentSong = getCurrentSong(serverQueue);
@@ -80,7 +80,7 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
       }
       if (statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
     } else { if (statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => { }); }
-  } catch (e) {
+  } catch {
     console.error('Errore Mix:', e);
     if (statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => { });
   } finally { serverQueue.isTaskRunning = false; }
@@ -169,11 +169,11 @@ async function handleSelectQueue(interaction, serverQueue, guildId) {
 async function handleLoop(interaction, serverQueue, guildId) {
   serverQueue.loopEnabled = !serverQueue.loopEnabled;
   if (serverQueue.mixer && serverQueue.mixer.isProcessAlive()) {
-    try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch (e) { }
+    try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch { }
   }
   saveQueueState(guildId, serverQueue);
   try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 async function handleShuffle(interaction, serverQueue, guildId) {
@@ -192,16 +192,16 @@ async function handleShuffle(interaction, serverQueue, guildId) {
     serverQueue.nextDeckTarget = null;
     saveQueueState(guildId, serverQueue);
     try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-    catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+    catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
     audio.updatePreloadAfterQueueChange(guildId).catch(() => { });
-  } else { try { await interaction.deferUpdate(); } catch (e) { } }
+  } else { try { await interaction.deferUpdate(); } catch { } }
 }
 
 async function handleFade(interaction, serverQueue, guildId) {
   serverQueue.fadeEnabled = !serverQueue.fadeEnabled;
   saveQueueState(guildId, serverQueue);
   try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch (e) { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
 }
 
 async function handleLyrics(interaction, serverQueue) {
@@ -220,7 +220,7 @@ async function handleLyrics(interaction, serverQueue) {
   try {
     const { getLyrics } = require('../utils/lyrics');
     lyrics = await getLyrics(song);
-  } catch (e) {
+  } catch {
     console.error('❌ [LYRICS] Errore recupero testo:', e.message);
   }
 
@@ -264,10 +264,10 @@ module.exports = function registerInteractionHandlers(client, deps) {
     try {
       if (interaction.isChatInputCommand()) {
         let commands = {};
-        try { commands = require('../commands'); } catch (e) { }
+        try { commands = require('../commands'); } catch { }
         const cmd = commands[interaction.commandName];
         if (cmd && typeof cmd.execute === 'function') {
-          try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error', e); }
+          try { await cmd.execute(interaction, deps); } catch { console.error('Command execute error', e); }
         }
         return;
       }
@@ -290,7 +290,7 @@ module.exports = function registerInteractionHandlers(client, deps) {
         const modalButtons = ['plist_create', 'plist_search_server'];
         const isModalButton = modalButtons.includes(customId) || customId.startsWith('plist_rename_likes_') || customId.startsWith('plist_search_likes_');
         if (!immediateUpdateButtons.includes(customId) && !deferReplyButtons.includes(customId) && !isModalButton) {
-          try { await interaction.deferUpdate(); } catch (e) { }
+          try { await interaction.deferUpdate(); } catch { }
         }
 
         const now = Date.now();
@@ -305,22 +305,22 @@ module.exports = function registerInteractionHandlers(client, deps) {
         // Prova prima i playlist handlers
         try {
           if (await handlePlaylist(interaction, serverQueue, guildId, customId, deps)) return;
-        } catch (e) { console.error(`❌ [PLAYLIST-HANDLER] Errore (${customId}):`, e); return; }
+        } catch { console.error(`❌ [PLAYLIST-HANDLER] Errore (${customId}):`, e); return; }
 
         // Poi i button handlers
         const handler = BUTTON_HANDLERS[customId];
         if (handler) {
           try { await handler(interaction, serverQueue, guildId, deps); }
-          catch (e) { console.error(`❌ [BUTTON-HANDLER] Errore (${customId}):`, e); }
+          catch { console.error(`❌ [BUTTON-HANDLER] Errore (${customId}):`, e); }
         }
         return;
       }
 
       if (interaction.isModalSubmit()) {
         try { await handleModal(interaction, interaction.guildId, deps); }
-        catch (e) { console.error(`❌ [MODAL-HANDLER] Errore (${interaction.customId}):`, e); }
+        catch { console.error(`❌ [MODAL-HANDLER] Errore (${interaction.customId}):`, e); }
         return;
       }
-    } catch (e) { console.error('Errore Handler:', e); }
+    } catch { console.error('Errore Handler:', e); }
   });
 };

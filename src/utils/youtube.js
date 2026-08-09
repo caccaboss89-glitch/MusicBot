@@ -82,7 +82,7 @@ async function getVideoDuration(videoUrl) {
           const info = JSON.parse(data);
           const duration = info.duration || 0;
           resolve(duration);
-        } catch (e) {
+        } catch {
           console.warn(`⚠️ [DURATION] Errore di parsing: ${e.message}`);
           resolve(0);
         }
@@ -190,7 +190,7 @@ async function getVideoInfo(query) {
                 try {
                   const dur = await getVideoDuration(song.url);
                   if (dur && dur > 0) song.duration = dur;
-                } catch (e) {
+                } catch {
                   // Mantieni duration: 0 se fallisce
                 }
               }));
@@ -224,13 +224,13 @@ async function getVideoInfo(query) {
             try {
               const dur = await getVideoDuration(result.url);
               if (dur && dur > 0) result.duration = dur;
-            } catch (e) {
+            } catch {
               // Mantieni duration: 0 se fallisce
             }
           }
 
           return resolve([result]);
-        } catch (e) {
+        } catch {
           console.warn(`[getVideoInfo] Errore elaborazione output yt-dlp per "${query.substring(0, 80)}": ${e.message}`);
           console.warn(`[getVideoInfo] Dati grezzi (primi 500 char): ${data ? data.substring(0, 500) : '(vuoto)'}`);
           resolve([]);

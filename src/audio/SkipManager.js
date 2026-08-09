@@ -158,7 +158,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
     } else {
       // ── NON precaricata: carica da zero ──
-      try { sq.mixer.stopDeck(targetDeck); } catch (e) { /* ignora */ }
+      try { sq.mixer.stopDeck(targetDeck); } catch { /* ignora */ }
       sq.bufferReady = sq.bufferReady || {};
       sq.bufferReady[targetDeck] = false;
 
@@ -179,7 +179,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
       if (reason !== 'auto') {
         sq.loadingFooter = '⏳ Caricamento in corso...';
-        try { bridge.call('refreshDashboard', sq); } catch (e) { /* ignora */ }
+        try { bridge.call('refreshDashboard', sq); } catch { /* ignora */ }
       }
 
       // ── TRANSIZIONE DIFFERITA ──
@@ -210,7 +210,7 @@ async function performTransition(guildId, targetIndex, reason) {
           console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
           sq2.pendingTransition = null;
           sq2.loadingFooter = null;
-          try { bridge.call('refreshDashboard', sq2); } catch (e) { }
+          try { bridge.call('refreshDashboard', sq2); } catch { }
         }
       }, timeoutMs);
 
@@ -246,7 +246,7 @@ async function performTransition(guildId, targetIndex, reason) {
       const stats = require('../database/stats');
       stats.incrementSongsStarted();
       stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-    } catch (e) { }
+    } catch { }
 
     // Incrementa versione dopo tutte le mutazioni
     stateVersion.incrementVersion('skip_complete', {
@@ -257,7 +257,7 @@ async function performTransition(guildId, targetIndex, reason) {
 
     // Salva e aggiorna UI
     saveQueueState(guildId, sq);
-    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) { /* ignora */ }
+    try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch { /* ignora */ }
 
     // Avvia ciclo preload + monitoraggio fine per la nuova canzone
     bridge.call('onSongStart', guildId);
@@ -265,14 +265,14 @@ async function performTransition(guildId, targetIndex, reason) {
     // Se era in pausa durante lo skip, riprendi automaticamente
     try {
       await bridge.call('resumeIfPaused', sq, guildId, targetDeck);
-    } catch (e) {
+    } catch {
       console.warn('⚠️  [SKIP] Errore durante resumeIfPaused:', e.message);
     }
 
     console.log(`✅ [SKIP] ${reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${targetIndex}, deck=${targetDeck}, fade=${fadeEnabled})`);
     return true;
 
-  } catch (e) {
+  } catch {
     console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
     stateVersion.incrementVersion('skip_error', { reason, error: e.message });
     // Cleanup crossfade flags solo in caso di errore
@@ -359,7 +359,7 @@ async function autoSkip(guildId) {
   if (!sq) return false;
 
   // ── STATS: canzone completata (fine naturale) ──
-  try { require('../database/stats').incrementSongsCompleted(); } catch (e) { }
+  try { require('../database/stats').incrementSongsCompleted(); } catch { }
 
   // Loop → riavvia canzone corrente
   if (sq.loopEnabled) {
@@ -391,7 +391,7 @@ async function endQueue(guildId) {
   try {
     const stats = require('../database/stats');
     stats.flushGuildAndSave(guildId);
-  } catch (e) { }
+  } catch { }
 
   // Ultima canzone riprodotta (per embed "Coda Terminata" e replay)
   const lastSong = sq.songs[sq.playIndex || 0] || null;
@@ -415,14 +415,14 @@ async function endQueue(guildId) {
   }
 
   // Ferma player e mixer (marca come intenzionale per evitare crash-recovery)
-  try { if (sq.player) sq.player.stop(true); } catch (e) { /* ignora */ }
+  try { if (sq.player) sq.player.stop(true); } catch { /* ignora */ }
   sq.intentionalKill = true;
   if (sq.mixer) {
-    try { sq.mixer.kill(); } catch (e) { /* ignora */ }
+    try { sq.mixer.kill(); } catch { /* ignora */ }
     sq.mixer = null;
   }
   // Distruggi il low-latency stream per evitare pipe/fd leak
-  try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch (e) { /* ignora */ }
+  try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { /* ignora */ }
 
   saveQueueState(guildId, sq);
   await require('../ui').updateDashboardToFinished(sq, lastSong);
@@ -469,7 +469,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     // Il deck target ha caricato audio di una canzone non più in coda: invalida il binding.
     bindDeckSong(sq, pt.targetDeck, null, null);
     sq.loadingFooter = null;
-    try { bridge.call('refreshDashboard', sq); } catch (e) { }
+    try { bridge.call('refreshDashboard', sq); } catch { }
     return;
   }
 
@@ -488,7 +488,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
         sq.mixer.skipTo(pt.targetDeck);
         console.log(`⚡ [SKIP] → deck ${pt.targetDeck} (${pt.reason}, deferred)`);
       }
-    } catch (e) {
+    } catch {
       console.error('❌ [SKIP] Errore comando pending transition:', e.message);
       sq.isCrossfading = false;
       sq.crossfadeStartTime = null;
@@ -514,7 +514,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     const stats = require('../database/stats');
     stats.incrementSongsStarted();
     stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-  } catch (e) { }
+  } catch { }
 
   stateVersionManager.get(guildId).incrementVersion('skip_deferred_complete', {
     targetIndex: pt.targetIndex,
@@ -523,13 +523,13 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   });
 
   saveQueueState(guildId, sq);
-  try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch (e) { }
+  try { bridge.call('refreshDashboard', sq, targetSong.requester); } catch { }
 
   bridge.call('onSongStart', guildId);
 
   try {
     await bridge.call('resumeIfPaused', sq, guildId, pt.targetDeck);
-  } catch (e) { }
+  } catch { }
 
   console.log(`✅ [SKIP] ${pt.reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${pt.targetIndex}, deck=${pt.targetDeck}, fade=${pt.fadeEnabled}, deferred)`);
 }

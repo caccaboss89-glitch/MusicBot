@@ -145,7 +145,7 @@ class AudioOperationBarrier {
           executionTimeMs: executionTime
         });
 
-      } catch (error) {
+      } catch {
         console.error(`❌ [AUDIO-BARRIER] '${operation.name}' failed:`, error.message);
         operation.error = error;
         operation.promise.resolve({ success: false, error });

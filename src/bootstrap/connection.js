@@ -36,7 +36,7 @@ async function ensureBotConnection(interaction) {
         serverQueue.currentDeckLoaded = null;
         serverQueue.sessionRestored = true;
       }
-    } catch (e) { console.error('Errore caricamento backup coda:', e); }
+    } catch { console.error('Errore caricamento backup coda:', e); }
   } else {
     if (!serverQueue.player || typeof serverQueue.player.play !== 'function') serverQueue.player = createAudioPlayer();
     serverQueue.textChannel = serverQueue.textChannel || interaction.channel || null;
@@ -73,21 +73,21 @@ async function connectToVoice(serverQueue, interaction) {
           serverQueue._isReconnecting = false;
           return true;
         }
-      } catch (e) {
+      } catch {
         // fallthrough: ricrea la connessione
       }
       // Connessione esistente obsoleta o nel canale sbagliato — rimuovi listener PRIMA di distruggere
       // per evitare che il destroy scateni cleanup cascade
       const oldConn = serverQueue.connection;
       if (serverQueue._connStateHandler) {
-        try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch (_) { }
+        try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch { }
         serverQueue._connStateHandler = null;
       }
       if (serverQueue._connErrorHandler) {
-        try { oldConn.off('error', serverQueue._connErrorHandler); } catch (_) { }
+        try { oldConn.off('error', serverQueue._connErrorHandler); } catch { }
         serverQueue._connErrorHandler = null;
       }
-      try { oldConn.destroy(); } catch (_) { }
+      try { oldConn.destroy(); } catch { }
       serverQueue.connection = null;
     }
 
@@ -144,16 +144,16 @@ async function connectToVoice(serverQueue, interaction) {
                         }
                       }
                     }
-                  } catch (e) { }
+                  } catch { }
                 }, RECONCILE_WINDOW_MS);
               }
-            } catch (e) { }
+            } catch { }
 
           } else if (newState.status === VoiceConnectionStatus.Disconnected) {
             // Prova una breve finestra di riconnessione, altrimenti programma il cleanup
             scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
           }
-        } catch (e) { }
+        } catch { }
       };
       const errorHandler = (err) => {
         console.error('Errore VoiceConnection:', err);
@@ -164,18 +164,18 @@ async function connectToVoice(serverQueue, interaction) {
       serverQueue._connErrorHandler = errorHandler;
       connection.on('stateChange', stateChangeHandler);
       connection.on('error', errorHandler);
-    } catch (e) { }
-    try { serverQueue.connection.subscribe(serverQueue.player); } catch (e) { }
+    } catch { }
+    try { serverQueue.connection.subscribe(serverQueue.player); } catch { }
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
-    } catch (e) {
+    } catch {
       console.error('Connessione vocale fallita:', e);
       // Rimuovi listener PRIMA di distruggere per evitare cascade di cleanup
-      try { connection.off('stateChange', serverQueue._connStateHandler); } catch (_) { }
-      try { connection.off('error', serverQueue._connErrorHandler); } catch (_) { }
+      try { connection.off('stateChange', serverQueue._connStateHandler); } catch { }
+      try { connection.off('error', serverQueue._connErrorHandler); } catch { }
       serverQueue._connStateHandler = null;
       serverQueue._connErrorHandler = null;
-      try { connection.destroy(); } catch (_) { }
+      try { connection.destroy(); } catch { }
       serverQueue.connection = null;
       serverQueue._isReconnecting = false;
       await safeReply(interaction, { content: '❌ Errore connessione vocale', flags: 64 });
@@ -183,7 +183,7 @@ async function connectToVoice(serverQueue, interaction) {
     }
     serverQueue._isReconnecting = false;
     return true;
-  } catch (e) {
+  } catch {
     console.error('Errore connectToVoice:', e);
     if (serverQueue) serverQueue._isReconnecting = false;
     return false;

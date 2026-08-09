@@ -34,7 +34,7 @@ class AudioMixerController {
     // Se il processo esiste ma è morto, puliscilo prima
     if (this.process && !this.isAlive) {
       console.log('🧹 [RUST] Pulizia processo morto prima di restart');
-      try { this.process.kill(); } catch (e) { }
+      try { this.process.kill(); } catch { }
       this.process = null;
     }
 
@@ -70,7 +70,7 @@ class AudioMixerController {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: env
       });
-    } catch (e) {
+    } catch {
       console.error(`❌ [RUST] Impossibile avviare processo: ${e.message}`);
       this.isAlive = false;
       return;
@@ -82,7 +82,7 @@ class AudioMixerController {
 
     // Chiudi risorse precedenti prima di riavviare
     if (this.logStream) {
-      try { this.logStream.destroy(); } catch (e) { }
+      try { this.logStream.destroy(); } catch { }
       this.logStream = null;
     }
     if (this.stderrReadline) {
@@ -96,11 +96,11 @@ class AudioMixerController {
     // Apri il log stderr del mixer per guild una sola volta per diagnostica
     try {
       const logsDir = path.join(ROOT_DIR, 'temp');
-      try { fs.mkdirSync(logsDir, { recursive: true }); } catch (e) { }
+      try { fs.mkdirSync(logsDir, { recursive: true }); } catch { }
       const logPath = path.join(logsDir, `mixer-${this.guildId}.log`);
       this.logStream = fs.createWriteStream(logPath, { flags: 'a' });
       this.logStream.write(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
-    } catch (e) { console.error('Impossibile aprire stream log mixer', e); }
+    } catch { console.error('Impossibile aprire stream log mixer', e); }
 
     rl.on('line', (line) => {
       // CRITICO: Ignora eventi se il mixer è morto
@@ -110,7 +110,7 @@ class AudioMixerController {
 
       try {
         let log = null;
-        try { log = JSON.parse(line); } catch (parseErr) {
+        try { log = JSON.parse(line); } catch {
           // ignora le righe non JSON ma conserva un minimo di debug
         }
         if (!log) return;
@@ -145,10 +145,10 @@ class AudioMixerController {
         if (log.event === 'buffer_ready') {
           const deck = log.data;
           console.log(`✅ [RUST] Buffer pronto su Deck ${deck}`);
-          try { if (this.onBufferReady) this.onBufferReady(deck); } catch (e) { console.error('Errore handler onBufferReady', e); }
+          try { if (this.onBufferReady) this.onBufferReady(deck); } catch { console.error('Errore handler onBufferReady', e); }
         }
 
-      } catch (e) { }
+      } catch { }
     });
 
     // Gestisci errori su stdout - CRITICO: marca il mixer come morto
@@ -157,14 +157,14 @@ class AudioMixerController {
       this.isAlive = false;
       this.stdoutClosed = true;
       if (this.process) {
-        try { this.process.kill(); } catch (e) { }
+        try { this.process.kill(); } catch { }
         this.process = null;
       }
       // Trigger crash callback per recovery automatico
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log('🚨 [RUST] Avvio recovery crash...');
-        try { this.onCrash('stdout_error'); } catch (e) { console.error('Errore handler onCrash', e); }
+        try { this.onCrash('stdout_error'); } catch { console.error('Errore handler onCrash', e); }
       }
     });
 
@@ -173,17 +173,17 @@ class AudioMixerController {
       this.stdoutClosed = true;
       this.isAlive = false;
       if (this.process) {
-        try { this.process.kill(); } catch (e) { }
+        try { this.process.kill(); } catch { }
         this.process = null;
       }
-      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} STDOUT_CLOSED\n`); this.logStream.end(); this.logStream = null; } } catch (e) { }
+      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} STDOUT_CLOSED\n`); this.logStream.end(); this.logStream = null; } } catch { }
     });
 
     this.process.stdin.on('error', (err) => {
       console.error(`❌ [RUST] Errore stdin: ${err && err.message ? err.message : err}`);
       this.isAlive = false;
       if (this.process) {
-        try { this.process.kill(); } catch (e) { }
+        try { this.process.kill(); } catch { }
         this.process = null;
       }
     });
@@ -196,11 +196,11 @@ class AudioMixerController {
         this.stderrReadline.close();
         this.stderrReadline = null;
       }
-      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} PROCESS_CLOSED code=${code}\n`); this.logStream.end(); this.logStream = null; } } catch (e) { }
+      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} PROCESS_CLOSED code=${code}\n`); this.logStream.end(); this.logStream = null; } } catch { }
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log(`🚨 [RUST] Triggering crash recovery from close (code=${code})...`);
-        try { this.onCrash(`process_close_${code}`); } catch (e) { console.error('onCrash handler error', e); }
+        try { this.onCrash(`process_close_${code}`); } catch { console.error('onCrash handler error', e); }
       }
     });
 
@@ -211,7 +211,7 @@ class AudioMixerController {
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log('🚨 [RUST] Triggering crash recovery da process error...');
-        try { this.onCrash(`process_error_${err.message}`); } catch (e) { console.error('onCrash handler error', e); }
+        try { this.onCrash(`process_error_${err.message}`); } catch { console.error('onCrash handler error', e); }
       }
     });
   }
@@ -225,7 +225,7 @@ class AudioMixerController {
     try {
       this.process.stdin.write(JSON.stringify(cmd) + '\n');
       return true;
-    } catch (e) {
+    } catch {
       console.error('❌ [MIXER] Errore invio comando:', e.message);
       this.isAlive = false;
       return false;
@@ -278,11 +278,11 @@ class AudioMixerController {
     }
     // Chiudi logStream per evitare file descriptor leak
     if (this.logStream) {
-      try { this.logStream.end(); } catch (e) { }
+      try { this.logStream.end(); } catch { }
       this.logStream = null;
     }
     if (this.process) {
-      try { this.process.kill(); } catch (e) { }
+      try { this.process.kill(); } catch { }
       this.process = null;
     }
     this.isAlive = false;

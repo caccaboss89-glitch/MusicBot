@@ -24,7 +24,7 @@ function isBotAloneInChannel(serverQueue) {
     const channel = serverQueue.voiceChannel;
     if (!channel || !channel.members) return true;
     return channel.members.size <= 1;
-  } catch (e) {
+  } catch {
     console.warn(`⚠️ [BOT-ALONE-CHECK] Errore: ${e.message}`);
     return true;
   }
@@ -220,7 +220,7 @@ function insertSongAtIndex(serverQueue, song, index) {
 
       return { success: true };
 
-    } catch (e) {
+    } catch {
       // ROLLBACK se il salvataggio fallisce
       console.error('❌ [QUEUE-INSERT] Errore, rollback:', e.message);
       serverQueue.songs = previousSongs;
@@ -233,7 +233,7 @@ function insertSongAtIndex(serverQueue, song, index) {
       return { success: false, error: `Failed to insert song: ${e.message}` };
     }
 
-  } catch (e) {
+  } catch {
     console.error('❌ [QUEUE-INSERT] Fatal error:', e);
     return { success: false, error: e.message };
   }
@@ -304,14 +304,14 @@ function removeSongAtIndex(serverQueue, index) {
         });
 
         // Notifica preload update
-        try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch (e) { }
+        try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch { }
 
         return { success: true, removed };
       }
 
       return { success: false, error: 'Failed to remove song' };
 
-    } catch (e) {
+    } catch {
       // ROLLBACK se il salvataggio fallisce
       console.error('❌ [QUEUE-REMOVE] Errore, rollback:', e.message);
       serverQueue.songs = previousSongs;
@@ -326,7 +326,7 @@ function removeSongAtIndex(serverQueue, index) {
       return { success: false, error: `Failed to remove song: ${e.message}` };
     }
 
-  } catch (e) {
+  } catch {
     console.error('❌ [QUEUE-REMOVE] Fatal error:', e);
     return { success: false, error: e.message };
   }
@@ -375,23 +375,23 @@ function performDisconnectCleanup(serverQueue) {
     try {
       const stats = require('../database/stats');
       stats.flushGuildAndSave(serverQueue.guildId);
-    } catch (e) { }
+    } catch { }
 
     // Ferma il player
-    try { if (serverQueue.player) serverQueue.player.stop(true); } catch (e) { }
+    try { if (serverQueue.player) serverQueue.player.stop(true); } catch { }
     // Kill mixer se presente
-    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch (e) { }
+    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch { }
     // Distruggi la connessione vocale
-    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch (e) { }
+    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch { }
 
     // Cleanup low-latency stream per evitare pipe/fd leak
-    try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch (e) { }
+    try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch { }
 
     // Cleanup stato audio per-guild
-    try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch (e) { }
-    try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch (e) { }
-    try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch (e) { }
-    try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch (e) { }
+    try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch { }
+    try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch { }
+    try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch { }
+    try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch { }
 
     // Resetta alcuni campi dello stato della coda
     serverQueue.connection = null;
@@ -403,15 +403,15 @@ function performDisconnectCleanup(serverQueue) {
     clearDeckBindings(serverQueue);
 
     // Salva stato su disco
-    try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) { }
+    try { saveQueueState(serverQueue.guildId, serverQueue); } catch { }
 
     // Assicurati di rimuovere i riferimenti a mixer e player per evitare duplicati dopo il restart
-    try { serverQueue.mixer = null; } catch (e) { }
-    try { serverQueue.player = null; } catch (e) { }
+    try { serverQueue.mixer = null; } catch { }
+    try { serverQueue.player = null; } catch { }
     // Cancella eventuale timer schedulato
-    try { disconnectTimers.delete(serverQueue.guildId); } catch (e) { }
+    try { disconnectTimers.delete(serverQueue.guildId); } catch { }
 
-  } catch (e) {
+  } catch {
     console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
   } finally {
     serverQueue._cleaningUp = false;
@@ -432,7 +432,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
   if (timeoutMs === 0) {
     // Se c'è un timer già schedulato, annullalo.
     if (disconnectTimers.has(gid)) {
-      try { clearTimeout(disconnectTimers.get(gid)); } catch (e) { }
+      try { clearTimeout(disconnectTimers.get(gid)); } catch { }
       disconnectTimers.delete(gid);
     }
     performDisconnectCleanup(serverQueue);
@@ -458,7 +458,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
         // Qualcuno è tornato: cancella semplicemente il timer
         disconnectTimers.delete(gid);
       }
-    } catch (e) { disconnectTimers.delete(gid); }
+    } catch { disconnectTimers.delete(gid); }
   }, timeoutMs);
   disconnectTimers.set(gid, t);
   console.log(`⏱️ [SCHEDULE] Timer di disconnect programmato per guild ${gid} (${timeoutMs}ms)`);
@@ -475,7 +475,7 @@ function cancelScheduledDisconnect(serverQueue) {
   if (!disconnectTimers.has(gid)) return false;
   try {
     clearTimeout(disconnectTimers.get(gid));
-  } catch (e) { }
+  } catch { }
   disconnectTimers.delete(gid);
   console.log(`⏱️ [CANCEL] Timer di disconnect cancellato per guild ${gid}`);
   return true;
