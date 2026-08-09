@@ -267,7 +267,7 @@ export default function registerInteractionHandlers(client, deps) {
         try { const commandsModule = await import('../commands/index.js'); commands = commandsModule.default || commandsModule; } catch { }
         const cmd = commands[interaction.commandName];
         if (cmd && typeof cmd.execute === 'function') {
-          try { await cmd.execute(interaction, deps); } catch { console.error('Command execute error', e); }
+          try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error', e); }
         }
         return;
       }
@@ -305,22 +305,22 @@ export default function registerInteractionHandlers(client, deps) {
         // Prova prima i playlist handlers
         try {
           if (await handlePlaylist(interaction, serverQueue, guildId, customId, deps)) return;
-        } catch { console.error(`❌ [PLAYLIST-HANDLER] Errore (${customId}):`, e); return; }
+        } catch (e) { console.error(`❌ [PLAYLIST-HANDLER] Errore (${customId}):`, e); return; }
 
         // Poi i button handlers
         const handler = BUTTON_HANDLERS[customId];
         if (handler) {
           try { await handler(interaction, serverQueue, guildId, deps); }
-          catch { console.error(`❌ [BUTTON-HANDLER] Errore (${customId}):`, e); }
+          catch (e) { console.error(`❌ [BUTTON-HANDLER] Errore (${customId}):`, e); }
         }
         return;
       }
 
       if (interaction.isModalSubmit()) {
         try { await handleModal(interaction, interaction.guildId, deps); }
-        catch { console.error(`❌ [MODAL-HANDLER] Errore (${interaction.customId}):`, e); }
+        catch (e) { console.error(`❌ [MODAL-HANDLER] Errore (${interaction.customId}):`, e); }
         return;
       }
-    } catch { console.error('Errore Handler:', e); }
+    } catch (e) { console.error('Errore Handler:', e); }
   });
 }

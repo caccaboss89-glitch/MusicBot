@@ -131,7 +131,7 @@ async function handleModal(interaction, guildId, deps) {
             serverQueue.mixer = null;
           }
           if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);
-          try { await audio.playSong(interaction.guild.id, interaction); } catch { console.error('playSong error after modal add', e); }
+          try { await audio.playSong(interaction.guild.id, interaction); } catch (e) { console.error('playSong error after modal add', e); }
         } else {
           if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
           if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });

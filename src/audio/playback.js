@@ -266,7 +266,7 @@ async function playSong(guildId, interaction = null) {
 
         serverQueue.crashRecoveryAttempts = 0;
         if (serverQueue.connection) {
-          try { serverQueue.connection.subscribe(serverQueue.player); } catch { console.error('Failed to re-subscribe connection:', e); }
+          try { serverQueue.connection.subscribe(serverQueue.player); } catch (e) { console.error('Failed to re-subscribe connection:', e); }
         }
       } finally {
         serverQueue.mixerStarting = false;
@@ -289,7 +289,7 @@ async function playSong(guildId, interaction = null) {
         serverQueue.player.play(resource);
         serverQueue.crashRecoveryAttempts = 0;
         if (serverQueue.connection) {
-          try { serverQueue.connection.subscribe(serverQueue.player); } catch { console.error('Failed to re-subscribe connection:', e); }
+          try { serverQueue.connection.subscribe(serverQueue.player); } catch (e) { console.error('Failed to re-subscribe connection:', e); }
         }
       } catch (e) {
         console.error('❌ [PLAY] Error attaching to existing mixer stdout', e);
@@ -338,7 +338,7 @@ async function playSong(guildId, interaction = null) {
       stats.incrementSongsStarted();
       stats.startAllListeners(guildId, serverQueue.voiceChannel);
       stats.recordSongPlay(guildId, song, serverQueue.voiceChannel);
-    } catch { console.warn('⚠️ [STATS] Errore in playSong:', e.message); }
+    } catch (e) { console.warn('⚠️ [STATS] Errore in playSong:', e.message); }
   }
 }
 

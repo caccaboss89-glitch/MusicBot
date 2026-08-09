@@ -438,14 +438,14 @@ async function handleMixerCrash(guildId, reason) {
         const delayMs = 500 + (sq.crashRecoveryAttempts * 500);
         console.log(`⏳ [CRASH-RECOVERY] Scheduling playSong restart in ${delayMs}ms`);
         setTimeout(() => {
-          try { playback.playSong(guildId); } catch { console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e); }
+          try { playback.playSong(guildId); } catch (e) { console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e); }
         }, delayMs);
       } else {
         console.log(`ℹ️  [CRASH-RECOVERY] Connessione vocale non pronta (status=${connReady ? 'ready' : 'not ready'}), skip recovery`);
         scheduleDisconnectIfAlone(sq, 0);
       }
-    } catch { console.error('❌ [CRASH-RECOVERY] Error during recovery attempt:', e); }
-  } catch { console.error('❌ [CRASH-RECOVERY] Fatal error in handleMixerCrash:', e); }
+    } catch (e) { console.error('❌ [CRASH-RECOVERY] Error during recovery attempt:', e); }
+  } catch (e) { console.error('❌ [CRASH-RECOVERY] Fatal error in handleMixerCrash:', e); }
 }
 
 // ─── Preload update ─────────────────────────────────────────

@@ -100,7 +100,7 @@ class AudioMixerController {
       const logPath = path.join(logsDir, `mixer-${this.guildId}.log`);
       this.logStream = fs.createWriteStream(logPath, { flags: 'a' });
       this.logStream.write(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
-    } catch { console.error('Impossibile aprire stream log mixer', e); }
+    } catch (e) { console.error('Impossibile aprire stream log mixer', e); }
 
     rl.on('line', (line) => {
       // CRITICO: Ignora eventi se il mixer è morto
@@ -145,7 +145,7 @@ class AudioMixerController {
         if (log.event === 'buffer_ready') {
           const deck = log.data;
           console.log(`✅ [RUST] Buffer pronto su Deck ${deck}`);
-          try { if (this.onBufferReady) this.onBufferReady(deck); } catch { console.error('Errore handler onBufferReady', e); }
+          try { if (this.onBufferReady) this.onBufferReady(deck); } catch (e) { console.error('Errore handler onBufferReady', e); }
         }
 
       } catch { }
@@ -164,7 +164,7 @@ class AudioMixerController {
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log('🚨 [RUST] Avvio recovery crash...');
-        try { this.onCrash('stdout_error'); } catch { console.error('Errore handler onCrash', e); }
+        try { this.onCrash('stdout_error'); } catch (e) { console.error('Errore handler onCrash', e); }
       }
     });
 
@@ -200,7 +200,7 @@ class AudioMixerController {
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log(`🚨 [RUST] Triggering crash recovery from close (code=${code})...`);
-        try { this.onCrash(`process_close_${code}`); } catch { console.error('onCrash handler error', e); }
+        try { this.onCrash(`process_close_${code}`); } catch (e) { console.error('onCrash handler error', e); }
       }
     });
 
@@ -211,7 +211,7 @@ class AudioMixerController {
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log('🚨 [RUST] Triggering crash recovery da process error...');
-        try { this.onCrash(`process_error_${err.message}`); } catch { console.error('onCrash handler error', e); }
+        try { this.onCrash(`process_error_${err.message}`); } catch (e) { console.error('onCrash handler error', e); }
       }
     });
   }

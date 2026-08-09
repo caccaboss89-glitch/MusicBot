@@ -135,11 +135,11 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
           try {
             serverQueue.dashboardMessage = await channel.send({ embeds: [createFinishedEmbed(lastSong)], components: createDashboardComponents(serverQueue) });
             serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
-          } catch { console.error('⚠️ [DASH] failed to send finished dashboard:', e && e.message); }
+          } catch (e) { console.error('⚠️ [DASH] failed to send finished dashboard:', e && e.message); }
         }
       }
     }
-  } catch { console.error('⚠️ [DASH] updateDashboardToFinished preflight error', e); }
+  } catch (e) { console.error('⚠️ [DASH] updateDashboardToFinished preflight error', e); }
   const embed = createFinishedEmbed(lastSong);
   const components = createDashboardComponents(serverQueue);
   if (lastSong) {
