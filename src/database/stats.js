@@ -442,3 +442,22 @@ export {
   // Debug
   getActiveListenersDebug
 };
+
+export default {
+  loadStats,
+  saveStats,
+  startListening,
+  stopListening,
+  startAllListeners,
+  stopAllListeners,
+  flushGuildAndSave,
+  flushAllGuildsAndSave,
+  flushPendingAndSave,
+  incrementSongsStarted,
+  incrementSongsCompleted,
+  recordPlaylistAdd,
+  updateUserDiscordInfo,
+  recordSongPlay,
+  computeTopSongs,
+  getActiveListenersDebug
+};
