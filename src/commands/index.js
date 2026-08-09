@@ -1,3 +1,3 @@
 module.exports = {
-    play: require('./play')
+  play: require('./play')
 };

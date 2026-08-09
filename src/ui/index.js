@@ -8,12 +8,12 @@ const { generatePlaylistView, generateSearchResultsView, createDashboardComponen
 const { updateDashboard, updateDashboardToFinished, refreshDashboard } = require('./dashboard');
 
 module.exports = {
-    createCurrentSongEmbed,
-    createFinishedEmbed,
-    generatePlaylistView,
-    generateSearchResultsView,
-    createDashboardComponents,
-    updateDashboard,
-    updateDashboardToFinished,
-    refreshDashboard
+  createCurrentSongEmbed,
+  createFinishedEmbed,
+  generatePlaylistView,
+  generateSearchResultsView,
+  createDashboardComponents,
+  updateDashboard,
+  updateDashboardToFinished,
+  refreshDashboard
 };

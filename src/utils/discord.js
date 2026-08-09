@@ -9,17 +9,17 @@
  * @param {object} data - Dati della risposta
  */
 async function safeReply(interaction, data) {
-    try {
-        if (interaction.deferred || interaction.replied) {
-            await interaction.followUp(data);
-        } else {
-            await interaction.reply(data);
-        }
-    } catch (e) {
-        // Ignora errori di interazione scaduta o già gestita
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(data);
+    } else {
+      await interaction.reply(data);
     }
+  } catch (e) {
+    // Ignora errori di interazione scaduta o già gestita
+  }
 }
 
 module.exports = {
-    safeReply
+  safeReply
 };

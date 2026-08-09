@@ -30,32 +30,32 @@ const CACHE_MAX = 200;
  * @returns {Promise<any|null>}
  */
 function _getJson(host, path) {
-    return new Promise((resolve) => {
-        const req = https.get(
-            {
-                host,
-                path,
-                headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }
-            },
-            (res) => {
-                if (res.statusCode && res.statusCode >= 400) {
-                    res.resume();
-                    return resolve(null);
-                }
-                let data = '';
-                res.setEncoding('utf8');
-                res.on('data', (c) => { data += c; });
-                res.on('end', () => {
-                    try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
-                });
-            }
-        );
-        req.on('error', () => resolve(null));
-        req.setTimeout(REQUEST_TIMEOUT_MS, () => {
-            try { req.destroy(); } catch (e) { /* ignore */ }
-            resolve(null);
+  return new Promise((resolve) => {
+    const req = https.get(
+      {
+        host,
+        path,
+        headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' }
+      },
+      (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          res.resume();
+          return resolve(null);
+        }
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (c) => { data += c; });
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch (e) { resolve(null); }
         });
+      }
+    );
+    req.on('error', () => resolve(null));
+    req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      try { req.destroy(); } catch (e) { /* ignore */ }
+      resolve(null);
     });
+  });
 }
 
 /**
@@ -64,15 +64,15 @@ function _getJson(host, path) {
  * @returns {string}
  */
 function cleanQuery(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/\([^)]*\)/g, ' ')
-        .replace(/\[[^\]]*\]/g, ' ')
-        .replace(/\b(feat\.?|ft\.?|featuring)\b.*$/i, ' ')
-        .replace(/\b(official|video|audio|lyrics?|lyric|visualizer|hd|4k|mv|m\/v|remaster(?:ed)?)\b/gi, ' ')
-        .replace(/[|•·]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+  if (!str) return '';
+  return String(str)
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\b(feat\.?|ft\.?|featuring)\b.*$/i, ' ')
+    .replace(/\b(official|video|audio|lyrics?|lyric|visualizer|hd|4k|mv|m\/v|remaster(?:ed)?)\b/gi, ' ')
+    .replace(/[|•·]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -81,13 +81,13 @@ function cleanQuery(str) {
  * @returns {string}
  */
 function cleanArtist(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/\s*-\s*Topic\s*$/i, '')
-        .replace(/\s*VEVO\s*$/i, '')
-        .replace(/\s*Official\s*$/i, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+  if (!str) return '';
+  return String(str)
+    .replace(/\s*-\s*Topic\s*$/i, '')
+    .replace(/\s*VEVO\s*$/i, '')
+    .replace(/\s*Official\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -96,12 +96,12 @@ function cleanArtist(str) {
  * @returns {{artist: string, track: string}}
  */
 function splitArtistTrack(fullTitle) {
-    const cleaned = cleanQuery(fullTitle);
-    const m = cleaned.split(/\s[-–—]\s/);
-    if (m.length >= 2) {
-        return { artist: m[0].trim(), track: m.slice(1).join(' ').trim() };
-    }
-    return { artist: '', track: cleaned };
+  const cleaned = cleanQuery(fullTitle);
+  const m = cleaned.split(/\s[-–—]\s/);
+  if (m.length >= 2) {
+    return { artist: m[0].trim(), track: m.slice(1).join(' ').trim() };
+  }
+  return { artist: '', track: cleaned };
 }
 
 /**
@@ -112,43 +112,43 @@ function splitArtistTrack(fullTitle) {
  * @returns {Promise<{artist: string, track: string}>}
  */
 async function resolveTrackInfo(song) {
-    let artist = '';
-    let track = '';
+  let artist = '';
+  let track = '';
 
-    const fromTitle = splitArtistTrack(song.title || '');
-    if (fromTitle.artist) {
-        artist = fromTitle.artist;
-        track = fromTitle.track;
-    } else {
-        track = fromTitle.track;
-        artist = cleanArtist(song.author || song.uploader || '');
-    }
+  const fromTitle = splitArtistTrack(song.title || '');
+  if (fromTitle.artist) {
+    artist = fromTitle.artist;
+    track = fromTitle.track;
+  } else {
+    track = fromTitle.track;
+    artist = cleanArtist(song.author || song.uploader || '');
+  }
 
-    const needsOembed = song.url && (
-        !artist ||
+  const needsOembed = song.url && (
+    !artist ||
         artist.length < 3 ||
         artist.toLowerCase() === 'various artists'
-    );
+  );
 
-    if (needsOembed) {
-        const path = `/oembed?url=${encodeURIComponent(song.url)}&format=json`;
-        const oembed = await _getJson(YOUTUBE_HOST, path);
-        if (oembed) {
-            const oembedTitle = cleanQuery(oembed.title || '');
-            const oembedArtist = cleanArtist(oembed.author_name || '');
-            const fromOembedTitle = splitArtistTrack(oembed.title || '');
+  if (needsOembed) {
+    const path = `/oembed?url=${encodeURIComponent(song.url)}&format=json`;
+    const oembed = await _getJson(YOUTUBE_HOST, path);
+    if (oembed) {
+      const oembedTitle = cleanQuery(oembed.title || '');
+      const oembedArtist = cleanArtist(oembed.author_name || '');
+      const fromOembedTitle = splitArtistTrack(oembed.title || '');
 
-            if (fromOembedTitle.artist) {
-                artist = fromOembedTitle.artist;
-                track = fromOembedTitle.track;
-            } else {
-                if (oembedArtist) artist = oembedArtist;
-                if (oembedTitle) track = oembedTitle;
-            }
-        }
+      if (fromOembedTitle.artist) {
+        artist = fromOembedTitle.artist;
+        track = fromOembedTitle.track;
+      } else {
+        if (oembedArtist) artist = oembedArtist;
+        if (oembedTitle) track = oembedTitle;
+      }
     }
+  }
 
-    return { artist: cleanArtist(artist), track: cleanQuery(track) };
+  return { artist: cleanArtist(artist), track: cleanQuery(track) };
 }
 
 /**
@@ -157,9 +157,9 @@ async function resolveTrackInfo(song) {
  * @returns {string|null}
  */
 function extractLyrics(record) {
-    if (!record) return null;
-    let lyrics = record.plainLyrics || stripSyncedTimestamps(record.syncedLyrics) || null;
-    return lyrics ? lyrics.trim() || null : null;
+  if (!record) return null;
+  const lyrics = record.plainLyrics || stripSyncedTimestamps(record.syncedLyrics) || null;
+  return lyrics ? lyrics.trim() || null : null;
 }
 
 /**
@@ -171,49 +171,49 @@ function extractLyrics(record) {
  * @returns {Promise<string|null>}
  */
 async function getLyrics(song) {
-    if (!song || !song.title) return null;
+  if (!song || !song.title) return null;
 
-    const cacheKey = song.url || song.title;
-    if (_cache.has(cacheKey)) return _cache.get(cacheKey);
+  const cacheKey = song.url || song.title;
+  if (_cache.has(cacheKey)) return _cache.get(cacheKey);
 
-    const { artist, track } = await resolveTrackInfo(song);
-    if (!track) return null;
+  const { artist, track } = await resolveTrackInfo(song);
+  if (!track) return null;
 
-    let lyrics = null;
+  let lyrics = null;
 
-    if (artist) {
-        const exact = await _getJson(
-            LRCLIB_HOST,
-            `/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`
-        );
-        lyrics = extractLyrics(exact);
-        if (lyrics) {
-            _setCache(cacheKey, lyrics);
-            return lyrics;
-        }
-
-        const searchPaths = [
-            `/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`,
-            `/api/search?q=${encodeURIComponent(`${artist} ${track}`)}`
-        ];
-        for (const path of searchPaths) {
-            const results = await _getJson(LRCLIB_HOST, path);
-            if (!Array.isArray(results) || results.length === 0) continue;
-            const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
-            lyrics = extractLyrics(best);
-            if (lyrics) break;
-        }
-    } else {
-        // Senza artista affidabile non usiamo track_name da solo: match troppo generici.
-        const results = await _getJson(LRCLIB_HOST, `/api/search?q=${encodeURIComponent(track)}`);
-        if (Array.isArray(results) && results.length > 0) {
-            const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
-            lyrics = extractLyrics(best);
-        }
+  if (artist) {
+    const exact = await _getJson(
+      LRCLIB_HOST,
+      `/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(track)}`
+    );
+    lyrics = extractLyrics(exact);
+    if (lyrics) {
+      _setCache(cacheKey, lyrics);
+      return lyrics;
     }
 
-    _setCache(cacheKey, lyrics);
-    return lyrics;
+    const searchPaths = [
+      `/api/search?track_name=${encodeURIComponent(track)}&artist_name=${encodeURIComponent(artist)}`,
+      `/api/search?q=${encodeURIComponent(`${artist} ${track}`)}`
+    ];
+    for (const path of searchPaths) {
+      const results = await _getJson(LRCLIB_HOST, path);
+      if (!Array.isArray(results) || results.length === 0) continue;
+      const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
+      lyrics = extractLyrics(best);
+      if (lyrics) break;
+    }
+  } else {
+    // Senza artista affidabile non usiamo track_name da solo: match troppo generici.
+    const results = await _getJson(LRCLIB_HOST, `/api/search?q=${encodeURIComponent(track)}`);
+    if (Array.isArray(results) && results.length > 0) {
+      const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
+      lyrics = extractLyrics(best);
+    }
+  }
+
+  _setCache(cacheKey, lyrics);
+  return lyrics;
 }
 
 /**
@@ -222,16 +222,16 @@ async function getLyrics(song) {
  * @returns {string|null}
  */
 function stripSyncedTimestamps(synced) {
-    if (!synced) return null;
-    return synced.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim() || null;
+  if (!synced) return null;
+  return synced.replace(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g, '').trim() || null;
 }
 
 function _setCache(key, value) {
-    if (_cache.size >= CACHE_MAX) {
-        const firstKey = _cache.keys().next().value;
-        _cache.delete(firstKey);
-    }
-    _cache.set(key, value);
+  if (_cache.size >= CACHE_MAX) {
+    const firstKey = _cache.keys().next().value;
+    _cache.delete(firstKey);
+  }
+  _cache.set(key, value);
 }
 
 /**
@@ -241,23 +241,23 @@ function _setCache(key, value) {
  * @returns {string[]}
  */
 function chunkLyrics(text, maxLen = 1900) {
-    const chunks = [];
-    let current = '';
-    for (const line of String(text).split('\n')) {
-        if ((current + line + '\n').length > maxLen) {
-            if (current) chunks.push(current);
-            if (line.length > maxLen) {
-                for (let i = 0; i < line.length; i += maxLen) chunks.push(line.slice(i, i + maxLen));
-                current = '';
-            } else {
-                current = line + '\n';
-            }
-        } else {
-            current += line + '\n';
-        }
+  const chunks = [];
+  let current = '';
+  for (const line of String(text).split('\n')) {
+    if ((current + line + '\n').length > maxLen) {
+      if (current) chunks.push(current);
+      if (line.length > maxLen) {
+        for (let i = 0; i < line.length; i += maxLen) chunks.push(line.slice(i, i + maxLen));
+        current = '';
+      } else {
+        current = line + '\n';
+      }
+    } else {
+      current += line + '\n';
     }
-    if (current.trim()) chunks.push(current);
-    return chunks.length > 0 ? chunks : [String(text)];
+  }
+  if (current.trim()) chunks.push(current);
+  return chunks.length > 0 ? chunks : [String(text)];
 }
 
 module.exports = { getLyrics, chunkLyrics, cleanQuery, splitArtistTrack, resolveTrackInfo };

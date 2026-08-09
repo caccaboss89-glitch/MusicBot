@@ -2,9 +2,12 @@
   "name": "discord-music-bot",
   "version": "2.1.5",
   "description": "Bot musicale ibrido Node/Rust",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
@@ -15,6 +18,10 @@
     "opusscript": "^0.0.8",
     "socks-proxy-agent": "^8.0.5",
     "tslib": "^2.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.8.1",
+    "globals": "^17.9.0"
   },
   "engines": {
     "node": ">=16.9.0"

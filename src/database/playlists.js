@@ -19,9 +19,9 @@ const DB_FLUSH_INTERVAL_MS = 2000; // Flush su disco ogni 2 secondi se dirty
  * @returns {object} - { server: [], users: {} }
  */
 function loadDatabase() {
-    if (_dbCache) return _dbCache;
-    _dbCache = safeJSONParse(PLAYLIST_FILE, { server: [], users: {} });
-    return _dbCache;
+  if (_dbCache) return _dbCache;
+  _dbCache = safeJSONParse(PLAYLIST_FILE, { server: [], users: {} });
+  return _dbCache;
 }
 
 /**
@@ -30,37 +30,37 @@ function loadDatabase() {
  * @param {object} data - Dati da salvare (deve essere lo stesso riferimento della cache)
  */
 function saveDatabase(data) {
-    _dbCache = data;
-    _dbDirty = true;
-    if (!_dbFlushTimer) {
-        _dbFlushTimer = setTimeout(() => {
-            _flushToFile();
-        }, DB_FLUSH_INTERVAL_MS);
-    }
+  _dbCache = data;
+  _dbDirty = true;
+  if (!_dbFlushTimer) {
+    _dbFlushTimer = setTimeout(() => {
+      _flushToFile();
+    }, DB_FLUSH_INTERVAL_MS);
+  }
 }
 
 /**
  * Forza la scrittura immediata su disco (per shutdown).
  */
 function flushDatabaseSync() {
-    if (_dbFlushTimer) {
-        clearTimeout(_dbFlushTimer);
-        _dbFlushTimer = null;
-    }
-    _flushToFile();
+  if (_dbFlushTimer) {
+    clearTimeout(_dbFlushTimer);
+    _dbFlushTimer = null;
+  }
+  _flushToFile();
 }
 
 function _flushToFile() {
-    _dbFlushTimer = null;
-    if (!_dbDirty || !_dbCache) return;
-    try {
-        const tmpFile = PLAYLIST_FILE + '.tmp';
-        fs.writeFileSync(tmpFile, JSON.stringify(_dbCache, null, 2));
-        fs.renameSync(tmpFile, PLAYLIST_FILE);
-        _dbDirty = false;
-    } catch (e) {
-        console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
-    }
+  _dbFlushTimer = null;
+  if (!_dbDirty || !_dbCache) return;
+  try {
+    const tmpFile = PLAYLIST_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(_dbCache, null, 2));
+    fs.renameSync(tmpFile, PLAYLIST_FILE);
+    _dbDirty = false;
+  } catch (e) {
+    console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
+  }
 }
 
 /**
@@ -70,22 +70,22 @@ function _flushToFile() {
  * @returns {Object} - { playlists: { Generale: [...], ... }, activePlaylist: 'Generale' }
  */
 function migrateUserData(userData) {
-    if (Array.isArray(userData)) {
-        // Formato legacy: singolo array → diventa playlist "Generale"
-        return { playlists: { [DEFAULT_PLAYLIST_NAME]: userData }, activePlaylist: DEFAULT_PLAYLIST_NAME };
+  if (Array.isArray(userData)) {
+    // Formato legacy: singolo array → diventa playlist "Generale"
+    return { playlists: { [DEFAULT_PLAYLIST_NAME]: userData }, activePlaylist: DEFAULT_PLAYLIST_NAME };
+  }
+  if (userData && typeof userData === 'object' && userData.playlists) {
+    // Già nel nuovo formato — assicura che 'Generale' esista
+    if (!userData.playlists[DEFAULT_PLAYLIST_NAME]) {
+      userData.playlists[DEFAULT_PLAYLIST_NAME] = [];
     }
-    if (userData && typeof userData === 'object' && userData.playlists) {
-        // Già nel nuovo formato — assicura che 'Generale' esista
-        if (!userData.playlists[DEFAULT_PLAYLIST_NAME]) {
-            userData.playlists[DEFAULT_PLAYLIST_NAME] = [];
-        }
-        if (!userData.activePlaylist || !userData.playlists[userData.activePlaylist]) {
-            userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
-        }
-        return userData;
+    if (!userData.activePlaylist || !userData.playlists[userData.activePlaylist]) {
+      userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
     }
-    // Dati non validi → struttura vuota
-    return { playlists: { [DEFAULT_PLAYLIST_NAME]: [] }, activePlaylist: DEFAULT_PLAYLIST_NAME };
+    return userData;
+  }
+  // Dati non validi → struttura vuota
+  return { playlists: { [DEFAULT_PLAYLIST_NAME]: [] }, activePlaylist: DEFAULT_PLAYLIST_NAME };
 }
 
 /**
@@ -96,13 +96,13 @@ function migrateUserData(userData) {
  * @returns {Object} - { playlists: {...}, activePlaylist: '...' }
  */
 function getUserData(db, userId) {
-    if (!db.users) db.users = {};
-    if (!db.users[userId]) {
-        db.users[userId] = { playlists: { [DEFAULT_PLAYLIST_NAME]: [] }, activePlaylist: DEFAULT_PLAYLIST_NAME };
-    } else {
-        db.users[userId] = migrateUserData(db.users[userId]);
-    }
-    return db.users[userId];
+  if (!db.users) db.users = {};
+  if (!db.users[userId]) {
+    db.users[userId] = { playlists: { [DEFAULT_PLAYLIST_NAME]: [] }, activePlaylist: DEFAULT_PLAYLIST_NAME };
+  } else {
+    db.users[userId] = migrateUserData(db.users[userId]);
+  }
+  return db.users[userId];
 }
 
 /**
@@ -113,8 +113,8 @@ function getUserData(db, userId) {
  * @returns {Array} - Array di canzoni
  */
 function getUserPlaylist(db, userId, playlistName) {
-    const data = getUserData(db, userId);
-    return data.playlists[playlistName] || [];
+  const data = getUserData(db, userId);
+  return data.playlists[playlistName] || [];
 }
 
 /**
@@ -124,8 +124,8 @@ function getUserPlaylist(db, userId, playlistName) {
  * @returns {string} - Nome della playlist attiva
  */
 function getActivePlaylistName(db, userId) {
-    const data = getUserData(db, userId);
-    return data.activePlaylist || DEFAULT_PLAYLIST_NAME;
+  const data = getUserData(db, userId);
+  return data.activePlaylist || DEFAULT_PLAYLIST_NAME;
 }
 
 /**
@@ -135,10 +135,10 @@ function getActivePlaylistName(db, userId) {
  * @param {string} name - Nome della playlist da attivare
  */
 function setActivePlaylist(db, userId, name) {
-    const data = getUserData(db, userId);
-    if (data.playlists[name]) {
-        data.activePlaylist = name;
-    }
+  const data = getUserData(db, userId);
+  if (data.playlists[name]) {
+    data.activePlaylist = name;
+  }
 }
 
 /**
@@ -149,11 +149,11 @@ function setActivePlaylist(db, userId, name) {
  * @returns {string[]} - Nomi delle playlist
  */
 function getUserPlaylistNames(db, userId) {
-    const data = getUserData(db, userId);
-    const names = Object.keys(data.playlists);
-    // Assicura che Generale sia sempre prima
-    const sorted = [DEFAULT_PLAYLIST_NAME, ...names.filter(n => n !== DEFAULT_PLAYLIST_NAME)];
-    return sorted;
+  const data = getUserData(db, userId);
+  const names = Object.keys(data.playlists);
+  // Assicura che Generale sia sempre prima
+  const sorted = [DEFAULT_PLAYLIST_NAME, ...names.filter(n => n !== DEFAULT_PLAYLIST_NAME)];
+  return sorted;
 }
 
 /**
@@ -162,26 +162,26 @@ function getUserPlaylistNames(db, userId) {
  * @returns {{ valid: boolean, error?: string }} - Risultato validazione
  */
 function validatePlaylistName(name) {
-    if (!name || typeof name !== 'string') return { valid: false, error: 'Il nome non può essere vuoto.' };
-    const trimmed = name.trim();
-    if (trimmed.length === 0) return { valid: false, error: 'Il nome non può essere vuoto.' };
-    if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `Il nome non può superare ${MAX_PLAYLIST_NAME_LENGTH} caratteri.` };
-    if (trimmed.includes('_')) return { valid: false, error: 'Il nome non può contenere underscore (_).' };
-    // Permetti alfanumerici, spazi, trattini, accenti e altri caratteri unicode comuni
-    const nameRegex = new RegExp(`^[^\\n\\r_]{1,${MAX_PLAYLIST_NAME_LENGTH}}$`);
-    if (!nameRegex.test(trimmed)) return { valid: false, error: 'Il nome contiene caratteri non validi.' };
-    return { valid: true };
+  if (!name || typeof name !== 'string') return { valid: false, error: 'Il nome non può essere vuoto.' };
+  const trimmed = name.trim();
+  if (trimmed.length === 0) return { valid: false, error: 'Il nome non può essere vuoto.' };
+  if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `Il nome non può superare ${MAX_PLAYLIST_NAME_LENGTH} caratteri.` };
+  if (trimmed.includes('_')) return { valid: false, error: 'Il nome non può contenere underscore (_).' };
+  // Permetti alfanumerici, spazi, trattini, accenti e altri caratteri unicode comuni
+  const nameRegex = new RegExp(`^[^\\n\\r_]{1,${MAX_PLAYLIST_NAME_LENGTH}}$`);
+  if (!nameRegex.test(trimmed)) return { valid: false, error: 'Il nome contiene caratteri non validi.' };
+  return { valid: true };
 }
 
 module.exports = {
-    loadDatabase,
-    saveDatabase,
-    flushDatabaseSync,
-    migrateUserData,
-    getUserData,
-    getUserPlaylist,
-    getActivePlaylistName,
-    setActivePlaylist,
-    getUserPlaylistNames,
-    validatePlaylistName
+  loadDatabase,
+  saveDatabase,
+  flushDatabaseSync,
+  migrateUserData,
+  getUserData,
+  getUserPlaylist,
+  getActivePlaylistName,
+  setActivePlaylist,
+  getUserPlaylistNames,
+  validatePlaylistName
 };

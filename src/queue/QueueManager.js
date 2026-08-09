@@ -1,7 +1,7 @@
 /**
  * Gestione centralizzata della coda musicale
  * Queste funzioni DEVONO essere usate OVUNQUE per evitare bug di sincronizzazione
- * 
+ *
  * TRANSAZIONI: Le operazioni critiche sono wrappate con state versioning e rollback support
  */
 
@@ -19,15 +19,15 @@ const { DISCONNECT_TIMEOUT_MS } = require('../../config');
  * @returns {boolean} - true se il bot è solo o non c'è canale
  */
 function isBotAloneInChannel(serverQueue) {
-    if (!serverQueue || !serverQueue.voiceChannel) return true;
-    try {
-        const channel = serverQueue.voiceChannel;
-        if (!channel || !channel.members) return true;
-        return channel.members.size <= 1;
-    } catch (e) {
-        console.warn(`⚠️ [BOT-ALONE-CHECK] Errore: ${e.message}`);
-        return true;
-    }
+  if (!serverQueue || !serverQueue.voiceChannel) return true;
+  try {
+    const channel = serverQueue.voiceChannel;
+    if (!channel || !channel.members) return true;
+    return channel.members.size <= 1;
+  } catch (e) {
+    console.warn(`⚠️ [BOT-ALONE-CHECK] Errore: ${e.message}`);
+    return true;
+  }
 }
 
 /**
@@ -35,16 +35,16 @@ function isBotAloneInChannel(serverQueue) {
  * @param {object} serverQueue - Coda del server
  */
 function clearFinishedQueue(serverQueue) {
-    if (!serverQueue) return;
-    if (!serverQueue.currentDeckLoaded) {
-        const hadContent = serverQueue.songs.length > 0 || (serverQueue.history && serverQueue.history.length > 0);
-        if (hadContent) {
-            console.log(`🧹 [QUEUE-CLEAR] Pulizia coda terminata per nuova musica`);
-            serverQueue.songs = [];
-            serverQueue.history = [];
-            serverQueue.playIndex = 0;
-        }
+  if (!serverQueue) return;
+  if (!serverQueue.currentDeckLoaded) {
+    const hadContent = serverQueue.songs.length > 0 || (serverQueue.history && serverQueue.history.length > 0);
+    if (hadContent) {
+      console.log('🧹 [QUEUE-CLEAR] Pulizia coda terminata per nuova musica');
+      serverQueue.songs = [];
+      serverQueue.history = [];
+      serverQueue.playIndex = 0;
     }
+  }
 }
 
 /**
@@ -66,18 +66,18 @@ function clearFinishedQueue(serverQueue) {
  * @returns {object|null}
  */
 function getPlayingIndex(serverQueue) {
-    if (!serverQueue) return 0;
-    if (serverQueue.currentDeck && serverQueue.currentDeckLoaded && isMixerAlive(serverQueue)) {
-        const idx = resolveDeckIndex(serverQueue, serverQueue.currentDeck);
-        if (idx != null) return idx;
-    }
-    return serverQueue.playIndex || 0;
+  if (!serverQueue) return 0;
+  if (serverQueue.currentDeck && serverQueue.currentDeckLoaded && isMixerAlive(serverQueue)) {
+    const idx = resolveDeckIndex(serverQueue, serverQueue.currentDeck);
+    if (idx !== null && idx !== undefined) return idx;
+  }
+  return serverQueue.playIndex || 0;
 }
 
 function getCurrentSong(serverQueue) {
-    if (!serverQueue || !serverQueue.songs || serverQueue.songs.length === 0) return null;
-    const index = getPlayingIndex(serverQueue);
-    return index < serverQueue.songs.length ? serverQueue.songs[index] : null;
+  if (!serverQueue || !serverQueue.songs || serverQueue.songs.length === 0) return null;
+  const index = getPlayingIndex(serverQueue);
+  return index < serverQueue.songs.length ? serverQueue.songs[index] : null;
 }
 
 /**
@@ -86,10 +86,10 @@ function getCurrentSong(serverQueue) {
  * @returns {object|null}
  */
 function getNextSong(serverQueue) {
-    if (!serverQueue || !serverQueue.songs) return null;
-    const nextIndex = (serverQueue.playIndex || 0) + 1;
-    if (nextIndex >= serverQueue.songs.length) return null;
-    return serverQueue.songs[nextIndex];
+  if (!serverQueue || !serverQueue.songs) return null;
+  const nextIndex = (serverQueue.playIndex || 0) + 1;
+  if (nextIndex >= serverQueue.songs.length) return null;
+  return serverQueue.songs[nextIndex];
 }
 
 /**
@@ -98,8 +98,8 @@ function getNextSong(serverQueue) {
  * @returns {boolean}
  */
 function hasNextSong(serverQueue) {
-    if (!serverQueue || !serverQueue.songs) return false;
-    return (serverQueue.playIndex || 0) + 1 < serverQueue.songs.length;
+  if (!serverQueue || !serverQueue.songs) return false;
+  return (serverQueue.playIndex || 0) + 1 < serverQueue.songs.length;
 }
 
 // ─── Binding deck → canzone (sincronizzazione robusta embed/mixer) ──────────
@@ -119,9 +119,9 @@ function hasNextSong(serverQueue) {
  * @param {string|null} url
  */
 function bindDeckSong(serverQueue, deck, index, url) {
-    if (!serverQueue) return;
-    if (!serverQueue.deckSongs) serverQueue.deckSongs = { A: null, B: null };
-    serverQueue.deckSongs[deck] = (index != null && url) ? { index, url } : null;
+  if (!serverQueue) return;
+  if (!serverQueue.deckSongs) serverQueue.deckSongs = { A: null, B: null };
+  serverQueue.deckSongs[deck] = (index !== null && index !== undefined && url) ? { index, url } : null;
 }
 
 /**
@@ -133,15 +133,15 @@ function bindDeckSong(serverQueue, deck, index, url) {
  * @returns {number|null}
  */
 function resolveDeckIndex(serverQueue, deck) {
-    if (!serverQueue || !serverQueue.deckSongs) return null;
-    const binding = serverQueue.deckSongs[deck];
-    if (!binding) return null;
-    const songs = serverQueue.songs || [];
-    if (songs[binding.index] && areSameSong(songs[binding.index].url, binding.url)) {
-        return binding.index;
-    }
-    const found = songs.findIndex(s => s && areSameSong(s.url, binding.url));
-    return found >= 0 ? found : null;
+  if (!serverQueue || !serverQueue.deckSongs) return null;
+  const binding = serverQueue.deckSongs[deck];
+  if (!binding) return null;
+  const songs = serverQueue.songs || [];
+  if (songs[binding.index] && areSameSong(songs[binding.index].url, binding.url)) {
+    return binding.index;
+  }
+  const found = songs.findIndex(s => s && areSameSong(s.url, binding.url));
+  return found >= 0 ? found : null;
 }
 
 /**
@@ -151,10 +151,9 @@ function resolveDeckIndex(serverQueue, deck) {
  * @param {object} serverQueue
  */
 function clearDeckBindings(serverQueue) {
-    if (!serverQueue) return;
-    serverQueue.deckSongs = { A: null, B: null };
+  if (!serverQueue) return;
+  serverQueue.deckSongs = { A: null, B: null };
 }
-
 
 
 /**
@@ -163,7 +162,7 @@ function clearDeckBindings(serverQueue) {
  * @returns {boolean}
  */
 function isValidSong(song) {
-    return song &&
+  return song &&
         song.url &&
         song.title &&
         typeof song.url === 'string' &&
@@ -178,66 +177,66 @@ function isValidSong(song) {
  * @returns {{success: boolean, error?: string}}
  */
 function insertSongAtIndex(serverQueue, song, index) {
+  try {
+    const guildId = serverQueue.guildId;
+    const stateVersion = stateVersionManager.get(guildId);
+
+    // Validazione
+    if (!isValidSong(song) || index < 0) {
+      console.warn('⚠️ [QUEUE-INSERT] Tentativo inserimento canzone non valida');
+      return { success: false, error: 'Invalid song or index' };
+    }
+    if (!serverQueue || !serverQueue.songs) {
+      return { success: false, error: 'Invalid queue' };
+    }
+    if (index > serverQueue.songs.length) {
+      return { success: false, error: `Index out of range: ${index}` };
+    }
+
+    // Snapshot dello stato prima della modifica (per rollback)
+    const previousSongs = [...serverQueue.songs];
+    const previousPlayIndex = serverQueue.playIndex;
+
     try {
-        const guildId = serverQueue.guildId;
-        const stateVersion = stateVersionManager.get(guildId);
+      // Inserisci la canzone
+      serverQueue.songs.splice(index, 0, song);
 
-        // Validazione
-        if (!isValidSong(song) || index < 0) {
-            console.warn(`⚠️ [QUEUE-INSERT] Tentativo inserimento canzone non valida`);
-            return { success: false, error: 'Invalid song or index' };
-        }
-        if (!serverQueue || !serverQueue.songs) {
-            return { success: false, error: 'Invalid queue' };
-        }
-        if (index > serverQueue.songs.length) {
-            return { success: false, error: `Index out of range: ${index}` };
-        }
+      // Aggiusta playIndex se l'inserimento è prima o al punto corrente
+      const playIndex = serverQueue.playIndex || 0;
+      if (index <= playIndex) {
+        serverQueue.playIndex = playIndex + 1;
+      }
 
-        // Snapshot dello stato prima della modifica (per rollback)
-        const previousSongs = [...serverQueue.songs];
-        const previousPlayIndex = serverQueue.playIndex;
+      console.log(`📥 [QUEUE-INSERT] Inserita "${sanitizeTitle(song.title)}" in posizione ${index}`);
 
-        try {
-            // Inserisci la canzone
-            serverQueue.songs.splice(index, 0, song);
+      // Salva lo stato
+      saveQueueState(guildId, serverQueue);
 
-            // Aggiusta playIndex se l'inserimento è prima o al punto corrente
-            const playIndex = serverQueue.playIndex || 0;
-            if (index <= playIndex) {
-                serverQueue.playIndex = playIndex + 1;
-            }
+      // Incrementa versione
+      stateVersion.incrementVersion('queue_insert', {
+        index,
+        songTitle: sanitizeTitle(song.title)
+      });
 
-            console.log(`📥 [QUEUE-INSERT] Inserita "${sanitizeTitle(song.title)}" in posizione ${index}`);
-
-            // Salva lo stato
-            saveQueueState(guildId, serverQueue);
-
-            // Incrementa versione
-            stateVersion.incrementVersion('queue_insert', {
-                index,
-                songTitle: sanitizeTitle(song.title)
-            });
-
-            return { success: true };
-
-        } catch (e) {
-            // ROLLBACK se il salvataggio fallisce
-            console.error(`❌ [QUEUE-INSERT] Errore, rollback:`, e.message);
-            serverQueue.songs = previousSongs;
-            serverQueue.playIndex = previousPlayIndex;
-
-            stateVersion.incrementVersion('queue_insert_rollback', {
-                error: e.message
-            });
-
-            return { success: false, error: `Failed to insert song: ${e.message}` };
-        }
+      return { success: true };
 
     } catch (e) {
-        console.error(`❌ [QUEUE-INSERT] Fatal error:`, e);
-        return { success: false, error: e.message };
+      // ROLLBACK se il salvataggio fallisce
+      console.error('❌ [QUEUE-INSERT] Errore, rollback:', e.message);
+      serverQueue.songs = previousSongs;
+      serverQueue.playIndex = previousPlayIndex;
+
+      stateVersion.incrementVersion('queue_insert_rollback', {
+        error: e.message
+      });
+
+      return { success: false, error: `Failed to insert song: ${e.message}` };
     }
+
+  } catch (e) {
+    console.error('❌ [QUEUE-INSERT] Fatal error:', e);
+    return { success: false, error: e.message };
+  }
 }
 
 /**
@@ -247,90 +246,90 @@ function insertSongAtIndex(serverQueue, song, index) {
  * @returns {{success: boolean, removed?: object, error?: string}}
  */
 function removeSongAtIndex(serverQueue, index) {
+  try {
+    const guildId = serverQueue.guildId;
+    const stateVersion = stateVersionManager.get(guildId);
+
+    // Validazione
+    if (!serverQueue || !serverQueue.songs) {
+      return { success: false, error: 'Invalid queue' };
+    }
+    if (index < 0 || index >= serverQueue.songs.length) {
+      console.warn(`⚠️ [QUEUE-REMOVE] Indice fuori range: ${index}`);
+      return { success: false, error: `Index out of range: ${index}` };
+    }
+
+    // Snapshot dello stato prima della modifica (per rollback)
+    const previousSongs = [...serverQueue.songs];
+    const previousPlayIndex = serverQueue.playIndex;
+    const previousNextDeckLoaded = serverQueue.nextDeckLoaded;
+    const previousNextDeckTarget = serverQueue.nextDeckTarget;
+
     try {
-        const guildId = serverQueue.guildId;
-        const stateVersion = stateVersionManager.get(guildId);
+      // Rimuovi la canzone
+      const removed = serverQueue.songs.splice(index, 1)[0];
 
-        // Validazione
-        if (!serverQueue || !serverQueue.songs) {
-            return { success: false, error: 'Invalid queue' };
+      if (removed) {
+        // Aggiusta playIndex dopo la rimozione
+        const playIndex = serverQueue.playIndex || 0;
+        if (index < playIndex) {
+          serverQueue.playIndex = Math.max(0, playIndex - 1);
+        } else if (index === playIndex && serverQueue.playIndex >= serverQueue.songs.length && serverQueue.songs.length > 0) {
+          serverQueue.playIndex = serverQueue.songs.length - 1;
         }
-        if (index < 0 || index >= serverQueue.songs.length) {
-            console.warn(`⚠️ [QUEUE-REMOVE] Indice fuori range: ${index}`);
-            return { success: false, error: `Index out of range: ${index}` };
+
+        // Invalida preload se la canzone rimossa era quella precaricata
+        if (serverQueue.nextDeckLoaded && areSameSong(serverQueue.nextDeckLoaded, removed.url)) {
+          serverQueue.nextDeckLoaded = null;
+          serverQueue.nextDeckTarget = null;
         }
 
-        // Snapshot dello stato prima della modifica (per rollback)
-        const previousSongs = [...serverQueue.songs];
-        const previousPlayIndex = serverQueue.playIndex;
-        const previousNextDeckLoaded = serverQueue.nextDeckLoaded;
-        const previousNextDeckTarget = serverQueue.nextDeckTarget;
-
-        try {
-            // Rimuovi la canzone
-            const removed = serverQueue.songs.splice(index, 1)[0];
-
-            if (removed) {
-                // Aggiusta playIndex dopo la rimozione
-                const playIndex = serverQueue.playIndex || 0;
-                if (index < playIndex) {
-                    serverQueue.playIndex = Math.max(0, playIndex - 1);
-                } else if (index === playIndex && serverQueue.playIndex >= serverQueue.songs.length && serverQueue.songs.length > 0) {
-                    serverQueue.playIndex = serverQueue.songs.length - 1;
-                }
-
-                // Invalida preload se la canzone rimossa era quella precaricata
-                if (serverQueue.nextDeckLoaded && areSameSong(serverQueue.nextDeckLoaded, removed.url)) {
-                    serverQueue.nextDeckLoaded = null;
-                    serverQueue.nextDeckTarget = null;
-                }
-
-                // Invalida i binding deck→canzone che puntano alla canzone rimossa
-                if (serverQueue.deckSongs) {
-                    for (const d of ['A', 'B']) {
-                        const b = serverQueue.deckSongs[d];
-                        if (b && areSameSong(b.url, removed.url)) serverQueue.deckSongs[d] = null;
-                    }
-                }
-
-                console.log(`🗑️ [QUEUE-REMOVE] Rimossa "${sanitizeTitle(removed.title)}" da posizione ${index}`);
-
-                // Salva lo stato
-                saveQueueState(guildId, serverQueue);
-
-                // Incrementa versione
-                stateVersion.incrementVersion('queue_remove', {
-                    index,
-                    songTitle: sanitizeTitle(removed.title)
-                });
-
-                // Notifica preload update
-                try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch (e) { }
-
-                return { success: true, removed };
-            }
-
-            return { success: false, error: 'Failed to remove song' };
-
-        } catch (e) {
-            // ROLLBACK se il salvataggio fallisce
-            console.error(`❌ [QUEUE-REMOVE] Errore, rollback:`, e.message);
-            serverQueue.songs = previousSongs;
-            serverQueue.playIndex = previousPlayIndex;
-            serverQueue.nextDeckLoaded = previousNextDeckLoaded;
-            serverQueue.nextDeckTarget = previousNextDeckTarget;
-
-            stateVersion.incrementVersion('queue_remove_rollback', {
-                error: e.message
-            });
-
-            return { success: false, error: `Failed to remove song: ${e.message}` };
+        // Invalida i binding deck→canzone che puntano alla canzone rimossa
+        if (serverQueue.deckSongs) {
+          for (const d of ['A', 'B']) {
+            const b = serverQueue.deckSongs[d];
+            if (b && areSameSong(b.url, removed.url)) serverQueue.deckSongs[d] = null;
+          }
         }
+
+        console.log(`🗑️ [QUEUE-REMOVE] Rimossa "${sanitizeTitle(removed.title)}" da posizione ${index}`);
+
+        // Salva lo stato
+        saveQueueState(guildId, serverQueue);
+
+        // Incrementa versione
+        stateVersion.incrementVersion('queue_remove', {
+          index,
+          songTitle: sanitizeTitle(removed.title)
+        });
+
+        // Notifica preload update
+        try { require('../audio').updatePreloadAfterQueueChange(guildId); } catch (e) { }
+
+        return { success: true, removed };
+      }
+
+      return { success: false, error: 'Failed to remove song' };
 
     } catch (e) {
-        console.error(`❌ [QUEUE-REMOVE] Fatal error:`, e);
-        return { success: false, error: e.message };
+      // ROLLBACK se il salvataggio fallisce
+      console.error('❌ [QUEUE-REMOVE] Errore, rollback:', e.message);
+      serverQueue.songs = previousSongs;
+      serverQueue.playIndex = previousPlayIndex;
+      serverQueue.nextDeckLoaded = previousNextDeckLoaded;
+      serverQueue.nextDeckTarget = previousNextDeckTarget;
+
+      stateVersion.incrementVersion('queue_remove_rollback', {
+        error: e.message
+      });
+
+      return { success: false, error: `Failed to remove song: ${e.message}` };
     }
+
+  } catch (e) {
+    console.error('❌ [QUEUE-REMOVE] Fatal error:', e);
+    return { success: false, error: e.message };
+  }
 }
 
 /**
@@ -339,7 +338,7 @@ function removeSongAtIndex(serverQueue, index) {
  * @returns {boolean}
  */
 function isMixerAlive(serverQueue) {
-    return serverQueue &&
+  return serverQueue &&
         serverQueue.mixer &&
         serverQueue.mixer.isProcessAlive &&
         serverQueue.mixer.isProcessAlive();
@@ -353,70 +352,70 @@ function isMixerAlive(serverQueue) {
  * @param {object} serverQueue
  */
 function performDisconnectCleanup(serverQueue) {
-    if (!serverQueue) return;
-    if (serverQueue._cleaningUp) return; // Guard contro re-entry (evita cascade)
-    if (serverQueue._isReconnecting) return; // Non interferire con riconnessione in corso
-    serverQueue._cleaningUp = true;
-    try {
-        console.log(`🧹 [CLEANUP] Eseguo cleanup di disconnessione per guild ${serverQueue.guildId}`);
+  if (!serverQueue) return;
+  if (serverQueue._cleaningUp) return; // Guard contro re-entry (evita cascade)
+  if (serverQueue._isReconnecting) return; // Non interferire con riconnessione in corso
+  serverQueue._cleaningUp = true;
+  try {
+    console.log(`🧹 [CLEANUP] Eseguo cleanup di disconnessione per guild ${serverQueue.guildId}`);
 
-        // Cancella transizione differita pendente
-        if (serverQueue.pendingTransition) {
-            if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
-            serverQueue.pendingTransition = null;
-        }
-
-        // Cancella dashboard timer pendente
-        if (serverQueue.dashboardState && serverQueue.dashboardState.timer) {
-            clearTimeout(serverQueue.dashboardState.timer);
-            serverQueue.dashboardState.timer = null;
-        }
-
-        // ── STATS: ferma timer ascolto e salva su disco ──
-        try {
-            const stats = require('../database/stats');
-            stats.flushGuildAndSave(serverQueue.guildId);
-        } catch (e) { }
-
-        // Ferma il player
-        try { if (serverQueue.player) serverQueue.player.stop(true); } catch (e) { }
-        // Kill mixer se presente
-        try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch (e) { }
-        // Distruggi la connessione vocale
-        try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch (e) { }
-
-        // Cleanup low-latency stream per evitare pipe/fd leak
-        try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch (e) { }
-
-        // Cleanup stato audio per-guild
-        try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch (e) { }
-        try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch (e) { }
-        try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch (e) { }
-        try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch (e) { }
-
-        // Resetta alcuni campi dello stato della coda
-        serverQueue.connection = null;
-        serverQueue.currentDeckLoaded = null;
-        serverQueue.nextDeckLoaded = null;
-        serverQueue.isPaused = false;
-        serverQueue.songStartTime = null;
-        serverQueue.nextDeckTarget = null;
-        clearDeckBindings(serverQueue);
-
-        // Salva stato su disco
-        try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) { }
-
-        // Assicurati di rimuovere i riferimenti a mixer e player per evitare duplicati dopo il restart
-        try { serverQueue.mixer = null; } catch (e) { }
-        try { serverQueue.player = null; } catch (e) { }
-        // Cancella eventuale timer schedulato
-        try { disconnectTimers.delete(serverQueue.guildId); } catch (e) { }
-
-    } catch (e) {
-        console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
-    } finally {
-        serverQueue._cleaningUp = false;
+    // Cancella transizione differita pendente
+    if (serverQueue.pendingTransition) {
+      if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
+      serverQueue.pendingTransition = null;
     }
+
+    // Cancella dashboard timer pendente
+    if (serverQueue.dashboardState && serverQueue.dashboardState.timer) {
+      clearTimeout(serverQueue.dashboardState.timer);
+      serverQueue.dashboardState.timer = null;
+    }
+
+    // ── STATS: ferma timer ascolto e salva su disco ──
+    try {
+      const stats = require('../database/stats');
+      stats.flushGuildAndSave(serverQueue.guildId);
+    } catch (e) { }
+
+    // Ferma il player
+    try { if (serverQueue.player) serverQueue.player.stop(true); } catch (e) { }
+    // Kill mixer se presente
+    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch (e) { }
+    // Distruggi la connessione vocale
+    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch (e) { }
+
+    // Cleanup low-latency stream per evitare pipe/fd leak
+    try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch (e) { }
+
+    // Cleanup stato audio per-guild
+    try { require('../audio').clearStreamErrors(serverQueue.guildId); } catch (e) { }
+    try { require('../audio/playback').cleanupPlaybackState(serverQueue.guildId); } catch (e) { }
+    try { require('../audio/SkipManager').cleanupSkipState(serverQueue.guildId); } catch (e) { }
+    try { require('../commands/play').cleanupLastCleanupTime(serverQueue.guildId); } catch (e) { }
+
+    // Resetta alcuni campi dello stato della coda
+    serverQueue.connection = null;
+    serverQueue.currentDeckLoaded = null;
+    serverQueue.nextDeckLoaded = null;
+    serverQueue.isPaused = false;
+    serverQueue.songStartTime = null;
+    serverQueue.nextDeckTarget = null;
+    clearDeckBindings(serverQueue);
+
+    // Salva stato su disco
+    try { saveQueueState(serverQueue.guildId, serverQueue); } catch (e) { }
+
+    // Assicurati di rimuovere i riferimenti a mixer e player per evitare duplicati dopo il restart
+    try { serverQueue.mixer = null; } catch (e) { }
+    try { serverQueue.player = null; } catch (e) { }
+    // Cancella eventuale timer schedulato
+    try { disconnectTimers.delete(serverQueue.guildId); } catch (e) { }
+
+  } catch (e) {
+    console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
+  } finally {
+    serverQueue._cleaningUp = false;
+  }
 }
 
 /**
@@ -425,45 +424,45 @@ function performDisconnectCleanup(serverQueue) {
  * @param {number} timeoutMs
  */
 function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_MS) {
-    if (!serverQueue || !serverQueue.guildId) return false;
-    const gid = serverQueue.guildId;
+  if (!serverQueue || !serverQueue.guildId) return false;
+  const gid = serverQueue.guildId;
 
-    // Immediate cleanup request (e.g. bot disconnesso/espulso)
-    // bypassa i controlli sul canale e chiama direttamente il cleanup.
-    if (timeoutMs === 0) {
-        // Se c'è un timer già schedulato, annullalo.
-        if (disconnectTimers.has(gid)) {
-            try { clearTimeout(disconnectTimers.get(gid)); } catch (e) { }
-            disconnectTimers.delete(gid);
-        }
-        performDisconnectCleanup(serverQueue);
-        return true;
+  // Immediate cleanup request (e.g. bot disconnesso/espulso)
+  // bypassa i controlli sul canale e chiama direttamente il cleanup.
+  if (timeoutMs === 0) {
+    // Se c'è un timer già schedulato, annullalo.
+    if (disconnectTimers.has(gid)) {
+      try { clearTimeout(disconnectTimers.get(gid)); } catch (e) { }
+      disconnectTimers.delete(gid);
     }
-
-    // Se non è solo, assicurati di cancellare qualsiasi timer precedente
-    if (!isBotAloneInChannel(serverQueue)) {
-        if (disconnectTimers.has(gid)) {
-            clearTimeout(disconnectTimers.get(gid));
-            disconnectTimers.delete(gid);
-        }
-        return false;
-    }
-    // Se esiste già un timer, non fare nulla
-    if (disconnectTimers.has(gid)) return true;
-    const t = setTimeout(() => {
-        try {
-            // Ricontrolla prima di eseguire
-            if (isBotAloneInChannel(serverQueue)) {
-                performDisconnectCleanup(serverQueue);
-            } else {
-                // Qualcuno è tornato: cancella semplicemente il timer
-                disconnectTimers.delete(gid);
-            }
-        } catch (e) { disconnectTimers.delete(gid); }
-    }, timeoutMs);
-    disconnectTimers.set(gid, t);
-    console.log(`⏱️ [SCHEDULE] Timer di disconnect programmato per guild ${gid} (${timeoutMs}ms)`);
+    performDisconnectCleanup(serverQueue);
     return true;
+  }
+
+  // Se non è solo, assicurati di cancellare qualsiasi timer precedente
+  if (!isBotAloneInChannel(serverQueue)) {
+    if (disconnectTimers.has(gid)) {
+      clearTimeout(disconnectTimers.get(gid));
+      disconnectTimers.delete(gid);
+    }
+    return false;
+  }
+  // Se esiste già un timer, non fare nulla
+  if (disconnectTimers.has(gid)) return true;
+  const t = setTimeout(() => {
+    try {
+      // Ricontrolla prima di eseguire
+      if (isBotAloneInChannel(serverQueue)) {
+        performDisconnectCleanup(serverQueue);
+      } else {
+        // Qualcuno è tornato: cancella semplicemente il timer
+        disconnectTimers.delete(gid);
+      }
+    } catch (e) { disconnectTimers.delete(gid); }
+  }, timeoutMs);
+  disconnectTimers.set(gid, t);
+  console.log(`⏱️ [SCHEDULE] Timer di disconnect programmato per guild ${gid} (${timeoutMs}ms)`);
+  return true;
 }
 
 /**
@@ -471,31 +470,31 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
  * @param {object} serverQueue
  */
 function cancelScheduledDisconnect(serverQueue) {
-    if (!serverQueue || !serverQueue.guildId) return false;
-    const gid = serverQueue.guildId;
-    if (!disconnectTimers.has(gid)) return false;
-    try {
-        clearTimeout(disconnectTimers.get(gid));
-    } catch (e) { }
-    disconnectTimers.delete(gid);
-    console.log(`⏱️ [CANCEL] Timer di disconnect cancellato per guild ${gid}`);
-    return true;
+  if (!serverQueue || !serverQueue.guildId) return false;
+  const gid = serverQueue.guildId;
+  if (!disconnectTimers.has(gid)) return false;
+  try {
+    clearTimeout(disconnectTimers.get(gid));
+  } catch (e) { }
+  disconnectTimers.delete(gid);
+  console.log(`⏱️ [CANCEL] Timer di disconnect cancellato per guild ${gid}`);
+  return true;
 }
 
 module.exports = {
-    isBotAloneInChannel,
-    clearFinishedQueue,
-    getCurrentSong,
-    getPlayingIndex,
-    getNextSong,
-    hasNextSong,
-    bindDeckSong,
-    resolveDeckIndex,
-    clearDeckBindings,
-    isValidSong,
-    insertSongAtIndex,
-    removeSongAtIndex,
-    isMixerAlive,
-    scheduleDisconnectIfAlone,
-    cancelScheduledDisconnect
+  isBotAloneInChannel,
+  clearFinishedQueue,
+  getCurrentSong,
+  getPlayingIndex,
+  getNextSong,
+  hasNextSong,
+  bindDeckSong,
+  resolveDeckIndex,
+  clearDeckBindings,
+  isValidSong,
+  insertSongAtIndex,
+  removeSongAtIndex,
+  isMixerAlive,
+  scheduleDisconnectIfAlone,
+  cancelScheduledDisconnect
 };

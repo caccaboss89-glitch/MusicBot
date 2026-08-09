@@ -19,80 +19,80 @@ const pendingTime = {};
 
 // Flush periodico del tempo pendente per ridurre perdita dati su crash non-graceful
 setInterval(() => {
-    try { flushPendingAndSave(); } catch (e) { }
+  try { flushPendingAndSave(); } catch (e) { }
 }, 60 * 1000); // Ogni 60 secondi
 
 // ─── Caricamento / Salvataggio ──────────────────────────────
 
 function getDefaultStats() {
-    return {
-        users: {},
-        global: {
-            songsStarted: 0,
-            songsCompleted: 0,
-            songPlays: {}
-        },
-        lastUpdated: null
-    };
+  return {
+    users: {},
+    global: {
+      songsStarted: 0,
+      songsCompleted: 0,
+      songPlays: {}
+    },
+    lastUpdated: null
+  };
 }
 
 function loadStats() {
-    try {
-        if (fs.existsSync(STATS_FILE)) {
-            const raw = fs.readFileSync(STATS_FILE, 'utf-8');
-            const data = JSON.parse(raw);
-            // Assicura struttura base
-            if (!data.users) data.users = {};
-            if (!data.global) data.global = { songsStarted: 0, songsCompleted: 0 };
-            if (!data.global.songsStarted) data.global.songsStarted = 0;
-            if (!data.global.songsCompleted) data.global.songsCompleted = 0;
-            if (!data.global.songPlays) data.global.songPlays = {};
-            return data;
-        }
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore caricamento stats:', e.message);
+  try {
+    if (fs.existsSync(STATS_FILE)) {
+      const raw = fs.readFileSync(STATS_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+      // Assicura struttura base
+      if (!data.users) data.users = {};
+      if (!data.global) data.global = { songsStarted: 0, songsCompleted: 0 };
+      if (!data.global.songsStarted) data.global.songsStarted = 0;
+      if (!data.global.songsCompleted) data.global.songsCompleted = 0;
+      if (!data.global.songPlays) data.global.songPlays = {};
+      return data;
     }
-    return getDefaultStats();
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore caricamento stats:', e.message);
+  }
+  return getDefaultStats();
 }
 
 function saveStats(data) {
-    try {
-        const dir = path.dirname(STATS_FILE);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  try {
+    const dir = path.dirname(STATS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-        data.lastUpdated = new Date().toISOString();
-        // Scrittura atomica: scrivi su temp file, poi rinomina (previene corruzione su crash)
-        const tmpFile = STATS_FILE + '.tmp';
-        fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
-        fs.renameSync(tmpFile, STATS_FILE);
-    } catch (e) {
-        console.error('❌ [STATS] Errore salvataggio stats:', e.message);
-    }
+    data.lastUpdated = new Date().toISOString();
+    // Scrittura atomica: scrivi su temp file, poi rinomina (previene corruzione su crash)
+    const tmpFile = STATS_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpFile, STATS_FILE);
+  } catch (e) {
+    console.error('❌ [STATS] Errore salvataggio stats:', e.message);
+  }
 }
 
 function ensureUser(data, userId, discordUser = null) {
-    if (!data.users[userId]) {
-        data.users[userId] = {
-            listeningTimeMs: 0,
-            serverPlaylistAdds: 0,
-            personalPlaylistAdds: 0
-        };
-    }
-    // Migrazione: assicura tutti i campi
-    const u = data.users[userId];
-    if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
-    if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
-    if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
-    if (!u.songPlays) u.songPlays = {};
+  if (!data.users[userId]) {
+    data.users[userId] = {
+      listeningTimeMs: 0,
+      serverPlaylistAdds: 0,
+      personalPlaylistAdds: 0
+    };
+  }
+  // Migrazione: assicura tutti i campi
+  const u = data.users[userId];
+  if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
+  if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
+  if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
+  if (!u.songPlays) u.songPlays = {};
 
-    // Aggiungi info Discord se fornite
-    if (discordUser) {
-        u.username = discordUser.username;
-        u.global_name = discordUser.globalName || null;
-        u.avatar = discordUser.avatar;
-        u.discriminator = discordUser.discriminator;
-    }
-    return u;
+  // Aggiungi info Discord se fornite
+  if (discordUser) {
+    u.username = discordUser.username;
+    u.global_name = discordUser.globalName || null;
+    u.avatar = discordUser.avatar;
+    u.discriminator = discordUser.discriminator;
+  }
+  return u;
 }
 
 // ─── Timer di ascolto ───────────────────────────────────────
@@ -102,15 +102,15 @@ function ensureUser(data, userId, discordUser = null) {
  * Se l'utente è già tracciato, non fa nulla (evita doppio conteggio).
  */
 function startListening(guildId, userId) {
-    if (!guildId || !userId) return;
-    let guildMap = activeListeners.get(guildId);
-    if (!guildMap) {
-        guildMap = new Map();
-        activeListeners.set(guildId, guildMap);
-    }
-    // Se già tracciato, ignora
-    if (guildMap.has(userId)) return;
-    guildMap.set(userId, Date.now());
+  if (!guildId || !userId) return;
+  let guildMap = activeListeners.get(guildId);
+  if (!guildMap) {
+    guildMap = new Map();
+    activeListeners.set(guildId, guildMap);
+  }
+  // Se già tracciato, ignora
+  if (guildMap.has(userId)) return;
+  guildMap.set(userId, Date.now());
 }
 
 /**
@@ -119,23 +119,23 @@ function startListening(guildId, userId) {
  * NON salva su disco — il salvataggio avviene separatamente.
  */
 function stopListening(guildId, userId) {
-    if (!guildId || !userId) return 0;
-    const guildMap = activeListeners.get(guildId);
-    if (!guildMap || !guildMap.has(userId)) return 0;
+  if (!guildId || !userId) return 0;
+  const guildMap = activeListeners.get(guildId);
+  if (!guildMap || !guildMap.has(userId)) return 0;
 
-    const startTime = guildMap.get(userId);
-    guildMap.delete(userId);
-    if (guildMap.size === 0) activeListeners.delete(guildId);
+  const startTime = guildMap.get(userId);
+  guildMap.delete(userId);
+  if (guildMap.size === 0) activeListeners.delete(guildId);
 
-    const elapsed = Math.max(0, Date.now() - startTime);
+  const elapsed = Math.max(0, Date.now() - startTime);
 
-    // Accumula nel file stats (carica, aggiorna, salva subito NO — lo facciamo in batch)
-    // Usiamo un buffer intermedio per evitare I/O per ogni singolo stop
-    // Il flush effettivo su disco avviene in flushGuildAndSave o flushAllGuildsAndSave
-    if (!pendingTime[userId]) pendingTime[userId] = 0;
-    pendingTime[userId] += elapsed;
+  // Accumula nel file stats (carica, aggiorna, salva subito NO — lo facciamo in batch)
+  // Usiamo un buffer intermedio per evitare I/O per ogni singolo stop
+  // Il flush effettivo su disco avviene in flushGuildAndSave o flushAllGuildsAndSave
+  if (!pendingTime[userId]) pendingTime[userId] = 0;
+  pendingTime[userId] += elapsed;
 
-    return elapsed;
+  return elapsed;
 }
 
 
@@ -145,15 +145,15 @@ const MAX_LISTENER_AGE_MS = 24 * 60 * 60 * 1000; // 24h
  * Rimuove listener orfani attivi da più di 24h (stale da crash/bug).
  */
 function cleanupStaleListeners() {
-    const now = Date.now();
-    for (const [guildId, guildMap] of activeListeners) {
-        for (const [userId, startTime] of guildMap) {
-            if (now - startTime > MAX_LISTENER_AGE_MS) {
-                guildMap.delete(userId);
-            }
-        }
-        if (guildMap.size === 0) activeListeners.delete(guildId);
+  const now = Date.now();
+  for (const [guildId, guildMap] of activeListeners) {
+    for (const [userId, startTime] of guildMap) {
+      if (now - startTime > MAX_LISTENER_AGE_MS) {
+        guildMap.delete(userId);
+      }
     }
+    if (guildMap.size === 0) activeListeners.delete(guildId);
+  }
 }
 
 /**
@@ -161,16 +161,16 @@ function cleanupStaleListeners() {
  * Da chiamare quando il bot inizia a suonare o resume da pausa.
  */
 function startAllListeners(guildId, voiceChannel) {
-    if (!guildId || !voiceChannel || !voiceChannel.members) return;
-    try {
-        voiceChannel.members.forEach(member => {
-            if (!member.user.bot) {
-                startListening(guildId, member.user.id);
-            }
-        });
-    } catch (e) {
-        console.warn('⚠️ [STATS] Errore startAllListeners:', e.message);
-    }
+  if (!guildId || !voiceChannel || !voiceChannel.members) return;
+  try {
+    voiceChannel.members.forEach(member => {
+      if (!member.user.bot) {
+        startListening(guildId, member.user.id);
+      }
+    });
+  } catch (e) {
+    console.warn('⚠️ [STATS] Errore startAllListeners:', e.message);
+  }
 }
 
 /**
@@ -178,15 +178,15 @@ function startAllListeners(guildId, voiceChannel) {
  * NON salva su disco — accumula solo i tempi nel buffer pendente.
  */
 function stopAllListeners(guildId) {
-    if (!guildId) return;
-    const guildMap = activeListeners.get(guildId);
-    if (!guildMap || guildMap.size === 0) return;
+  if (!guildId) return;
+  const guildMap = activeListeners.get(guildId);
+  if (!guildMap || guildMap.size === 0) return;
 
-    // Copia le chiavi prima di iterare (evita modifiche durante iterazione)
-    const userIds = [...guildMap.keys()];
-    for (const userId of userIds) {
-        stopListening(guildId, userId);
-    }
+  // Copia le chiavi prima di iterare (evita modifiche durante iterazione)
+  const userIds = [...guildMap.keys()];
+  for (const userId of userIds) {
+    stopListening(guildId, userId);
+  }
 }
 
 /**
@@ -194,29 +194,29 @@ function stopAllListeners(guildId) {
  * Da chiamare alla disconnessione del bot da un canale o allo shutdown.
  */
 function flushPendingAndSave() {
-    try {
-        // Pulisci listener stalli (attivi da >24h sono certamente orfani)
-        cleanupStaleListeners();
+  try {
+    // Pulisci listener stalli (attivi da >24h sono certamente orfani)
+    cleanupStaleListeners();
 
-        const pending = pendingTime;
-        if (!pending || Object.keys(pending).length === 0) return;
+    const pending = pendingTime;
+    if (!pending || Object.keys(pending).length === 0) return;
 
-        const data = loadStats();
-        for (const [userId, ms] of Object.entries(pending)) {
-            if (ms > 0) {
-                ensureUser(data, userId);
-                data.users[userId].listeningTimeMs += ms;
-            }
-        }
-        saveStats(data);
-
-        // Reset buffer
-        for (const key of Object.keys(pendingTime)) {
-            delete pendingTime[key];
-        }
-    } catch (e) {
-        console.error('❌ [STATS] Errore flushPendingAndSave:', e.message);
+    const data = loadStats();
+    for (const [userId, ms] of Object.entries(pending)) {
+      if (ms > 0) {
+        ensureUser(data, userId);
+        data.users[userId].listeningTimeMs += ms;
+      }
     }
+    saveStats(data);
+
+    // Reset buffer
+    for (const key of Object.keys(pendingTime)) {
+      delete pendingTime[key];
+    }
+  } catch (e) {
+    console.error('❌ [STATS] Errore flushPendingAndSave:', e.message);
+  }
 }
 
 /**
@@ -224,8 +224,8 @@ function flushPendingAndSave() {
  * Usato alla disconnessione del bot da un canale vocale.
  */
 function flushGuildAndSave(guildId) {
-    stopAllListeners(guildId);
-    flushPendingAndSave();
+  stopAllListeners(guildId);
+  flushPendingAndSave();
 }
 
 /**
@@ -233,16 +233,16 @@ function flushGuildAndSave(guildId) {
  * Usato allo shutdown del programma (SIGINT, uncaughtException).
  */
 function flushAllGuildsAndSave() {
-    try {
-        const guildIds = [...activeListeners.keys()];
-        for (const guildId of guildIds) {
-            stopAllListeners(guildId);
-        }
-        flushPendingAndSave();
-        console.log(`📊 [STATS] Flush completo di tutte le guild (${guildIds.length} attive)`);
-    } catch (e) {
-        console.error('❌ [STATS] Errore flushAllGuildsAndSave:', e.message);
+  try {
+    const guildIds = [...activeListeners.keys()];
+    for (const guildId of guildIds) {
+      stopAllListeners(guildId);
     }
+    flushPendingAndSave();
+    console.log(`📊 [STATS] Flush completo di tutte le guild (${guildIds.length} attive)`);
+  } catch (e) {
+    console.error('❌ [STATS] Errore flushAllGuildsAndSave:', e.message);
+  }
 }
 
 // ─── Tracciamento riproduzioni canzoni ────────────────────────
@@ -259,52 +259,52 @@ function flushAllGuildsAndSave() {
  * solo video ID. Usato per keying stats (dedup indipendente da playlist/mix).
  */
 function normalizeYoutubeUrl(url) {
-    if (!url) return url;
-    // Supporta anche music.youtube.com e m.youtube.com
-    const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/|music\.youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/);
-    if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
-    return url;
+  if (!url) return url;
+  // Supporta anche music.youtube.com e m.youtube.com
+  const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/|music\.youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/);
+  if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
+  return url;
 }
 
 function recordSongPlay(guildId, songInfo, voiceChannel = null) {
-    try {
-        if (!songInfo || !songInfo.url) return;
-        const url = normalizeYoutubeUrl(songInfo.url);
-        const entry = {
-            title: songInfo.title || 'Unknown',
-            url,
-            thumbnail: songInfo.thumbnail || null
-        };
+  try {
+    if (!songInfo || !songInfo.url) return;
+    const url = normalizeYoutubeUrl(songInfo.url);
+    const entry = {
+      title: songInfo.title || 'Unknown',
+      url,
+      thumbnail: songInfo.thumbnail || null
+    };
 
-        const data = loadStats();
+    const data = loadStats();
 
-        // ── Globale ──
-        if (!data.global.songPlays[url]) {
-            data.global.songPlays[url] = { ...entry, count: 0 };
-        }
-        data.global.songPlays[url].count++;
-        data.global.songPlays[url].title = entry.title;
-        if (entry.thumbnail) data.global.songPlays[url].thumbnail = entry.thumbnail;
-
-        // ── Per utente: tutti nel canale vocale ──
-        if (voiceChannel && voiceChannel.members) {
-            voiceChannel.members.forEach(member => {
-                if (member.user.bot) return;
-                const userId = member.user.id;
-                ensureUser(data, userId, member.user);
-                if (!data.users[userId].songPlays[url]) {
-                    data.users[userId].songPlays[url] = { ...entry, count: 0 };
-                }
-                data.users[userId].songPlays[url].count++;
-                data.users[userId].songPlays[url].title = entry.title;
-                if (entry.thumbnail) data.users[userId].songPlays[url].thumbnail = entry.thumbnail;
-            });
-        }
-
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore recordSongPlay:', e.message);
+    // ── Globale ──
+    if (!data.global.songPlays[url]) {
+      data.global.songPlays[url] = { ...entry, count: 0 };
     }
+    data.global.songPlays[url].count++;
+    data.global.songPlays[url].title = entry.title;
+    if (entry.thumbnail) data.global.songPlays[url].thumbnail = entry.thumbnail;
+
+    // ── Per utente: tutti nel canale vocale ──
+    if (voiceChannel && voiceChannel.members) {
+      voiceChannel.members.forEach(member => {
+        if (member.user.bot) return;
+        const userId = member.user.id;
+        ensureUser(data, userId, member.user);
+        if (!data.users[userId].songPlays[url]) {
+          data.users[userId].songPlays[url] = { ...entry, count: 0 };
+        }
+        data.users[userId].songPlays[url].count++;
+        data.users[userId].songPlays[url].title = entry.title;
+        if (entry.thumbnail) data.users[userId].songPlays[url].thumbnail = entry.thumbnail;
+      });
+    }
+
+    saveStats(data);
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore recordSongPlay:', e.message);
+  }
 }
 
 /**
@@ -315,41 +315,41 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
  * @returns {object} data con topSongs aggiunti
  */
 function computeTopSongs(data, limit = 5) {
-    const sortByCounts = plays =>
-        Object.values(plays || {})
-            .sort((a, b) => b.count - a.count)
-            .slice(0, limit)
-            .map(({ title, url, thumbnail, count }) => ({ title, url, thumbnail, count }));
+  const sortByCounts = plays =>
+    Object.values(plays || {})
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit)
+      .map(({ title, url, thumbnail, count }) => ({ title, url, thumbnail, count }));
 
-    data.global.topSongs = sortByCounts(data.global.songPlays);
+  data.global.topSongs = sortByCounts(data.global.songPlays);
 
-    for (const userData of Object.values(data.users || {})) {
-        userData.topSongs = sortByCounts(userData.songPlays);
-    }
+  for (const userData of Object.values(data.users || {})) {
+    userData.topSongs = sortByCounts(userData.songPlays);
+  }
 
-    return data;
+  return data;
 }
 
 // ─── Contatori globali canzoni ──────────────────────────────
 
 function incrementSongsStarted() {
-    try {
-        const data = loadStats();
-        data.global.songsStarted = (data.global.songsStarted || 0) + 1;
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore incrementSongsStarted:', e.message);
-    }
+  try {
+    const data = loadStats();
+    data.global.songsStarted = (data.global.songsStarted || 0) + 1;
+    saveStats(data);
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore incrementSongsStarted:', e.message);
+  }
 }
 
 function incrementSongsCompleted() {
-    try {
-        const data = loadStats();
-        data.global.songsCompleted = (data.global.songsCompleted || 0) + 1;
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore incrementSongsCompleted:', e.message);
-    }
+  try {
+    const data = loadStats();
+    data.global.songsCompleted = (data.global.songsCompleted || 0) + 1;
+    saveStats(data);
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore incrementSongsCompleted:', e.message);
+  }
 }
 
 // ─── Contatori interazioni playlist ─────────────────────────
@@ -361,19 +361,19 @@ function incrementSongsCompleted() {
  * @param {object} discordUser - Opzionale, info Discord dell'utente
  */
 function recordPlaylistAdd(userId, type, discordUser = null) {
-    try {
-        if (!userId || !type) return;
-        const data = loadStats();
-        ensureUser(data, userId, discordUser);
-        if (type === 'server') {
-            data.users[userId].serverPlaylistAdds = (data.users[userId].serverPlaylistAdds || 0) + 1;
-        } else if (type === 'personal') {
-            data.users[userId].personalPlaylistAdds = (data.users[userId].personalPlaylistAdds || 0) + 1;
-        }
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore recordPlaylistAdd:', e.message);
+  try {
+    if (!userId || !type) return;
+    const data = loadStats();
+    ensureUser(data, userId, discordUser);
+    if (type === 'server') {
+      data.users[userId].serverPlaylistAdds = (data.users[userId].serverPlaylistAdds || 0) + 1;
+    } else if (type === 'personal') {
+      data.users[userId].personalPlaylistAdds = (data.users[userId].personalPlaylistAdds || 0) + 1;
     }
+    saveStats(data);
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore recordPlaylistAdd:', e.message);
+  }
 }
 
 /**
@@ -382,14 +382,14 @@ function recordPlaylistAdd(userId, type, discordUser = null) {
  * @param {object} discordUser - Oggetto utente Discord
  */
 function updateUserDiscordInfo(userId, discordUser) {
-    try {
-        if (!userId || !discordUser) return;
-        const data = loadStats();
-        ensureUser(data, userId, discordUser);
-        saveStats(data);
-    } catch (e) {
-        console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
-    }
+  try {
+    if (!userId || !discordUser) return;
+    const data = loadStats();
+    ensureUser(data, userId, discordUser);
+    saveStats(data);
+  } catch (e) {
+    console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
+  }
 }
 
 // ─── Debug / Utility ────────────────────────────────────────
@@ -398,47 +398,47 @@ function updateUserDiscordInfo(userId, discordUser) {
  * Restituisce lo stato corrente dei timer attivi (per debug).
  */
 function getActiveListenersDebug() {
-    const result = {};
-    activeListeners.forEach((guildMap, guildId) => {
-        result[guildId] = {};
-        guildMap.forEach((startTime, userId) => {
-            result[guildId][userId] = {
-                startTime: new Date(startTime).toISOString(),
-                elapsedMs: Date.now() - startTime
-            };
-        });
+  const result = {};
+  activeListeners.forEach((guildMap, guildId) => {
+    result[guildId] = {};
+    guildMap.forEach((startTime, userId) => {
+      result[guildId][userId] = {
+        startTime: new Date(startTime).toISOString(),
+        elapsedMs: Date.now() - startTime
+      };
     });
-    return result;
+  });
+  return result;
 }
 
 module.exports = {
-    // Caricamento
-    loadStats,
-    saveStats,
+  // Caricamento
+  loadStats,
+  saveStats,
 
-    // Timer ascolto
-    startListening,
-    stopListening,
-    startAllListeners,
-    stopAllListeners,
-    flushGuildAndSave,
-    flushAllGuildsAndSave,
-    flushPendingAndSave,
+  // Timer ascolto
+  startListening,
+  stopListening,
+  startAllListeners,
+  stopAllListeners,
+  flushGuildAndSave,
+  flushAllGuildsAndSave,
+  flushPendingAndSave,
 
-    // Contatori canzoni
-    incrementSongsStarted,
-    incrementSongsCompleted,
+  // Contatori canzoni
+  incrementSongsStarted,
+  incrementSongsCompleted,
 
-    // Contatori playlist
-    recordPlaylistAdd,
+  // Contatori playlist
+  recordPlaylistAdd,
 
-    // Info Discord
-    updateUserDiscordInfo,
+  // Info Discord
+  updateUserDiscordInfo,
 
-    // Tracciamento canzoni
-    recordSongPlay,
-    computeTopSongs,
+  // Tracciamento canzoni
+  recordSongPlay,
+  computeTopSongs,
 
-    // Debug
-    getActiveListenersDebug
+  // Debug
+  getActiveListenersDebug
 };

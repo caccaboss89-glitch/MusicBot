@@ -13,41 +13,41 @@ const { getCurrentSong } = require('../queue/QueueManager');
  * @returns {EmbedBuilder} L'embed della canzone corrente
  */
 function createCurrentSongEmbed(serverQueue) {
-    let song = null;
+  let song = null;
 
-    try {
-        if (serverQueue) {
-            song = getCurrentSong(serverQueue);
-        }
-    } catch (e) {
-        console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
+  try {
+    if (serverQueue) {
+      song = getCurrentSong(serverQueue);
     }
+  } catch (e) {
+    console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
+  }
 
-    if (!song || !song.url) {
-        return new EmbedBuilder()
-            .setColor(0x555555)
-            .setTitle('🚫 Nessuna canzone')
-            .setDescription('Aggiungi una canzone per iniziare!');
-    }
+  if (!song || !song.url) {
+    return new EmbedBuilder()
+      .setColor(0x555555)
+      .setTitle('🚫 Nessuna canzone')
+      .setDescription('Aggiungi una canzone per iniziare!');
+  }
 
-    const embed = new EmbedBuilder()
-        .setColor(song.isLive ? 0xFF0000 : 0x0099FF)
-        // "🎶 In Riproduzione" come header (author): il TITOLO dell'embed diventa la canzone.
-        // Discord NON interpreta il markdown nei titoli degli embed, quindi il titolo viene
-        // mostrato RAW (anche con ** o altri simboli) senza rompersi e senza backslash visibili,
-        // ed è cliccabile grazie a setURL().
-        .setAuthor({ name: '🎶 In Riproduzione' })
-        .setTitle(displayTitle(song.title))
-        .setURL(song.url)
-        .setThumbnail(song.thumbnail)
-        .addFields({ name: 'Richiesta da', value: `<@${song.requester}>`, inline: true });
+  const embed = new EmbedBuilder()
+    .setColor(song.isLive ? 0xFF0000 : 0x0099FF)
+  // "🎶 In Riproduzione" come header (author): il TITOLO dell'embed diventa la canzone.
+  // Discord NON interpreta il markdown nei titoli degli embed, quindi il titolo viene
+  // mostrato RAW (anche con ** o altri simboli) senza rompersi e senza backslash visibili,
+  // ed è cliccabile grazie a setURL().
+    .setAuthor({ name: '🎶 In Riproduzione' })
+    .setTitle(displayTitle(song.title))
+    .setURL(song.url)
+    .setThumbnail(song.thumbnail)
+    .addFields({ name: 'Richiesta da', value: `<@${song.requester}>`, inline: true });
 
-    // Footer di caricamento (impostato da SkipManager durante il loading)
-    if (serverQueue && serverQueue.loadingFooter) {
-        embed.setFooter({ text: serverQueue.loadingFooter });
-    }
+  // Footer di caricamento (impostato da SkipManager durante il loading)
+  if (serverQueue && serverQueue.loadingFooter) {
+    embed.setFooter({ text: serverQueue.loadingFooter });
+  }
 
-    return embed;
+  return embed;
 }
 
 /**
@@ -56,23 +56,23 @@ function createCurrentSongEmbed(serverQueue) {
  * @returns {EmbedBuilder} L'embed di coda terminata
  */
 function createFinishedEmbed(lastSong) {
-    const embed = new EmbedBuilder()
-        .setColor(0x555555)
-        .setAuthor({ name: '🚫 Coda Terminata' })
-        .setThumbnail(lastSong ? lastSong.thumbnail : null)
-        .setFooter({ text: "Premi 🔁 per riascoltare l'ultima canzone" });
+  const embed = new EmbedBuilder()
+    .setColor(0x555555)
+    .setAuthor({ name: '🚫 Coda Terminata' })
+    .setThumbnail(lastSong ? lastSong.thumbnail : null)
+    .setFooter({ text: 'Premi 🔁 per riascoltare l\'ultima canzone' });
 
-    if (lastSong) {
-        // Titolo RAW e cliccabile (vedi nota in createCurrentSongEmbed): niente masked link.
-        embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Ultima riproduzione:');
-    } else {
-        embed.setTitle('Nessuna canzone').setDescription('Aggiungi canzoni per ripartire!');
-    }
+  if (lastSong) {
+    // Titolo RAW e cliccabile (vedi nota in createCurrentSongEmbed): niente masked link.
+    embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Ultima riproduzione:');
+  } else {
+    embed.setTitle('Nessuna canzone').setDescription('Aggiungi canzoni per ripartire!');
+  }
 
-    return embed;
+  return embed;
 }
 
 module.exports = {
-    createCurrentSongEmbed,
-    createFinishedEmbed
+  createCurrentSongEmbed,
+  createFinishedEmbed
 };

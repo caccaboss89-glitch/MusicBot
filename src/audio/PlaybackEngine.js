@@ -27,43 +27,43 @@ const timers = new Map(); // guildId -> { preloadTimer }
 // ─── Helpers ────────────────────────────────────────────────
 
 function getCurrentSong(sq) {
-    if (!sq || !sq.songs || sq.songs.length === 0) return null;
-    const idx = sq.playIndex || 0;
-    return idx < sq.songs.length ? sq.songs[idx] : null;
+  if (!sq || !sq.songs || sq.songs.length === 0) return null;
+  const idx = sq.playIndex || 0;
+  return idx < sq.songs.length ? sq.songs[idx] : null;
 }
 
 function getNextSong(sq) {
-    if (!sq || !sq.songs) return null;
-    const nextIdx = (sq.playIndex || 0) + 1;
-    return nextIdx < sq.songs.length ? sq.songs[nextIdx] : null;
+  if (!sq || !sq.songs) return null;
+  const nextIdx = (sq.playIndex || 0) + 1;
+  return nextIdx < sq.songs.length ? sq.songs[nextIdx] : null;
 }
 
 function hasNextSong(sq) {
-    if (!sq || !sq.songs) return false;
-    return (sq.playIndex || 0) + 1 < sq.songs.length;
+  if (!sq || !sq.songs) return false;
+  return (sq.playIndex || 0) + 1 < sq.songs.length;
 }
 
 // ─── Timer Management ───────────────────────────────────────
 
 function clearAllTimers(guildId) {
-    const state = timers.get(guildId);
-    if (state && state.preloadTimer) {
-        clearTimeout(state.preloadTimer);
-    }
-    timers.delete(guildId);
+  const state = timers.get(guildId);
+  if (state && state.preloadTimer) {
+    clearTimeout(state.preloadTimer);
+  }
+  timers.delete(guildId);
 }
 
 function schedulePreloadRetry(guildId, delayMs) {
-    const safeDelay = Math.max(PRELOAD_RETRY_MIN_DELAY_MS, delayMs || PRELOAD_RETRY_MIN_DELAY_MS);
-    const state = timers.get(guildId) || {};
-    if (state.preloadTimer) clearTimeout(state.preloadTimer);
+  const safeDelay = Math.max(PRELOAD_RETRY_MIN_DELAY_MS, delayMs || PRELOAD_RETRY_MIN_DELAY_MS);
+  const state = timers.get(guildId) || {};
+  if (state.preloadTimer) clearTimeout(state.preloadTimer);
 
-    state.preloadTimer = setTimeout(() => {
-        preloadNextSong(guildId);
-    }, safeDelay);
+  state.preloadTimer = setTimeout(() => {
+    preloadNextSong(guildId);
+  }, safeDelay);
 
-    timers.set(guildId, state);
-    console.log(`⏳ [PRELOAD] Retry programmato tra ${safeDelay}ms`);
+  timers.set(guildId, state);
+  console.log(`⏳ [PRELOAD] Retry programmato tra ${safeDelay}ms`);
 }
 
 // ─── Core ───────────────────────────────────────────────────
@@ -79,139 +79,139 @@ function schedulePreloadRetry(guildId, delayMs) {
  * al Rust all'inizio di questa canzone.
  */
 function onSongStart(guildId) {
-    const sq = queue.get(guildId);
-    if (!sq) return;
+  const sq = queue.get(guildId);
+  if (!sq) return;
 
-    // ⚠️  Cancella il flag isCrossfading quando la nuova canzone EFFETTIVAMENTE inizia
-    // A questo punto il crossfade è definitivamente completato nel Rust
-    // Questo sincronizza il flag Node.js con lo stato reale del Rust
-    sq.isCrossfading = false;
+  // ⚠️  Cancella il flag isCrossfading quando la nuova canzone EFFETTIVAMENTE inizia
+  // A questo punto il crossfade è definitivamente completato nel Rust
+  // Questo sincronizza il flag Node.js con lo stato reale del Rust
+  sq.isCrossfading = false;
 
-    const currentSong = getCurrentSong(sq);
-    if (!currentSong || !isMixerAlive(sq)) return;
+  const currentSong = getCurrentSong(sq);
+  if (!currentSong || !isMixerAlive(sq)) return;
 
-    // Cancella timer precedenti
-    clearAllTimers(guildId);
+  // Cancella timer precedenti
+  clearAllTimers(guildId);
 
-    // ── Timer: Precarica la canzone successiva dopo 5 secondi ──
-    const preloadTimer = setTimeout(() => {
-        preloadNextSong(guildId);
-    }, PRELOAD_DELAY_MS);
+  // ── Timer: Precarica la canzone successiva dopo 5 secondi ──
+  const preloadTimer = setTimeout(() => {
+    preloadNextSong(guildId);
+  }, PRELOAD_DELAY_MS);
 
-    // Salva il timer
-    timers.set(guildId, { preloadTimer });
+  // Salva il timer
+  timers.set(guildId, { preloadTimer });
 
-    console.log(`🎵 [PLAYBACK] Avviata: "${sanitizeTitle(currentSong.title)}"`);
-    if (currentSong.duration && currentSong.duration > 0) {
-        console.log(`⏱️  [PLAYBACK] Durata: ${currentSong.duration}s`);
-    }
+  console.log(`🎵 [PLAYBACK] Avviata: "${sanitizeTitle(currentSong.title)}"`);
+  if (currentSong.duration && currentSong.duration > 0) {
+    console.log(`⏱️  [PLAYBACK] Durata: ${currentSong.duration}s`);
+  }
 }
 
 /**
  * Precarica la canzone successiva nell'altro deck.
  * Chiamato 5 secondi dopo l'inizio di ogni canzone.
  * Il deck viene caricato ma lasciato in pausa (pronto per skipTo istantaneo o crossfade).
- * 
+ *
  * Invalida il preload solo se la coda è effettivamente cambiata (playIndex, songs array),
  * non se è cambiato qualcosa di generico come buffer ready o loop mode.
  */
 function preloadNextSong(guildId) {
-    const sq = queue.get(guildId);
-    if (!sq || !isMixerAlive(sq)) return;
+  const sq = queue.get(guildId);
+  if (!sq || !isMixerAlive(sq)) return;
 
-    // ⚠️  Non precaricare se la canzone è in pausa
-    // Durante la pausa, il Rust non sta riproducendo e caricamenti extra potrebbero causare snap/problemi
-    if (sq.isPaused) {
-        console.log('⏭️  [PRELOAD] Canzone in pausa, skip del preload');
+  // ⚠️  Non precaricare se la canzone è in pausa
+  // Durante la pausa, il Rust non sta riproducendo e caricamenti extra potrebbero causare snap/problemi
+  if (sq.isPaused) {
+    console.log('⏭️  [PRELOAD] Canzone in pausa, skip del preload');
+    return;
+  }
+
+  const nextSong = getNextSong(sq);
+  if (!nextSong || !nextSong.url) {
+    console.log('⏭️  [PRELOAD] Nessuna canzone successiva da precaricare');
+    return;
+  }
+
+  const currentSong = getCurrentSong(sq);
+  // Non precaricare se next == current (stessa URL)
+  if (currentSong && areSameSong(currentSong.url, nextSong.url)) return;
+
+  // Non precaricare se già pronta
+  if (sq.nextDeckLoaded === nextSong.url) {
+    console.log(`✅ [PRELOAD] Già precaricata: "${sanitizeTitle(nextSong.title)}"`);
+    return;
+  }
+
+  const nextDeck = (sq.currentDeck || 'A') === 'A' ? 'B' : 'A';
+
+  try {
+    // ⚠️  SAFETY: Non precaricare durante U POCO DOPO un crossfade
+    // Il flag isCrossfading potrebbe essere false ma il Rust sta ancora facendo il crossfade
+    // Controlla il timestamp: se il crossfade è iniziato da meno di CROSSFADE_DURATION_MS, aspetta
+    if (sq.isCrossfading || (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS)) {
+      if (sq.isCrossfading) {
+        console.warn('⚠️  [PRELOAD] Skip: crossfade in corso (flag=true), aspetto fine crossfade prima del preload');
+        schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS);
+      } else {
+        const timeElapsed = Date.now() - sq.crossfadeStartTime;
+        console.warn(`⚠️  [PRELOAD] Skip: crossfade completato da soli ${timeElapsed}ms (< ${CROSSFADE_DURATION_MS}ms), aspetto ancora`);
+        const remainingMs = CROSSFADE_DURATION_MS - timeElapsed + 150;
+        schedulePreloadRetry(guildId, remainingMs);
+      }
+      return;
+    }
+
+    // IMPORTANT: durante il preload non fermare mai l'altro deck.
+    // Dopo un crossfade il deck "old" può essere quello attualmente in riproduzione;
+    // stopparlo qui causa silenzio immediato (es: traccia parte e si ferma dopo pochi secondi).
+
+    // Cattura lo stato della coda PRIMA del preload
+    const playIndexBefore = sq.playIndex || 0;
+    const songCountBefore = (sq.songs && sq.songs.length) || 0;
+    const nextSongUrlBefore = nextSong.url;
+    const nextIndexBefore = playIndexBefore + 1; // indice della canzone che stiamo precaricando
+
+    // Non fermare il deck per il preload - il Rust resetterà il buffer al load
+    sq.bufferReady = sq.bufferReady || {};
+    sq.bufferReady[nextDeck] = false;
+
+    // Carica la canzone (autoplay=false: il deck resta in pausa, pronto per skip/crossfade)
+    // SERIALIZZA il comando load attraverso command queue
+    const { commandQueue } = require('./CommandQueue');
+    commandQueue.enqueue(
+      guildId,
+      'preload_load',
+      () => { sq.mixer.load(nextSong.url, nextDeck, false); },
+      { timeout: 8000, retries: 1 }
+    ).then(() => {
+      // Invalida SOLO se la coda è stata modificata (skip, clear, add songs)
+      // NON invalida se la versione è cambiata per motivi indipendenti (buffer ready, etc)
+      const playIndexAfter = sq.playIndex || 0;
+      const songCountAfter = (sq.songs && sq.songs.length) || 0;
+      const nextSongUrlAfter = getNextSong(sq)?.url || null;
+
+      if (playIndexBefore !== playIndexAfter || songCountBefore !== songCountAfter || nextSongUrlBefore !== nextSongUrlAfter) {
+        console.warn(`⚠️  [PRELOAD] Coda cambiata durante load (playIdx: ${playIndexBefore}→${playIndexAfter}, songs: ${songCountBefore}→${songCountAfter}), preload invalidato`);
+        sq.nextDeckLoaded = null;
+        sq.nextDeckTarget = null;
         return;
-    }
+      }
 
-    const nextSong = getNextSong(sq);
-    if (!nextSong || !nextSong.url) {
-        console.log('⏭️  [PRELOAD] Nessuna canzone successiva da precaricare');
-        return;
-    }
+      sq.nextDeckLoaded = nextSong.url;
+      sq.nextDeckTarget = nextDeck;
+      // Lega il deck precaricato alla canzone "successiva": è la fonte di verità
+      // usata da auto-gapless/crossfade per conoscere l'indice reale.
+      try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch (e) { }
+      console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
+    }).catch(err => {
+      console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
+      sq.nextDeckLoaded = null;
+      sq.nextDeckTarget = null;
+    });
 
-    const currentSong = getCurrentSong(sq);
-    // Non precaricare se next == current (stessa URL)
-    if (currentSong && areSameSong(currentSong.url, nextSong.url)) return;
-
-    // Non precaricare se già pronta
-    if (sq.nextDeckLoaded === nextSong.url) {
-        console.log(`✅ [PRELOAD] Già precaricata: "${sanitizeTitle(nextSong.title)}"`);
-        return;
-    }
-
-    const nextDeck = (sq.currentDeck || 'A') === 'A' ? 'B' : 'A';
-
-    try {
-        // ⚠️  SAFETY: Non precaricare durante U POCO DOPO un crossfade
-        // Il flag isCrossfading potrebbe essere false ma il Rust sta ancora facendo il crossfade
-        // Controlla il timestamp: se il crossfade è iniziato da meno di CROSSFADE_DURATION_MS, aspetta
-        if (sq.isCrossfading || (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS)) {
-            if (sq.isCrossfading) {
-                console.warn(`⚠️  [PRELOAD] Skip: crossfade in corso (flag=true), aspetto fine crossfade prima del preload`);
-                schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS);
-            } else {
-                const timeElapsed = Date.now() - sq.crossfadeStartTime;
-                console.warn(`⚠️  [PRELOAD] Skip: crossfade completato da soli ${timeElapsed}ms (< ${CROSSFADE_DURATION_MS}ms), aspetto ancora`);
-                const remainingMs = CROSSFADE_DURATION_MS - timeElapsed + 150;
-                schedulePreloadRetry(guildId, remainingMs);
-            }
-            return;
-        }
-
-        // IMPORTANT: durante il preload non fermare mai l'altro deck.
-        // Dopo un crossfade il deck "old" può essere quello attualmente in riproduzione;
-        // stopparlo qui causa silenzio immediato (es: traccia parte e si ferma dopo pochi secondi).
-
-        // Cattura lo stato della coda PRIMA del preload
-        const playIndexBefore = sq.playIndex || 0;
-        const songCountBefore = (sq.songs && sq.songs.length) || 0;
-        const nextSongUrlBefore = nextSong.url;
-        const nextIndexBefore = playIndexBefore + 1; // indice della canzone che stiamo precaricando
-
-        // Non fermare il deck per il preload - il Rust resetterà il buffer al load
-        sq.bufferReady = sq.bufferReady || {};
-        sq.bufferReady[nextDeck] = false;
-
-        // Carica la canzone (autoplay=false: il deck resta in pausa, pronto per skip/crossfade)
-        // SERIALIZZA il comando load attraverso command queue
-        const { commandQueue } = require('./CommandQueue');
-        commandQueue.enqueue(
-            guildId,
-            'preload_load',
-            () => { sq.mixer.load(nextSong.url, nextDeck, false); },
-            { timeout: 8000, retries: 1 }
-        ).then(() => {
-            // Invalida SOLO se la coda è stata modificata (skip, clear, add songs)
-            // NON invalida se la versione è cambiata per motivi indipendenti (buffer ready, etc)
-            const playIndexAfter = sq.playIndex || 0;
-            const songCountAfter = (sq.songs && sq.songs.length) || 0;
-            const nextSongUrlAfter = getNextSong(sq)?.url || null;
-
-            if (playIndexBefore !== playIndexAfter || songCountBefore !== songCountAfter || nextSongUrlBefore !== nextSongUrlAfter) {
-                console.warn(`⚠️  [PRELOAD] Coda cambiata durante load (playIdx: ${playIndexBefore}→${playIndexAfter}, songs: ${songCountBefore}→${songCountAfter}), preload invalidato`);
-                sq.nextDeckLoaded = null;
-                sq.nextDeckTarget = null;
-                return;
-            }
-
-            sq.nextDeckLoaded = nextSong.url;
-            sq.nextDeckTarget = nextDeck;
-            // Lega il deck precaricato alla canzone "successiva": è la fonte di verità
-            // usata da auto-gapless/crossfade per conoscere l'indice reale.
-            try { require('../queue/QueueManager').bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch (e) { }
-            console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
-        }).catch(err => {
-            console.error(`❌ [PRELOAD] Command queue error: ${err.message}`);
-            sq.nextDeckLoaded = null;
-            sq.nextDeckTarget = null;
-        });
-
-    } catch (e) {
-        console.error(`❌ [PRELOAD] Errore: ${e.message}`);
-    }
+  } catch (e) {
+    console.error(`❌ [PRELOAD] Errore: ${e.message}`);
+  }
 }
 
 /**
@@ -228,37 +228,37 @@ function preloadNextSong(guildId) {
  * - Se fade è OFF, lo skip istantaneo avviene qui quando arriva 'end'
  */
 async function handleTrackEnd(guildId) {
-    const sq = queue.get(guildId);
-    if (!sq) return;
+  const sq = queue.get(guildId);
+  if (!sq) return;
 
-    // Ignora eventi se il mixer non è più attivo
-    if (!isMixerAlive(sq)) return;
+  // Ignora eventi se il mixer non è più attivo
+  if (!isMixerAlive(sq)) return;
 
-    // Pulisci timer preload quando la traccia finisce
-    clearAllTimers(guildId);
+  // Pulisci timer preload quando la traccia finisce
+  clearAllTimers(guildId);
 
-    // Verifica se uno skip è in corso (evita race condition)
-    const SkipManager_hasSkipInProgress = bridge.get('hasSkipInProgress');
-    if (SkipManager_hasSkipInProgress && SkipManager_hasSkipInProgress(guildId)) {
-        console.log('⏳ [TRACK-END] Skip già in corso, ignoro');
-        return;
-    }
+  // Verifica se uno skip è in corso (evita race condition)
+  const SkipManager_hasSkipInProgress = bridge.get('hasSkipInProgress');
+  if (SkipManager_hasSkipInProgress && SkipManager_hasSkipInProgress(guildId)) {
+    console.log('⏳ [TRACK-END] Skip già in corso, ignoro');
+    return;
+  }
 
-    // Se c'è una transizione differita in attesa del buffer, lasciala completare
-    // (handleBufferReady o handleAutoEndSwitch la gestiranno)
-    if (sq.pendingTransition) {
-        console.log('⏳ [TRACK-END] Pending transition in corso – aspetto buffer');
-        return;
-    }
+  // Se c'è una transizione differita in attesa del buffer, lasciala completare
+  // (handleBufferReady o handleAutoEndSwitch la gestiranno)
+  if (sq.pendingTransition) {
+    console.log('⏳ [TRACK-END] Pending transition in corso – aspetto buffer');
+    return;
+  }
 
-    // Procedi con auto-skip se c'è una canzone successiva
-    if (hasNextSong(sq)) {
-        console.log('⏭️  [TRACK-END] Fine naturale, skip automatico');
-        await bridge.call('autoSkip', guildId);
-    } else {
-        console.log('🏁 [TRACK-END] Ultima canzone terminata, fine coda');
-        await bridge.call('endQueue', guildId);
-    }
+  // Procedi con auto-skip se c'è una canzone successiva
+  if (hasNextSong(sq)) {
+    console.log('⏭️  [TRACK-END] Fine naturale, skip automatico');
+    await bridge.call('autoSkip', guildId);
+  } else {
+    console.log('🏁 [TRACK-END] Ultima canzone terminata, fine coda');
+    await bridge.call('endQueue', guildId);
+  }
 }
 
 /**
@@ -266,7 +266,7 @@ async function handleTrackEnd(guildId) {
  * Lo stato è già aggiornato da SkipManager in modo ottimistico.
  */
 function handleDeckChanged(guildId, newDeck) {
-    console.log(`🔀 [DECK-CHANGED] Rust: deck=${newDeck}`);
+  console.log(`🔀 [DECK-CHANGED] Rust: deck=${newDeck}`);
 }
 // ─── Bridge registrations ───────────────────────────────────
 
@@ -276,9 +276,9 @@ bridge.register('preloadNextSong', preloadNextSong);
 // ─── Exports ────────────────────────────────────────────────
 
 module.exports = {
-    onSongStart,
-    preloadNextSong,
-    handleTrackEnd,
-    handleDeckChanged,
-    clearAllTimers
+  onSongStart,
+  preloadNextSong,
+  handleTrackEnd,
+  handleDeckChanged,
+  clearAllTimers
 };

@@ -27,22 +27,22 @@ let globalMixerGeneration = 0;
  * @returns {number} Nuova generazione
  */
 function getNextMixerGeneration() {
-    return ++globalMixerGeneration;
+  return ++globalMixerGeneration;
 }
 
 // Pulizia periodica cooldown interazioni per prevenire memory leak (ogni 5 minuti)
 setInterval(() => {
-    const now = Date.now();
-    for (const [key, timestamp] of interactionCooldowns) {
-        if (now - timestamp > 60000) interactionCooldowns.delete(key);
-    }
+  const now = Date.now();
+  for (const [key, timestamp] of interactionCooldowns) {
+    if (now - timestamp > 60000) interactionCooldowns.delete(key);
+  }
 }, 5 * 60 * 1000);
 
 module.exports = {
-    // Map principali
-    queue,
-    disconnectTimers,
-    interactionCooldowns,
-    // Funzione generazione mixer
-    getNextMixerGeneration
+  // Map principali
+  queue,
+  disconnectTimers,
+  interactionCooldowns,
+  // Funzione generazione mixer
+  getNextMixerGeneration
 };
