@@ -5,7 +5,7 @@
  * Why LRCLIB:
  *  - 100% free, no API key, no stated rate limit
  *  - Direct REST API returning plainLyrics / syncedLyrics
- *  - Legal and designed for music bots (see guide.txt.temp)
+ *  - Legal and designed for music bots
  *
  * Uses native `https` module (no extra dependencies). LRCLIB is
  * directly reachable: does NOT go through the SOCKS proxy used for YouTube.
@@ -112,22 +112,14 @@ function splitArtistTrack(fullTitle) {
  * @returns {Promise<{artist: string, track: string}>}
  */
 async function resolveTrackInfo(song) {
-  let artist = '';
-  let track = '';
-
   const fromTitle = splitArtistTrack(song.title || '');
-  if (fromTitle.artist) {
-    artist = fromTitle.artist;
-    track = fromTitle.track;
-  } else {
-    track = fromTitle.track;
-    artist = cleanArtist(song.author || song.uploader || '');
-  }
+  let track = fromTitle.track;
+  let artist = fromTitle.artist || cleanArtist(song.author || song.uploader || '');
 
   const needsOembed = song.url && (
     !artist ||
-        artist.length < 3 ||
-        artist.toLowerCase() === 'various artists'
+    artist.length < 3 ||
+    artist.toLowerCase() === 'various artists'
   );
 
   if (needsOembed) {

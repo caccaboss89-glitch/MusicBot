@@ -22,7 +22,7 @@ export default (client) => {
           // If reconnection is in progress (channel change), don't interfere
           if (serverQueue._isReconnecting) return;
           // Bot was disconnected/kicked - stop all listeners
-          try { stats.stopAllListeners(guildId); } catch { }
+          try { stats.stopAllListeners(guildId); } catch { /* stats are best effort */ }
           // Update queue state to reflect lack of channel
           serverQueue.voiceChannel = null;
           // Force immediate cleanup
@@ -62,7 +62,7 @@ export default (client) => {
               stats.startListening(guildId, memberId);
             }
           }
-        } catch { }
+        } catch { /* partial voice state: nothing to track */ }
 
         const humanCount = vc.members ? vc.members.filter(m => !m.user.bot).size : 0;
         if (humanCount === 0) scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);

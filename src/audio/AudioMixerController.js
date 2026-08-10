@@ -7,7 +7,7 @@ import readline from 'readline';
 import path from 'path';
 import fs from 'fs';
 import { ROOT_DIR, RUST_ENGINE_PATH, resolveYtDlpProxyUrl, resolveYtDlpCookieBrowser, resolveYtDlpExtractorArgs } from '../../config/index.js';
-import { CROSSFADE_DURATION_MS, MIN_CROSSFADE_MS, RESTART_COOLDOWN_MS } from '../../config/index.js';
+import { CROSSFADE_DURATION_MS, RESTART_COOLDOWN_MS } from '../../config/index.js';
 import { getNextMixerGeneration } from '../state/globals.js';
 
 /**
@@ -26,7 +26,7 @@ class AudioMixerController {
     this.stdoutClosed = false;
     this.stderrReadline = null;
     this.hasCrashed = false;
-    this.generation = getNextMixerGeneration(); // ID univoco per questo mixer
+    this.generation = getNextMixerGeneration(); // Unique ID for this mixer
     this.logStream = null;
   }
 
@@ -34,7 +34,7 @@ class AudioMixerController {
     // If process exists but is dead, clean it before restart
     if (this.process && !this.isAlive) {
       console.log('🧹 [RUST] Cleaning dead process before restart');
-      try { this.process.kill(); } catch { }
+      try { this.process.kill(); } catch { /* process already exited */ }
       this.process = null;
     }
 
@@ -82,7 +82,7 @@ class AudioMixerController {
 
     // Close previous resources before restarting
     if (this.logStream) {
-      try { this.logStream.destroy(); } catch { }
+      try { this.logStream.destroy(); } catch { /* stream already closed */ }
       this.logStream = null;
     }
     if (this.stderrReadline) {
@@ -96,7 +96,7 @@ class AudioMixerController {
     // Open mixer stderr log for guild once for diagnostics
     try {
       const logsDir = path.join(ROOT_DIR, 'temp');
-      try { fs.mkdirSync(logsDir, { recursive: true }); } catch { }
+      try { fs.mkdirSync(logsDir, { recursive: true }); } catch { /* directory may already exist */ }
       const logPath = path.join(logsDir, `mixer-${this.guildId}.log`);
       this.logStream = fs.createWriteStream(logPath, { flags: 'a' });
       this.logStream.write(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
@@ -110,9 +110,7 @@ class AudioMixerController {
 
       try {
         let log = null;
-        try { log = JSON.parse(line); } catch (e) {
-          // ignores non-JSON lines but keeps minimal debug
-        }
+        try { log = JSON.parse(line); } catch { /* not a JSON line: Rust also writes plain text to stderr */ }
         if (!log) return;
         log._mixerGeneration = this.generation;
 
@@ -127,7 +125,7 @@ class AudioMixerController {
 
         if (!isSpam) {
           // Show in console only warnings and errors to avoid too noisy logs
-          if (log.event === 'error' || log.event === 'stream_error' || log.event === 'yt_error') {
+          if (log.event === 'error' || log.event === 'stream_error') {
             console.error(`⚠️ [RUST-${log.event.toUpperCase()}] ${log.data}`);
           }
           // 🔥 SHOW LATENCY LOGS
@@ -148,7 +146,7 @@ class AudioMixerController {
           try { if (this.onBufferReady) this.onBufferReady(deck); } catch (e) { console.error('Error in onBufferReady handler', e); }
         }
 
-      } catch { }
+      } catch { /* one malformed line must not stop the reader */ }
     });
 
     // Handle stdout errors - CRITICAL: mark mixer as dead
@@ -157,7 +155,7 @@ class AudioMixerController {
       this.isAlive = false;
       this.stdoutClosed = true;
       if (this.process) {
-        try { this.process.kill(); } catch { }
+        try { this.process.kill(); } catch { /* process already exited */ }
         this.process = null;
       }
       // Trigger crash callback for automatic recovery
@@ -173,17 +171,17 @@ class AudioMixerController {
       this.stdoutClosed = true;
       this.isAlive = false;
       if (this.process) {
-        try { this.process.kill(); } catch { }
+        try { this.process.kill(); } catch { /* process already exited */ }
         this.process = null;
       }
-      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} STDOUT_CLOSED\n`); this.logStream.end(); this.logStream = null; } } catch { }
+      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} STDOUT_CLOSED\n`); this.logStream.end(); this.logStream = null; } } catch { /* diagnostics only */ }
     });
 
     this.process.stdin.on('error', (e) => {
       console.error(`❌ [RUST] Stdin error: ${e && e.message ? e.message : e}`);
       this.isAlive = false;
       if (this.process) {
-        try { this.process.kill(); } catch { }
+        try { this.process.kill(); } catch { /* process already exited */ }
         this.process = null;
       }
     });
@@ -196,7 +194,7 @@ class AudioMixerController {
         this.stderrReadline.close();
         this.stderrReadline = null;
       }
-      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} PROCESS_CLOSED code=${code}\n`); this.logStream.end(); this.logStream = null; } } catch { }
+      try { if (this.logStream) { this.logStream.write(`${new Date().toISOString()} PROCESS_CLOSED code=${code}\n`); this.logStream.end(); this.logStream = null; } } catch { /* diagnostics only */ }
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log(`🚨 [RUST] Triggering crash recovery from close (code=${code})...`);
@@ -243,23 +241,17 @@ class AudioMixerController {
     this.send({ op: 'stop_deck', deck });
   }
   crossfade(toDeck, durationMs = CROSSFADE_DURATION_MS) {
-    const safeDurationMs = Math.max(durationMs, MIN_CROSSFADE_MS);
-    this.send({ op: 'crossfade', to_deck: toDeck, duration_ms: safeDurationMs });
+    this.send({ op: 'crossfade', to_deck: toDeck, duration_ms: durationMs });
   }
 
   skipTo(targetDeck) {
     this.send({ op: 'skip_to', target_deck: targetDeck });
   }
 
-  approveProposal(newDeck) {
-    this.send({ op: 'approve_proposal', new_deck: newDeck });
-  }
-
   restartDeck(deck) {
     this.send({ op: 'restart_deck', deck });
   }
   pause() { this.send({ op: 'pause_all' }); }
-  resume() { this.send({ op: 'resume_all' }); }
   setProactiveCrossfade(enabled) { this.send({ op: 'set_proactive_crossfade', enabled }); }
   setLoop(enabled) { this.send({ op: 'set_loop', enabled }); }
 
@@ -278,11 +270,11 @@ class AudioMixerController {
     }
     // Close logStream to avoid file descriptor leak
     if (this.logStream) {
-      try { this.logStream.end(); } catch { }
+      try { this.logStream.end(); } catch { /* stream already closed */ }
       this.logStream = null;
     }
     if (this.process) {
-      try { this.process.kill(); } catch { }
+      try { this.process.kill(); } catch { /* process already exited */ }
       this.process = null;
     }
     this.isAlive = false;

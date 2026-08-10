@@ -37,16 +37,16 @@ export function loadQueueBackup(guildId) {
   const backup = data[guildId];
   if (!backup) return null;
 
-  // Validazione struttura
+  // Validate structure
   if (!Array.isArray(backup.songs)) backup.songs = [];
   if (!Array.isArray(backup.history)) backup.history = [];
   if (typeof backup.playIndex !== 'number' || backup.playIndex < 0) backup.playIndex = 0;
 
-  // Filtra canzoni invalide
+  // Filter invalid songs
   backup.songs = backup.songs.filter(s => s && typeof s === 'object' && s.url && s.title);
   backup.history = backup.history.filter(s => s && typeof s === 'object' && s.url && s.title);
 
-  // Assicura playIndex nei limiti
+  // Ensure playIndex is within bounds
   if (backup.songs.length > 0 && backup.playIndex >= backup.songs.length) {
     backup.playIndex = backup.songs.length - 1;
   }
@@ -101,7 +101,10 @@ export function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused
   }
 }
 
-// Private function to delete backup (used internally by saveQueueBackup)
+/**
+ * Deletes the queue backup for a guild
+ * @param {string} guildId - Guild ID
+ */
 export function deleteQueueBackup(guildId) {
   try {
     const data = _getQueueCache();

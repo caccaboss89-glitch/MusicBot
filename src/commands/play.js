@@ -1,143 +1,144 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { queue } from '../state/globals.js';
 import { getVideoInfo } from '../utils/youtube.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished } from '../ui/index.js';
+import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished, refreshDashboard } from '../ui/index.js';
 import { cleanupOldMessages } from '../utils/cleanup.js';
 import { MAX_QUEUE_SIZE } from '../../config/index.js';
 import { clearFinishedQueue } from '../queue/QueueManager.js';
+import * as msg from '../ui/messages.js';
 
-const _lastCleanupTime = new Map(); // guildId -> timestamp (debounce cleanup)
+// Name of the search option. Must match the one registered by deploy-commands.js,
+// which builds the payload from this very definition.
+const SEARCH_OPTION = 'cerca';
 
 const data = new SlashCommandBuilder()
   .setName('play')
   .setDescription('Avvia il player musicale')
-  .addStringOption(option => option.setName('cerca').setDescription('Titolo, Link o Playlist').setRequired(false));
+  .addStringOption(option => option
+    .setName(SEARCH_OPTION)
+    .setDescription('Titolo, link o playlist')
+    .setRequired(false));
+
+/**
+ * Opens the dashboard when `/play` is used without a search term.
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {object} serverQueue
+ * @param {object} deps
+ */
+async function openDashboard(interaction, serverQueue, deps) {
+  const guildId = interaction.guildId;
+  const hasSongs = serverQueue.songs.length > 0;
+  const lastSong = serverQueue.history?.length > 0
+    ? serverQueue.history[serverQueue.history.length - 1]
+    : null;
+
+  // Nothing to play and nothing played before: just show the empty dashboard
+  if (!hasSongs && !lastSong) {
+    const ok = await updateDashboard(serverQueue, createCurrentSongEmbed(serverQueue), createDashboardComponents(serverQueue));
+    return interaction.editReply(ok ? msg.DASHBOARD_OPENED : msg.DASHBOARD_OPEN_ERROR);
+  }
+
+  const connected = await deps.connectToVoice(serverQueue, interaction);
+  if (!connected) return interaction.editReply(msg.VOICE_CONNECTION_ERROR);
+
+  // Songs still queued: resume the session
+  if (hasSongs) {
+    await deps.playSong(guildId, interaction);
+    // playSong() skips the dashboard when a deck was already loaded during the
+    // restore, so make sure the player message exists in the text channel.
+    if (!serverQueue.dashboardMessage) await refreshDashboard(serverQueue);
+    return interaction.editReply(msg.SESSION_RESUMED);
+  }
+
+  // Queue is empty but something was played: show the "queue finished" screen
+  const ok = await updateDashboardToFinished(serverQueue, lastSong);
+  return interaction.editReply(ok ? msg.DASHBOARD_OPENED_FINISHED : msg.DASHBOARD_OPEN_ERROR);
+}
+
+/**
+ * Searches the query and appends the results to the queue.
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {object} serverQueue
+ * @param {string} query
+ * @param {object} deps
+ */
+async function addToQueue(interaction, serverQueue, query, deps) {
+  const guildId = interaction.guildId;
+
+  const connected = await deps.connectToVoice(serverQueue, interaction);
+  if (!connected) return interaction.editReply(msg.VOICE_CONNECTION_ERROR);
+
+  let songsFound;
+  try {
+    songsFound = await getVideoInfo(query);
+  } catch (e) {
+    console.error('❌ [PLAY] Search error:', e.message);
+    return interaction.editReply(msg.SEARCH_ERROR);
+  }
+
+  if (songsFound.length === 0) return interaction.editReply(msg.NO_RESULTS);
+  if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) {
+    return interaction.editReply(msg.QUEUE_LIMIT_REACHED);
+  }
+
+  clearFinishedQueue(serverQueue);
+  serverQueue.songs.push(...songsFound.map(s => ({ ...s, requester: interaction.member.id })));
+  saveQueueState(guildId, serverQueue);
+
+  if (!serverQueue.currentDeckLoaded) {
+    try {
+      await deps.playSong(guildId, interaction);
+      return interaction.editReply(serverQueue.sessionRestored ? msg.SESSION_RESTORED_UPDATED : msg.PLAYBACK_STARTING);
+    } catch (e) {
+      console.error('Error in playSong:', e);
+      return interaction.editReply(msg.PLAYBACK_START_ERROR);
+    }
+  }
+
+  // Already playing: the new songs may have changed what comes next
+  await deps.updatePreloadAfterQueueChange(guildId);
+  if (serverQueue.dashboardMessage) {
+    await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
+  }
+  if (songsFound.length > 1) return interaction.editReply(msg.songsAdded(songsFound.length));
+  return interaction.deleteReply().catch(() => { });
+}
 
 async function execute(interaction, deps) {
-    const { guild, member, channel } = interaction;
-    if (!member.voice.channel) return interaction.reply({ content: '❌ Entra in vocale!', flags: 64 /* Ephemeral */ });
+  const { guild, member, channel } = interaction;
+  if (!member.voice.channel) {
+    return interaction.reply({ content: msg.JOIN_VOICE, flags: MessageFlags.Ephemeral });
+  }
 
-    let serverQueue = queue.get(guild.id);
-    if (serverQueue && serverQueue.isTaskRunning) return interaction.reply({ content: '⚠️ **Sto elaborando...**', flags: 64 });
+  if (queue.get(guild.id)?.isTaskRunning) {
+    return interaction.reply({ content: msg.TASK_IN_PROGRESS, flags: MessageFlags.Ephemeral });
+  }
 
-    await interaction.deferReply({ flags: 64 });
-    // Clean up old messages with debounce to avoid too many deletes
-    if (!_lastCleanupTime.has(guild.id) || Date.now() - _lastCleanupTime.get(guild.id) > 60000) {
-      _lastCleanupTime.set(guild.id, Date.now());
-      cleanupOldMessages(channel, serverQueue?.dashboardMessage?.id, deps.client || null).catch(() => { });
-    }
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-    serverQueue = await deps.ensureBotConnection(interaction);
-    serverQueue.isTaskRunning = true;
+  const serverQueue = await deps.ensureBotConnection(interaction);
+  serverQueue.isTaskRunning = true;
+  try {
+    // Debounced internally: safe to call on every invocation
+    cleanupOldMessages(guild.id, channel, deps.client, serverQueue.dashboardMessage?.id).catch(() => { });
 
-    // If text channel has changed, invalidate old dashboard
+    // If the text channel changed, drop the dashboard living in the old one
     const oldTextChannelId = serverQueue.textChannel?.id;
     serverQueue.textChannel = channel;
     if (oldTextChannelId && oldTextChannelId !== channel.id && serverQueue.dashboardMessage) {
-      try { await serverQueue.dashboardMessage.delete(); } catch { }
+      await serverQueue.dashboardMessage.delete().catch(() => { });
       serverQueue.dashboardMessage = null;
       serverQueue.dashboardMessageId = null;
     }
 
-    try {
-      const query = interaction.options.getString('cerca');
-
-      if (!query) {
-        // If nothing to play and no history, show dashboard without entering voice
-        const hasSongs = serverQueue.songs.length > 0;
-        const hasHistory = serverQueue.history && serverQueue.history.length > 0;
-        if (!hasSongs && !hasHistory) {
-          try {
-            const embed = createCurrentSongEmbed(serverQueue);
-            const components = createDashboardComponents(serverQueue, interaction.user.id);
-            const ok = await updateDashboard(serverQueue, embed, components);
-            serverQueue.isTaskRunning = false;
-            if (ok) return interaction.editReply('✅ Dashboard aperta.');
-            return interaction.editReply('❌ Impossibile aprire la dashboard.');
-          } catch (e) {
-            serverQueue.isTaskRunning = false;
-            return interaction.editReply('❌ Impossibile aprire la dashboard.');
-          }
-        }
-
-        // Something to play/show: connect to voice
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (!connected) {
-          serverQueue.isTaskRunning = false;
-          try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch { /* ignora */ }
-          return;
-        }
-
-        // If there's an active queue in memory, resume playback
-        if (serverQueue.songs.length > 0) {
-          await deps.playSong(guild.id, interaction);
-          // Ensure dashboard is present: `playSong` may not recreate the dashboard when
-          // `currentDeckLoaded` was already set during restore. In that case, explicitly update/send
-          // the dashboard so the player message appears in the text channel.
-          try {
-            if (!serverQueue.dashboardMessage) {
-              try { const uiModule = await import('../ui/index.js'); await uiModule.refreshDashboard(serverQueue); } catch { }
-            }
-          } catch { }
-          serverQueue.isTaskRunning = false;
-          return interaction.editReply('✅ **Session resumed!**');
-        }
-
-        // If queue is terminated but history exists, show finished queue dashboard (last played)
-        const lastSong = serverQueue.history && serverQueue.history.length > 0 ? serverQueue.history[serverQueue.history.length - 1] : null;
-        const isTerminated = !serverQueue.currentDeckLoaded && (!serverQueue.songs || serverQueue.songs.length === 0) && lastSong;
-        try {
-          if (isTerminated) {
-            await updateDashboardToFinished(serverQueue, lastSong);
-            serverQueue.isTaskRunning = false;
-            return interaction.editReply('✅ Dashboard (Queue finished) opened.');
-          }
-        } catch (e) {
-          serverQueue.isTaskRunning = false;
-          return interaction.editReply('❌ Impossibile aprire la dashboard.');
-        }
-
-      }
-
-      // Voice connection to play with query
-      const connected = await deps.connectToVoice(serverQueue, interaction);
-      if (!connected) {
-        serverQueue.isTaskRunning = false;
-        try { await interaction.editReply({ content: '❌ Errore connessione vocale.' }); } catch { /* ignora */ }
-        return;
-      }
-
-      let songsFound = [];
-      try { songsFound = await getVideoInfo(query); } catch { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
-
-      if (songsFound.length === 0) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Nessun risultato.'); }
-      if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) { serverQueue.isTaskRunning = false; return interaction.editReply('❌ **Limite Coda!**'); }
-
-      // Add to queue and persist to disk
-      clearFinishedQueue(serverQueue);
-      serverQueue.songs.push(...songsFound.map(s => ({ ...s, requester: member.id })));
-      saveQueueState(guild.id, serverQueue);
-
-      if (!serverQueue.currentDeckLoaded) {
-        try {
-          await deps.playSong(guild.id, interaction);
-          await interaction.editReply(serverQueue.sessionRestored ? '✅ **Session Restored and Updated!**' : '✅ Starting playback...');
-        } catch (e) {
-          console.error('Error in playSong:', e);
-          try { await interaction.editReply('❌ Error starting playback.'); } catch { }
-        }
-      } else {
-        if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await deps.updatePreloadAfterQueueChange(guild.id); }
-        if (songsFound.length > 1) interaction.editReply(`✅ Added **${songsFound.length}** songs.`); else interaction.deleteReply().catch(() => { });
-        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
-        if (serverQueue.songs.length === 2) deps.preloadNextSongs(guild.id);
-      }
-    } finally { if (serverQueue) serverQueue.isTaskRunning = false; }
+    const query = interaction.options.getString(SEARCH_OPTION);
+    return query
+      ? await addToQueue(interaction, serverQueue, query, deps)
+      : await openDashboard(interaction, serverQueue, deps);
+  } finally {
+    serverQueue.isTaskRunning = false;
+  }
 }
 
-function cleanupLastCleanupTime(guildId) {
-  _lastCleanupTime.delete(guildId);
-}
-
-export { data, execute, cleanupLastCleanupTime };
+export { data, execute };

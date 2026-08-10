@@ -11,10 +11,18 @@ import {
 } from '../../config/index.js';
 import { normalizeYoutubeUrl } from './sanitize.js';
 
-const DURATION_FETCH_CONCURRENCY = 3; // Max concurrent yt-dlp processes for duration fetch
+const DURATION_FETCH_CONCURRENCY = 3;  // Duration lookups started at the same time
+const MAX_YTDLP_CONCURRENT = 6;        // Max global yt-dlp processes (cross-guild)
+const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
+const MAX_STDERR_CHARS = 8 * 1024;     // Keep only the tail we would ever log
+
+const UNKNOWN_TITLE = 'Titolo sconosciuto';
+const FALLBACK_THUMBNAIL = 'https://i.imgur.com/AfFp7pu.png';
 
 // ─── Global semaphore to limit concurrent yt-dlp processes ──────
-const MAX_YTDLP_CONCURRENT = 6; // Max global yt-dlp processes (cross-guild)
+// IMPORTANT: a task holding a slot must never wait for another slot, or a full
+// semaphore deadlocks. Everything that needs one acquires it through withSlot()
+// for the duration of a single yt-dlp process, and never nests two of them.
 let _activeProcesses = 0;
 const _waitQueue = [];
 
@@ -27,92 +35,166 @@ function acquireSlot() {
 }
 
 function releaseSlot() {
-  _activeProcesses--;
-  if (_waitQueue.length > 0 && _activeProcesses < MAX_YTDLP_CONCURRENT) {
-    _activeProcesses++;
+  if (_waitQueue.length > 0) {
+    // Hand the slot straight over instead of releasing and re-counting it
     _waitQueue.shift()();
+    return;
   }
+  _activeProcesses--;
+}
+
+/**
+ * Runs `task` while holding one yt-dlp slot.
+ * @param {() => Promise<any>} task
+ * @returns {Promise<any>}
+ */
+async function withSlot(task) {
+  await acquireSlot();
+  try {
+    return await task();
+  } finally {
+    releaseSlot();
+  }
+}
+
+/**
+ * Spawns yt-dlp and resolves its stdout once the process exits.
+ * Always drains stderr: an unread pipe fills up and blocks the child process.
+ * @param {string[]} args - Arguments for yt-dlp
+ * @param {number} timeoutMs - Kill the process after this long
+ * @param {string} label - Log prefix
+ * @returns {Promise<{stdout: string, stderr: string, code: number|null, timedOut: boolean, tooLarge: boolean}>}
+ */
+function runYtDlp(args, timeoutMs, label) {
+  return new Promise((resolve, reject) => {
+    const { cmd, args: fullArgs } = getYtDlpCommand(args);
+    const child = spawn(cmd, fullArgs);
+
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    let tooLarge = false;
+
+    const killTimer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeoutMs);
+
+    child.stdout.on('data', chunk => {
+      stdout += chunk;
+      if (stdout.length > MAX_OUTPUT_BYTES) {
+        tooLarge = true;
+        child.kill();
+      }
+    });
+
+    // Consumed and capped: we only ever report the tail on failure
+    child.stderr.on('data', chunk => {
+      stderr = (stderr + chunk).slice(-MAX_STDERR_CHARS);
+    });
+
+    child.on('error', (e) => {
+      clearTimeout(killTimer);
+      console.error(`❌ [${label}] Process spawn error: ${e.message}`);
+      reject(e);
+    });
+
+    child.on('close', (code) => {
+      clearTimeout(killTimer);
+      resolve({ stdout, stderr, code, timedOut, tooLarge });
+    });
+  });
 }
 
 /**
  * Extracts only the duration of a video (fast fallback function)
  * @param {string} videoUrl - YouTube video URL
- * @returns {Promise<number>} - Duration in seconds (0 if fails)
+ * @returns {Promise<number>} - Duration in seconds (0 if it fails)
  */
 async function getVideoDuration(videoUrl) {
-  await acquireSlot();
-  try {
-    // Normalize here too for robustness (legacy code or restore from disk)
-    if (videoUrl && typeof videoUrl === 'string' && videoUrl.startsWith('http')) {
-      videoUrl = normalizeYoutubeUrl(videoUrl);
-    }
-    return await new Promise((resolve) => {
-      const ytdlpCmd = getYtDlpCommand([
+  if (typeof videoUrl !== 'string' || !videoUrl.trim()) return 0;
+  const url = videoUrl.startsWith('http') ? normalizeYoutubeUrl(videoUrl) : videoUrl;
+
+  return withSlot(async () => {
+    let result;
+    try {
+      result = await runYtDlp([
         '--no-warnings',
         '--no-cache-dir',
         '--skip-download',
         '--force-ipv4',
         '--paths', `home:${LOCAL_TEMP_DIR}`,
         '-J',
-        videoUrl
-      ]);
+        url
+      ], VIDEO_DURATION_TIMEOUT_MS, 'DURATION');
+    } catch {
+      return 0;
+    }
 
-      const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
-      let data = '';
-      let errorData = '';
+    if (result.timedOut) {
+      console.warn(`⏱️ [DURATION] Timeout for ${url.substring(0, 50)}...`);
+      return 0;
+    }
+    if (result.code !== 0 && result.stderr) {
+      console.warn(`⚠️ [DURATION] yt-dlp exit code ${result.code}: ${result.stderr.substring(0, 200)}`);
+    }
 
-      const killTimer = setTimeout(() => {
-        if (!processSearch.killed) {
-          console.warn(`⏱️ [DURATION] Timeout for ${videoUrl.substring(0, 50)}...`);
-          processSearch.kill();
-        }
-      }, VIDEO_DURATION_TIMEOUT_MS);
-
-      processSearch.stdout.on('data', chunk => { data += chunk; });
-      processSearch.stderr.on('data', chunk => { errorData += chunk; });
-
-      processSearch.on('close', (code) => {
-        clearTimeout(killTimer);
-
-        if (code !== 0 && errorData) {
-          console.warn(`⚠️ [DURATION] yt-dlp exit code ${code}: ${errorData.substring(0, 200)}`);
-        }
-
-        try {
-          const info = JSON.parse(data);
-          const duration = info.duration || 0;
-          resolve(duration);
-        } catch (e) {
-          console.warn(`⚠️ [DURATION] Parse error: ${e.message}`);
-          resolve(0);
-        }
-      });
-
-      processSearch.on('error', (e) => {
-        clearTimeout(killTimer);
-        console.error(`❌ [DURATION] Process spawn error: ${e.message}`);
-        resolve(0);
-      });
-    });
-  } finally { releaseSlot(); }
+    try {
+      return JSON.parse(result.stdout).duration || 0;
+    } catch (e) {
+      console.warn(`⚠️ [DURATION] Parse error: ${e.message}`);
+      return 0;
+    }
+  });
 }
 
 /**
- * Gets complete information about a video or playlist
+ * Fills in the duration of the songs missing one, a few at a time.
+ * Runs OUTSIDE the caller's semaphore slot so the lookups cannot deadlock
+ * against the request that produced them.
+ * @param {Array<{url: string, duration: number}>} songs - Mutated in place
+ */
+async function enrichMissingDurations(songs) {
+  const pending = songs.filter(s => !s.duration);
+  for (let i = 0; i < pending.length; i += DURATION_FETCH_CONCURRENCY) {
+    const batch = pending.slice(i, i + DURATION_FETCH_CONCURRENCY);
+    await Promise.all(batch.map(async (song) => {
+      const duration = await getVideoDuration(song.url);
+      if (duration > 0) song.duration = duration;
+    }));
+  }
+}
+
+/**
+ * Maps a yt-dlp entry (playlist/search result) to a queue song.
+ * @param {object} entry
+ * @returns {{title: string, url: string, thumbnail: string, isLive: boolean, duration: number}}
+ */
+function toSong(entry) {
+  return {
+    title: entry.title || UNKNOWN_TITLE,
+    url: normalizeYoutubeUrl(entry.webpage_url || entry.url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : '')),
+    thumbnail: entry.thumbnails?.[0]?.url || entry.thumbnail || FALLBACK_THUMBNAIL,
+    isLive: entry.is_live || false,
+    duration: entry.duration || 0
+  };
+}
+
+/**
+ * Gets complete information about a video, playlist or search term.
  * @param {string} query - URL or search term
- * @returns {Promise<Array>} - Array of song objects
- * @throws {string} - 'TIMEOUT', 'TOO_LARGE'
+ * @returns {Promise<Array>} - Array of song objects (empty if nothing usable was found)
+ * @throws {Error} - 'TIMEOUT' or 'TOO_LARGE' when yt-dlp had to be killed
  */
 async function getVideoInfo(query) {
-  await acquireSlot();
-  try {
-    // Normalize URL music.youtube.com / m.youtube.com / tracking params → canonical www.youtube.com.
-    // This solves cases where yt-dlp with ANDROID_MUSIC client on a single video returns "null".
-    if (query && typeof query === 'string' && query.startsWith('http')) {
-      query = normalizeYoutubeUrl(query);
-    }
+  if (typeof query !== 'string' || !query.trim()) return [];
 
-    const baseArgs = [
+  // Normalize URL music.youtube.com / m.youtube.com / tracking params → canonical www.youtube.com.
+  // This solves cases where yt-dlp with the ANDROID_MUSIC client on a single video returns "null".
+  const target = query.startsWith('http') ? normalizeYoutubeUrl(query.trim()) : query.trim();
+
+  const songs = await withSlot(async () => {
+    const result = await runYtDlp([
       '--flat-playlist',
       '-J',
       '--no-warnings',
@@ -125,119 +207,51 @@ async function getVideoInfo(query) {
       // ⚠️ CRITICAL (single video link fix): for a single video yt-dlp performs
       // format selection; with the ANDROID_MUSIC client this often fails
       // ("Requested format is not available") and output becomes null → "No results".
-      // Searches/playlists use flat extraction and don't touch formats, so
-      // worked. Here we only need metadata (title, url, duration): actual download
-      // and format choice happen in Rust engine. By ignoring format error we still
-      // get metadata even for single videos.
+      // Searches/playlists use flat extraction and don't touch formats, so they
+      // worked. Here we only need metadata (title, url, duration): the actual
+      // download and format choice happen in the Rust engine. By ignoring the
+      // format error we still get metadata even for single videos.
       '--ignore-no-formats-error',
       '--compat-options', 'no-youtube-unavailable-videos',
-      '--yes-playlist'
-    ];
+      '--yes-playlist',
+      target.startsWith('http') ? target : `ytsearch1:${target}`
+    ], VIDEO_INFO_TIMEOUT_MS, 'YT-INFO');
 
-    if (query.startsWith('http')) baseArgs.push(query); else baseArgs.push(`ytsearch1:${query}`);
+    if (result.timedOut) throw new Error('TIMEOUT');
+    if (result.tooLarge) throw new Error('TOO_LARGE');
 
-    const ytdlpCmd = getYtDlpCommand(baseArgs);
+    if (!result.stdout) {
+      console.warn(`[getVideoInfo] No data from yt-dlp for query: ${target.substring(0, 120)}`);
+      if (result.stderr) console.warn(`[getVideoInfo] stderr: ${result.stderr.substring(0, 300)}`);
+      return [];
+    }
 
-    return new Promise((resolve, reject) => {
-      const processSearch = spawn(ytdlpCmd.cmd, ytdlpCmd.args);
-      let data = '';
-      let settled = false;
+    let info;
+    try {
+      info = JSON.parse(result.stdout);
+    } catch (e) {
+      console.warn(`[getVideoInfo] Unparsable yt-dlp output for "${target.substring(0, 80)}": ${e.message}`);
+      console.warn(`[getVideoInfo] Raw data (first 500 chars): ${result.stdout.substring(0, 500)}`);
+      return [];
+    }
 
-      const killTimer = setTimeout(() => {
-        if (!processSearch.killed) { processSearch.kill(); if (!settled) { settled = true; reject(new Error('TIMEOUT')); } }
-      }, VIDEO_INFO_TIMEOUT_MS);
+    if (!info || typeof info !== 'object') {
+      console.warn(`[getVideoInfo] yt-dlp returned null/empty for query: ${target.substring(0, 120)}`);
+      return [];
+    }
 
-      processSearch.stdout.on('data', chunk => {
-        data += chunk;
-        if (data.length > 50 * 1024 * 1024) {
-          processSearch.kill();
-          if (!settled) { settled = true; reject(new Error('TOO_LARGE')); }
-        }
-      });
+    // Playlist or search results
+    if (Array.isArray(info.entries) && info.entries.length > 0) {
+      return info.entries.map(toSong).filter(s => s.url);
+    }
 
-      processSearch.on('error', (e) => {
-        clearTimeout(killTimer);
-        if (!settled) { settled = true; reject(e.message || 'SPAWN_ERROR'); }
-      });
+    // Single video
+    const song = toSong(info);
+    return song.url ? [song] : [];
+  });
 
-      processSearch.on('close', async () => {
-        clearTimeout(killTimer);
-        if (settled) return;
-        if (!data) {
-          console.warn(`[getVideoInfo] No data from yt-dlp for query: ${query.substring(0, 120)}`);
-          return resolve([]);
-        }
-        try {
-          const info = JSON.parse(data);
-          if (!info || typeof info !== 'object') {
-            console.warn(`[getVideoInfo] yt-dlp returned null/empty for query: ${query.substring(0, 120)}`);
-            return resolve([]);
-          }
-          if (info.entries && info.entries.length > 0) {
-            const results = info.entries.map(entry => ({
-              title: entry.title || 'Titolo Sconosciuto',
-              url: normalizeYoutubeUrl(entry.url || `https://www.youtube.com/watch?v=${entry.id}`),
-              thumbnail: entry.thumbnails ? entry.thumbnails[0].url : 'https://i.imgur.com/AfFp7pu.png',
-              isLive: entry.is_live || false,
-              duration: entry.duration || 0
-            }));
-
-            // If duration is missing, fetch it with a quick query (max N at a time)
-            const needsDuration = results.filter(s => !s.duration || s.duration === 0);
-            for (let i = 0; i < needsDuration.length; i += DURATION_FETCH_CONCURRENCY) {
-              const batch = needsDuration.slice(i, i + DURATION_FETCH_CONCURRENCY);
-              await Promise.all(batch.map(async (song) => {
-                try {
-                  const dur = await getVideoDuration(song.url);
-                  if (dur && dur > 0) song.duration = dur;
-                } catch (e) {
-                  // Keep duration: 0 if fails
-                }
-              }));
-            }
-
-            return resolve(results);
-          }
-          let result = {
-            title: info.title || 'Titolo Sconosciuto',
-            url: normalizeYoutubeUrl(info.webpage_url || info.url),
-            thumbnail: info.thumbnail || 'https://i.imgur.com/AfFp7pu.png',
-            isLive: info.is_live || false,
-            duration: info.duration || 0
-          };
-
-          // Fallback: if root doesn't have useful video info but has entries with 1 element (e.g. unexpanded list but main video present)
-          const hasUsableVideo = result.url || (result.title && result.title !== 'Unknown Title');
-          if (!hasUsableVideo && Array.isArray(info.entries) && info.entries.length > 0) {
-            const first = info.entries[0];
-            result = {
-              title: first.title || result.title,
-              url: normalizeYoutubeUrl(first.url || (first.id ? `https://www.youtube.com/watch?v=${first.id}` : result.url)),
-              thumbnail: (first.thumbnails && first.thumbnails[0] ? first.thumbnails[0].url : result.thumbnail),
-              isLive: first.is_live || result.isLive,
-              duration: first.duration || result.duration
-            };
-          }
-
-          // If duration is missing for single video
-          if (!result.duration || result.duration === 0) {
-            try {
-              const dur = await getVideoDuration(result.url);
-              if (dur && dur > 0) result.duration = dur;
-            } catch (e) {
-              // Keep duration: 0 if fails
-            }
-          }
-
-          return resolve([result]);
-        } catch (e) {
-          console.warn(`[getVideoInfo] Error processing yt-dlp output for "${query.substring(0, 80)}": ${e.message}`);
-          console.warn(`[getVideoInfo] Raw data (first 500 chars): ${data ? data.substring(0, 500) : '(empty)'}`);
-          resolve([]);
-        }
-      });
-    });
-  } finally { releaseSlot(); }
+  await enrichMissingDurations(songs);
+  return songs;
 }
 
 export {

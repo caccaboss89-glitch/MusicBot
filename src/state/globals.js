@@ -13,10 +13,22 @@ export const queue = new Map();
 export const disconnectTimers = new Map();
 
 // --- INTERACTION COOLDOWN ---
-// Map<guildId, Map<interactionId, timestamp>> - Prevents button spam
+// Map<"guildId_userId", timestamp> - Prevents button spam, per user per guild
 export const interactionCooldowns = new Map();
+const COOLDOWN_TTL_MS = 60000;
 
-// NOTE: Pending skips are managed internally by SkipManager v3 (skipLock).
+/**
+ * Drops the cooldown entries of a guild (bot removed from that server).
+ * @param {string} guildId
+ */
+export function clearGuildCooldowns(guildId) {
+  const prefix = `${guildId}_`;
+  for (const key of interactionCooldowns.keys()) {
+    if (key.startsWith(prefix)) interactionCooldowns.delete(key);
+  }
+}
+
+// NOTE: Pending skips are managed internally by SkipManager (state versioning locks).
 
 // --- MIXER GENERATION ---
 // Global counter to invalidate events from old mixers
@@ -34,6 +46,6 @@ export function getNextMixerGeneration() {
 setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of interactionCooldowns) {
-    if (now - timestamp > 60000) interactionCooldowns.delete(key);
+    if (now - timestamp > COOLDOWN_TTL_MS) interactionCooldowns.delete(key);
   }
 }, 5 * 60 * 1000);

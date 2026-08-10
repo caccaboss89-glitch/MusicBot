@@ -1,3 +1,4 @@
+import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
@@ -11,17 +12,14 @@ export default [
       'data/'
     ]
   },
+  js.configs.recommended,
   {
     files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
-        ...globals.node,
-        console: 'readonly',
-        process: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly'
+        ...globals.node
       }
     },
     rules: {
@@ -36,7 +34,15 @@ export default [
       'no-var': 'warn',
       'no-multiple-empty-lines': ['error', { max: 2 }],
       'comma-dangle': ['error', 'never'],
-      'no-trailing-spaces': 'error'
+      'no-trailing-spaces': 'error',
+      'eol-last': ['error', 'always'],
+
+      // Caught real bugs in this codebase: a `return` inside `finally` that
+      // swallowed every failure, and an always-false concurrency guard.
+      'no-unsafe-finally': 'error',
+      'no-unreachable': 'error',
+      'no-constant-condition': 'error',
+      'no-dupe-else-if': 'error'
     }
   }
 ];

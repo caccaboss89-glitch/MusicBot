@@ -46,7 +46,6 @@ export const QUEUE_FILE = path.join(ROOT_DIR, 'data', 'queue_backup.json');
 export const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
 
 // --- BINARY PATHS ---
-export const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Precompiled yt-dlp binary (ARM64 Linux)
 export const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
 export const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
 
@@ -54,12 +53,10 @@ export const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'r
 export const LOCAL_TEMP_DIR = path.join(ROOT_DIR, 'temp');
 export const DATA_DIR = path.join(ROOT_DIR, 'data');
 
-// --- YT-DLP UTILITY FUNCTION ---
+// --- YT-DLP UTILITY FUNCTIONS ---
 /**
- * Returns the command and arguments for launching yt-dlp
- * Tries 'yt-dlp' directly first, then falls back to 'python -m yt_dlp'
- * @param {string} args - Additional arguments to pass to yt-dlp
- * @returns {object} - {cmd: string, args: string[]} - The command and arguments
+ * Extractor arguments to pass to yt-dlp, overridable via YTDLP_EXTRACTOR_ARGS.
+ * @returns {string}
  */
 export function resolveYtDlpExtractorArgs() {
   const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;
@@ -68,6 +65,12 @@ export function resolveYtDlpExtractorArgs() {
     : DEFAULT_YTDLP_EXTRACTOR_ARGS;
 }
 
+/**
+ * Builds the command line that runs yt-dlp through the Python module, applying
+ * the configured proxy, browser cookies, extractor args and user agent.
+ * @param {string[]} [additionalArgs=[]] - Arguments appended after the configured ones
+ * @returns {{cmd: string, args: string[]}}
+ */
 export function getYtDlpCommand(additionalArgs = []) {
   const proxyUrl = resolveYtDlpProxyUrl();
   const proxyArgs = proxyUrl ? ['--proxy', proxyUrl] : [];

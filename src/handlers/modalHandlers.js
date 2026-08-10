@@ -12,6 +12,20 @@ import { saveQueueState } from '../queue/persistence.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER } from '../../config/index.js';
 import { activeSearches } from './playlistHandlers.js';
 import * as audio from '../audio/index.js';
+import {
+  SEARCH_TERM_REQUIRED,
+  SEARCH_ERROR,
+  NO_RESULTS,
+  songsAdded,
+  playlistLimitReached,
+  playlistAlreadyExists,
+  playlistCreated,
+  PLAYLIST_CREATION_ERROR,
+  defaultPlaylistNotRenamable,
+  PLAYLIST_NOT_FOUND_ORIGINAL,
+  playlistRenamed,
+  PLAYLIST_RENAME_ERROR
+} from '../ui/messages.js';
 
 /**
  * Handles all modal submissions.
@@ -24,12 +38,12 @@ async function handleModal(interaction, guildId, deps) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
       const query = (interaction.fields.getTextInputValue('search_query_input') || '').trim();
-      if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
+      if (!query) return await interaction.editReply(SEARCH_TERM_REQUIRED);
       activeSearches.set(`${interaction.user.id}_server_`, query);
       return await interaction.editReply(generateSearchResultsView('server', interaction.user.id, query, 0));
     } catch (e) {
       console.error('❌ [MODAL_SEARCH_SERVER] Error:', e);
-      return await interaction.editReply('❌ Errore durante la ricerca.');
+      return await interaction.editReply(SEARCH_ERROR);
     }
   }
 
@@ -39,12 +53,12 @@ async function handleModal(interaction, guildId, deps) {
     try {
       const plName = modalCustomId.replace('modal_search_likes_', '');
       const query = (interaction.fields.getTextInputValue('search_query_input') || '').trim();
-      if (!query) return await interaction.editReply('❌ Inserisci un termine di ricerca.');
+      if (!query) return await interaction.editReply(SEARCH_TERM_REQUIRED);
       activeSearches.set(`${interaction.user.id}_likes_${plName}`, query);
       return await interaction.editReply(generateSearchResultsView('likes', interaction.user.id, query, 0, plName));
     } catch (e) {
       console.error('❌ [MODAL_SEARCH_LIKES] Error:', e);
-      return await interaction.editReply('❌ Errore durante la ricerca.');
+      return await interaction.editReply(SEARCH_ERROR);
     }
   }
 
@@ -59,19 +73,19 @@ async function handleModal(interaction, guildId, deps) {
       const userData = getUserData(db, interaction.user.id);
       const playlistCount = Object.keys(userData.playlists).length;
       if (playlistCount >= MAX_PLAYLISTS_PER_USER) {
-        return await interaction.editReply(`❌ Hai raggiunto il limite massimo di ${MAX_PLAYLISTS_PER_USER} playlist.`);
+        return await interaction.editReply(playlistLimitReached(MAX_PLAYLISTS_PER_USER));
       }
       const existingNames = Object.keys(userData.playlists).map(n => n.toLowerCase());
       if (existingNames.includes(trimmedName.toLowerCase())) {
-        return await interaction.editReply(`❌ Esiste già una playlist con il nome **${trimmedName}**.`);
+        return await interaction.editReply(playlistAlreadyExists(trimmedName));
       }
       userData.playlists[trimmedName] = [];
       userData.activePlaylist = trimmedName;
       saveDatabase(db);
-      return await interaction.editReply(`✅ Playlist **${trimmedName}** creata! Ora è la tua playlist attiva.`);
+      return await interaction.editReply(playlistCreated(trimmedName));
     } catch (e) {
       console.error('❌ [MODAL_CREATE_PLAYLIST] Error:', e);
-      return await interaction.editReply('❌ Errore durante la creazione della playlist.');
+      return await interaction.editReply(PLAYLIST_CREATION_ERROR);
     }
   }
 
@@ -81,26 +95,26 @@ async function handleModal(interaction, guildId, deps) {
     try {
       const oldName = modalCustomId.replace('modal_rename_playlist_', '');
       if (oldName === DEFAULT_PLAYLIST_NAME) {
-        return await interaction.editReply(`❌ La playlist "${DEFAULT_PLAYLIST_NAME}" non può essere rinominata.`);
+        return await interaction.editReply(defaultPlaylistNotRenamable(DEFAULT_PLAYLIST_NAME));
       }
       const trimmedName = (interaction.fields.getTextInputValue('playlist_name_input') || '').trim();
       const validation = validatePlaylistName(trimmedName);
       if (!validation.valid) return await interaction.editReply(`❌ ${validation.error}`);
       const db = loadDatabase();
       const userData = getUserData(db, interaction.user.id);
-      if (!userData.playlists[oldName]) return await interaction.editReply('❌ Playlist originale non trovata.');
+      if (!userData.playlists[oldName]) return await interaction.editReply(PLAYLIST_NOT_FOUND_ORIGINAL);
       const existingNames = Object.keys(userData.playlists).filter(n => n !== oldName).map(n => n.toLowerCase());
       if (existingNames.includes(trimmedName.toLowerCase())) {
-        return await interaction.editReply(`❌ Esiste già una playlist con il nome **${trimmedName}**.`);
+        return await interaction.editReply(playlistAlreadyExists(trimmedName));
       }
       userData.playlists[trimmedName] = userData.playlists[oldName];
       delete userData.playlists[oldName];
       if (userData.activePlaylist === oldName) userData.activePlaylist = trimmedName;
       saveDatabase(db);
-      return await interaction.editReply(`✅ Playlist rinominata: **${oldName}** → **${trimmedName}**`);
+      return await interaction.editReply(playlistRenamed(oldName, trimmedName));
     } catch (e) {
       console.error('❌ [MODAL_RENAME_PLAYLIST] Error:', e);
-      return await interaction.editReply('❌ Errore durante la rinomina della playlist.');
+      return await interaction.editReply(PLAYLIST_RENAME_ERROR);
     }
   }
 
@@ -111,37 +125,53 @@ async function handleModal(interaction, guildId, deps) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   try {
     let found = [];
-    try { found = await getVideoInfo(interaction.fields.getTextInputValue('song_input')); }
-    catch { serverQueue.isTaskRunning = false; return interaction.editReply('❌ Errore ricerca.'); }
+    try {
+      found = await getVideoInfo(interaction.fields.getTextInputValue('song_input'));
+    } catch (e) {
+      console.error('❌ [MODAL_ADD_SONG] Search error:', e.message);
+      return interaction.editReply(SEARCH_ERROR);
+    }
 
-    if (found.length > 0) {
-      clearFinishedQueue(serverQueue);
-      found.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
-      saveQueueState(guildId, serverQueue);
+    if (found.length === 0) return interaction.editReply(NO_RESULTS);
 
-      const needStartDueToMissingAudio = (!!serverQueue.currentDeckLoaded && (!serverQueue.connection || !serverQueue.mixer || !serverQueue.player));
-      if (!serverQueue.currentDeckLoaded || needStartDueToMissingAudio) {
-        if (interaction.member && interaction.member.voice && interaction.member.voice.channel) {
-          if (needStartDueToMissingAudio) {
-            serverQueue.currentDeckLoaded = null;
-            serverQueue.nextDeckLoaded = null;
-            if (serverQueue.mixer) {
-              try { serverQueue.mixer.kill(); } catch { }
-            }
-            serverQueue.mixer = null;
-          }
-          if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);
-          try { await audio.playSong(interaction.guild.id, interaction); } catch (e) { console.error('playSong error after modal add', e); }
-        } else {
-          if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
-          if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+    clearFinishedQueue(serverQueue);
+    found.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
+    saveQueueState(guildId, serverQueue);
+
+    // A deck marked as loaded without a live audio chain is stale state left by
+    // a crash or a disconnect: drop it so playback restarts from scratch.
+    const audioChainBroken = !!serverQueue.currentDeckLoaded &&
+      (!serverQueue.connection || !serverQueue.mixer || !serverQueue.player);
+    const memberInVoice = !!interaction.member?.voice?.channel;
+    let started = false;
+
+    if ((!serverQueue.currentDeckLoaded || audioChainBroken) && memberInVoice) {
+      if (audioChainBroken) {
+        serverQueue.currentDeckLoaded = null;
+        serverQueue.nextDeckLoaded = null;
+        if (serverQueue.mixer) {
+          try { serverQueue.mixer.kill(); } catch { /* already dead */ }
+          serverQueue.mixer = null;
         }
-      } else {
-        if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(interaction.guild.id); }
-        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
       }
-      if (found.length > 1) interaction.editReply(`✅ Aggiunte **${found.length}** canzoni.`); else interaction.deleteReply().catch(() => { });
-    } else interaction.editReply('❌ Nessun risultato per il link o la ricerca inserita.');
+      if (!serverQueue.connection) await deps.connectToVoice(serverQueue, interaction);
+      try {
+        await audio.playSong(guildId, interaction);
+        started = true;
+      } catch (e) {
+        console.error('playSong error after modal add', e);
+      }
+    }
+
+    // playSong() already schedules the preload cycle: only refresh it when we
+    // appended to a queue that was already playing.
+    if (!started) await audio.updatePreloadAfterQueueChange(guildId);
+
+    if (serverQueue.dashboardMessage) {
+      await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
+    }
+    if (found.length > 1) return interaction.editReply(songsAdded(found.length));
+    return interaction.deleteReply().catch(() => { });
   } finally { serverQueue.isTaskRunning = false; }
 }
 

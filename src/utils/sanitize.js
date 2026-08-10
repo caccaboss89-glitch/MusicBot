@@ -5,14 +5,16 @@
 import fs from 'fs';
 
 /**
- * Safe integer parsing with default value
+ * Parses an integer, returning `defaultValue` when the input is not a number.
+ * The parsed value is returned as-is: callers that use a negative default as a
+ * "not valid" sentinel rely on that, so no clamping happens here.
  * @param {any} value - Value to parse
- * @param {number} defaultValue - Default value if parsing fails
- * @returns {number} - Integer >= 0
+ * @param {number} [defaultValue=0] - Returned when the value cannot be parsed
+ * @returns {number}
  */
 export function safeParseInt(value, defaultValue = 0) {
-  const parsed = parseInt(value);
-  return isNaN(parsed) ? defaultValue : Math.max(0, parsed);
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
 }
 
 /**
@@ -65,7 +67,7 @@ export function safeJSONParse(filename, defaultData) {
   if (!fs.existsSync(filename)) {
     try {
       fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2));
-    } catch { }
+    } catch { /* file will be recreated below */ }
     return defaultData;
   }
   try {
@@ -88,7 +90,7 @@ export function safeJSONParse(filename, defaultData) {
  */
 export function getYoutubeId(url) {
   if (!url) return null;
-  const match = url.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/);
+  const match = url.match(/^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?vi?=|&vi?=))([^#&?]*).*/);
   return (match && match[1]) ? match[1] : null;
 }
 
@@ -161,6 +163,18 @@ export function normalizeYoutubeUrl(url) {
   }
 
   return u;
+}
+
+/**
+ * Stable identity of a song, ignoring playlist/mix context and tracking params.
+ * Used as the statistics key so the same video counts once however it was reached.
+ * Falls back to the original URL for anything that is not a YouTube video.
+ * @param {string} url
+ * @returns {string}
+ */
+export function canonicalSongKey(url) {
+  const videoId = getYoutubeId(url);
+  return videoId ? `https://www.youtube.com/watch?v=${videoId}` : url;
 }
 
 /**

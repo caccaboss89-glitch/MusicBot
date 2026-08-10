@@ -913,7 +913,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         };
 
                         if target_ready || download_done {
-                            // Target pronto → crossfade immediato
+                            // Target ready → immediate crossfade
                             crossfading = true;
                             // A crossfade always means playback, even if output was
                             // halted because the previous deck turned out unplayable
@@ -928,7 +928,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 &format!("from={}, to={}", active_deck, target_deck),
                             );
                         } else {
-                            // Target non pronto → pending crossfade (continua a riprodurre deck corrente)
+                            // Target not ready → pending crossfade (continues playing current deck)
                             pending_transition =
                                 Some((to_deck, std::time::Instant::now(), true, duration_ms));
                             send_log(
@@ -982,7 +982,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         };
 
                         if target_is_ready || download_done {
-                            // ✅ IMMEDIATE SWITCH: deck target pronto
+                            // ✅ IMMEDIATE SWITCH: target deck ready
                             send_log("buffer_ready", target_deck.as_str());
 
                             if active_deck == "A" {
@@ -1011,7 +1011,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 &format!("deck={}, triggered_by=skip_command", target_deck),
                             );
                         } else {
-                            // ⏳ PENDING SKIP: deck target non pronto, continua a riprodurre deck corrente
+                            // ⏳ PENDING SKIP: target deck not ready, continue playing current deck
                             pending_transition =
                                 Some((target_deck.clone(), std::time::Instant::now(), false, 0));
                             send_log("info", &format!("⏳ Skip pending: deck {} non pronto, continuo riproduzione corrente", target_deck));
@@ -1191,7 +1191,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 auto_gapless_stall = None;
                 is_playing = false;
             }
-            // Se né dati né timeout, continua in stallo (output silenzio)
+            // If neither data nor timeout, continue stalling (output silence)
         }
 
         // ── Pending transition check ──────────────────────────────

@@ -2,20 +2,21 @@
  * Audio timing handler
  * Responsibilities:
  * 1. Preloading: 5s after the start of each song, preload the next one on the other deck
- * 2. Monitoring: Listens to the 'end' event from Rust (natural track end)
- *    - When 'end' arrives, checks if there's a next song and does autoSkip
- * 3. For automatic crossfade 3s before the end:
- *    - Rust must send an 'approaching_end' event (3s before)
- *    - Or Node.js sends a 'schedule_crossfade' command to Rust at the start
+ * 2. Reacting to the 'end' event from Rust (natural track end): skip to the next
+ *    song, or close the queue when there is none
+ * 3. Crediting the play to the statistics if the engine never confirms playback
  *
- * Does NOT use timers tied to song end. Only uses the 'end' event from Rust.
+ * Does NOT use timers tied to the song end: the automatic crossfade 3 seconds
+ * before the end is driven by the 'approaching_end' event sent by Rust.
  */
 
 import { queue } from '../state/globals.js';
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
 import { CROSSFADE_DURATION_MS } from '../../config/index.js';
-import { isMixerAlive } from '../queue/QueueManager.js';
-import { call, register, get } from './audio-bridge.js';
+import { isMixerAlive, getCurrentSong, getNextSong, hasNextSong, bindDeckSong } from '../queue/QueueManager.js';
+import { commandQueue } from './SerialQueue.js';
+import { autoSkip, endQueue, hasSkipInProgress } from './SkipManager.js';
+import { confirmPlayback } from './rust-events.js';
 
 const PRELOAD_DELAY_MS = 5000; // Preload 5 seconds after the start of the song (to allow time for initial audio chunks)
 const PRELOAD_RETRY_MIN_DELAY_MS = 250;
@@ -28,25 +29,6 @@ const PLAYBACK_CONFIRM_FALLBACK_MS = 90000;
 // ─── State ──────────────────────────────────────────────────
 
 const timers = new Map(); // guildId -> { preloadTimer, confirmTimer }
-
-// ─── Helpers ────────────────────────────────────────────────
-
-function getCurrentSong(sq) {
-  if (!sq || !sq.songs || sq.songs.length === 0) return null;
-  const idx = sq.playIndex || 0;
-  return idx < sq.songs.length ? sq.songs[idx] : null;
-}
-
-function getNextSong(sq) {
-  if (!sq || !sq.songs) return null;
-  const nextIdx = (sq.playIndex || 0) + 1;
-  return nextIdx < sq.songs.length ? sq.songs[nextIdx] : null;
-}
-
-function hasNextSong(sq) {
-  if (!sq || !sq.songs) return false;
-  return (sq.playIndex || 0) + 1 < sq.songs.length;
-}
 
 // ─── Timer Management ───────────────────────────────────────
 
@@ -80,10 +62,9 @@ function schedulePreloadRetry(guildId, delayMs) {
  *  - preload after 5 seconds on the other deck
  *  - the statistics fallback, in case the engine never confirms playback
  *
- * Does not use timers to monitor the end. Waits for the 'end' event from Rust.
- * If you want automatic crossfade 3s before the end, Rust must send
- * an 'approaching_end' event or the bot must send 'schedule_crossfade'
- * to Rust at the start of this song.
+ * Does not use timers to monitor the end: it waits for the 'end' (or
+ * 'approaching_end') event from Rust.
+ * @param {string} guildId
  */
 function onSongStart(guildId) {
   const sq = queue.get(guildId);
@@ -112,7 +93,9 @@ function onSongStart(guildId) {
     const sqNow = queue.get(guildId);
     if (!sqNow || sqNow.isPaused || !isMixerAlive(sqNow)) return;
     console.warn('⚠️  [PLAYBACK] No playback confirmation from the engine, crediting the play from the fallback');
-    call('confirmPlayback', guildId, sqNow.currentDeck || 'A', 'fallback');
+    confirmPlayback(guildId, sqNow.currentDeck || 'A', 'fallback').catch(e => {
+      console.error('❌ [PLAYBACK] Fallback confirmPlayback error:', e);
+    });
   }, PLAYBACK_CONFIRM_FALLBACK_MS);
 
   // Save the timers
@@ -131,6 +114,7 @@ function onSongStart(guildId) {
  *
  * Invalidates preload only if the queue has actually changed (playIndex, songs array),
  * not if something generic changed like buffer ready or loop mode.
+ * @param {string} guildId
  */
 async function preloadNextSong(guildId) {
   const sq = queue.get(guildId);
@@ -165,15 +149,14 @@ async function preloadNextSong(guildId) {
     // ⚠️  SAFETY: Do not preload during or shortly after a crossfade
     // The isCrossfading flag might be false but Rust is still doing the crossfade
     // Check the timestamp: if crossfade started less than CROSSFADE_DURATION_MS ago, wait
-    if (sq.isCrossfading || (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS)) {
+    const sinceCrossfade = sq.crossfadeStartTime ? Date.now() - sq.crossfadeStartTime : Infinity;
+    if (sq.isCrossfading || sinceCrossfade < CROSSFADE_DURATION_MS) {
       if (sq.isCrossfading) {
         console.warn('⚠️  [PRELOAD] Skip: crossfade in progress (flag=true), waiting for crossfade to finish before preload');
         schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS);
       } else {
-        const timeElapsed = Date.now() - sq.crossfadeStartTime;
-        console.warn(`⚠️  [PRELOAD] Skip: crossfade completed only ${timeElapsed}ms ago (< ${CROSSFADE_DURATION_MS}ms), waiting more`);
-        const remainingMs = CROSSFADE_DURATION_MS - timeElapsed + 150;
-        schedulePreloadRetry(guildId, remainingMs);
+        console.warn(`⚠️  [PRELOAD] Skip: crossfade started only ${sinceCrossfade}ms ago (< ${CROSSFADE_DURATION_MS}ms), waiting more`);
+        schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS - sinceCrossfade + 150);
       }
       return;
     }
@@ -193,56 +176,75 @@ async function preloadNextSong(guildId) {
     sq.bufferReady[nextDeck] = false;
 
     // Load the song (autoplay=false: deck stays paused, ready for skip/crossfade)
-    // SERIALIZE the load command through command queue
-    const { commandQueue } = await import('./CommandQueue.js');
-    commandQueue.enqueue(
+    const outcome = await commandQueue.run(
       guildId,
       'preload_load',
       () => { sq.mixer.load(nextSong.url, nextDeck, false); },
       { timeout: 8000, retries: 1 }
-    ).then(async () => {
-      // Invalidate ONLY if the queue was actually modified (skip, clear, add songs)
-      // DO NOT invalidate if version changed for independent reasons (buffer ready, etc)
-      const playIndexAfter = sq.playIndex || 0;
-      const songCountAfter = (sq.songs && sq.songs.length) || 0;
-      const nextSongUrlAfter = getNextSong(sq)?.url || null;
+    );
 
-      if (playIndexBefore !== playIndexAfter || songCountBefore !== songCountAfter || nextSongUrlBefore !== nextSongUrlAfter) {
-        console.warn(`⚠️  [PRELOAD] Queue changed during load (playIdx: ${playIndexBefore}→${playIndexAfter}, songs: ${songCountBefore}→${songCountAfter}), preload invalidated`);
-        sq.nextDeckLoaded = null;
-        sq.nextDeckTarget = null;
-        return;
-      }
-
-      sq.nextDeckLoaded = nextSong.url;
-      sq.nextDeckTarget = nextDeck;
-      // Bind the preloaded deck to the "next" song: it's the source of truth
-      // used by auto-gapless/crossfade to know the actual index.
-      try { (await import('../queue/QueueManager.js')).bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url); } catch { }
-      console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
-    }).catch(e => {
-      console.error(`❌ [PRELOAD] Command queue error: ${e.message}`);
+    if (!outcome.success) {
+      console.error(`❌ [PRELOAD] Load failed: ${outcome.error.message}`);
       sq.nextDeckLoaded = null;
       sq.nextDeckTarget = null;
-    });
+      return;
+    }
 
+    // Invalidate ONLY if the queue was actually modified (skip, clear, add songs).
+    // DO NOT invalidate if the version changed for independent reasons (buffer ready, etc).
+    const playIndexAfter = sq.playIndex || 0;
+    const songCountAfter = (sq.songs && sq.songs.length) || 0;
+    const nextSongUrlAfter = getNextSong(sq)?.url || null;
+
+    if (playIndexBefore !== playIndexAfter || songCountBefore !== songCountAfter || nextSongUrlBefore !== nextSongUrlAfter) {
+      console.warn(`⚠️  [PRELOAD] Queue changed during load (playIdx: ${playIndexBefore}→${playIndexAfter}, songs: ${songCountBefore}→${songCountAfter}), preload invalidated`);
+      sq.nextDeckLoaded = null;
+      sq.nextDeckTarget = null;
+      return;
+    }
+
+    sq.nextDeckLoaded = nextSong.url;
+    sq.nextDeckTarget = nextDeck;
+    // Bind the preloaded deck to the "next" song: it's the source of truth
+    // used by auto-gapless/crossfade to know the actual index.
+    bindDeckSong(sq, nextDeck, nextIndexBefore, nextSong.url);
+    console.log(`📥 [PRELOAD] Deck ${nextDeck}: "${sanitizeTitle(nextSong.title)}"`);
   } catch (e) {
     console.error(`❌ [PRELOAD] Error: ${e.message}`);
   }
 }
 
 /**
+ * Invalidates the current preload and starts a new one.
+ * Called whenever the queue content changes (add, remove, shuffle, clear),
+ * because the song sitting on the inactive deck may no longer be the next one.
+ * @param {string} guildId
+ */
+async function updatePreloadAfterQueueChange(guildId) {
+  try {
+    const sq = queue.get(guildId);
+    if (!sq || !isMixerAlive(sq)) return;
+
+    sq.nextDeckLoaded = null;
+    sq.nextDeckTarget = null;
+    // Also invalidate the binding of the inactive deck (it was the preload deck):
+    // it will be rewritten by the new preload with the correct song.
+    if (sq.currentDeck) {
+      bindDeckSong(sq, sq.currentDeck === 'A' ? 'B' : 'A', null, null);
+    }
+    await preloadNextSong(guildId);
+  } catch (e) {
+    console.error('❌ [PRELOAD-UPDATE] Error:', e);
+  }
+}
+
+/**
  * Handles the 'end' event from Rust (track ended naturally).
  *
- * When Rust sends the 'end' event, tries to skip to the next song
- * (autoSkip). If there isn't one, ends the queue.
- *
- * Notes:
- * - If fade is ON, who initiated the crossfade? It should have been done by:
- *   a) An 'approaching_end' event from Rust (3s before) that triggers autoSkip
- *   b) A 'schedule_crossfade' command sent to Rust at song start
- *   c) The user pressing skip manually
- * - If fade is OFF, instant skip happens here when 'end' arrives
+ * When fade is ON the transition has normally already been started by the
+ * 'approaching_end' event (3s earlier) or by a manual skip; when fade is OFF
+ * the instant skip happens right here.
+ * @param {string} guildId
  */
 async function handleTrackEnd(guildId) {
   const sq = queue.get(guildId);
@@ -255,8 +257,7 @@ async function handleTrackEnd(guildId) {
   clearAllTimers(guildId);
 
   // Check if a skip is in progress (avoid race condition)
-  const SkipManager_hasSkipInProgress = get('hasSkipInProgress');
-  if (SkipManager_hasSkipInProgress && SkipManager_hasSkipInProgress(guildId)) {
+  if (hasSkipInProgress(guildId)) {
     console.log('⏳ [TRACK-END] Skip already in progress, ignoring');
     return;
   }
@@ -271,30 +272,27 @@ async function handleTrackEnd(guildId) {
   // Proceed with auto-skip if there's a next song
   if (hasNextSong(sq)) {
     console.log('⏭️  [TRACK-END] Natural end, automatic skip');
-    await call('autoSkip', guildId);
+    await autoSkip(guildId);
   } else {
     console.log('🏁 [TRACK-END] Last song ended, queue finished');
-    await call('endQueue', guildId);
+    await endQueue(guildId);
   }
 }
 
 /**
  * Handles the 'deck_changed' event from Rust (logging only).
  * State is already updated by SkipManager optimistically.
+ * @param {string} guildId
+ * @param {string} newDeck
  */
 function handleDeckChanged(guildId, newDeck) {
-  console.log(`🔀 [DECK-CHANGED] Rust: deck=${newDeck}`);
+  console.log(`🔀 [DECK-CHANGED] guild=${guildId} Rust: deck=${newDeck}`);
 }
-// ─── Bridge registrations ───────────────────────────────────
-
-register('onSongStart', onSongStart);
-register('clearAllTimers', clearAllTimers);
-register('preloadNextSong', preloadNextSong);
-// ─── Exports ────────────────────────────────────────────────
 
 export {
   onSongStart,
   preloadNextSong,
+  updatePreloadAfterQueueChange,
   handleTrackEnd,
   handleDeckChanged,
   clearAllTimers

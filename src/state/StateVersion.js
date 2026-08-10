@@ -14,33 +14,18 @@ class QueueStateVersion {
     this.version = 0;
     this.lastMutationTime = Date.now();
     this.lastMutationType = 'init';
-    this.mutationLog = []; // last 50 events
     this.locks = new Map(); // tracker for critical operations
   }
 
   /**
-     * Increments version and logs mutation type
+     * Increments the version and records what caused the mutation
      * @param {string} mutationType - Mutation type (e.g., 'skip_start', 'deck_change', 'clear_queue')
-     * @param {object} details - Additional mutation details
      * @returns {number} - New version
      */
-  incrementVersion(mutationType, details = {}) {
+  incrementVersion(mutationType) {
     this.version++;
     this.lastMutationTime = Date.now();
     this.lastMutationType = mutationType;
-
-    const logEntry = {
-      version: this.version,
-      timestamp: new Date().toISOString(),
-      type: mutationType,
-      details
-    };
-
-    this.mutationLog.push(logEntry);
-    if (this.mutationLog.length > 50) {
-      this.mutationLog.shift();
-    }
-
     return this.version;
   }
 
@@ -50,34 +35,6 @@ class QueueStateVersion {
      */
   getVersion() {
     return this.version;
-  }
-
-  /**
-     * Checks if a read version is still valid (not stale)
-     * @param {number} versionRead - Version that was previously read
-     * @param {number} maxAgeMsec - Max age allowed in milliseconds (default: 5s)
-     * @returns {{isValid: boolean, reason?: string}}
-     */
-  isVersionValid(versionRead, maxAgeMsec = 5000) {
-    const timeSinceMutation = Date.now() - this.lastMutationTime;
-
-    if (versionRead !== this.version) {
-      return {
-        isValid: false,
-        reason: `Version mismatch: read=${versionRead}, current=${this.version}`,
-        timeSinceMutation
-      };
-    }
-
-    if (timeSinceMutation > maxAgeMsec) {
-      return {
-        isValid: false,
-        reason: `Version too old: ${timeSinceMutation}ms > ${maxAgeMsec}ms`,
-        timeSinceMutation
-      };
-    }
-
-    return { isValid: true, timeSinceMutation };
   }
 
   /**
@@ -128,21 +85,12 @@ class QueueStateVersion {
   }
 
   /**
-     * Gets log of recent mutations for debugging
-     * @returns {array}
-     */
-  getMutationLog() {
-    return [...this.mutationLog];
-  }
-
-  /**
      * Resets versioning state (used when bot leaves guild)
      */
   reset() {
     this.version = 0;
     this.lastMutationTime = Date.now();
     this.lastMutationType = 'reset';
-    this.mutationLog = [];
     this.locks.clear();
   }
 }
@@ -176,22 +124,6 @@ class StateVersionManager {
     }
   }
 
-  /**
-     * Gets versioning info for all guilds (for debugging)
-     * @returns {object}
-     */
-  getDebugInfo() {
-    const info = {};
-    for (const [guildId, version] of this.versions) {
-      info[guildId] = {
-        version: version.getVersion(),
-        lastMutation: version.lastMutationType,
-        activeLocks: version.locks.size,
-        timeSinceLastMutation: Date.now() - version.lastMutationTime
-      };
-    }
-    return info;
-  }
 }
 
 export {

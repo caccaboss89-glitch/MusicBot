@@ -12,6 +12,8 @@ import { saveQueueState } from '../queue/persistence.js';
 import { safeReply } from '../utils/discord.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
 import * as audio from '../audio/index.js';
+import { recordPlaylistAdd } from '../database/stats.js';
+import { SONG_NOT_FOUND, PLAYLIST_EMPTY, PLAYLIST_NOT_FOUND, defaultPlaylistNotDeletable, defaultPlaylistNotRenamable } from '../ui/messages.js';
 
 // In-memory map for active search queries (for result pagination)
 const activeSearches = new Map();
@@ -47,7 +49,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       items = getUserPlaylist(loadDatabase(), interaction.user.id, plName);
     }
 
-    if (songIndex < 0 || songIndex >= items.length) return await safeReply(interaction, { content: '❌ Canzone non trovata', flags: MessageFlags.Ephemeral }), true;
+    if (songIndex < 0 || songIndex >= items.length) return await safeReply(interaction, { content: SONG_NOT_FOUND, flags: MessageFlags.Ephemeral }), true;
 
     const song = items[songIndex];
     const embed = new EmbedBuilder().setColor(0xFFAA00).setTitle('⚡ Azioni Playlist').setDescription(`**${sanitizeTitle(song.title)}**`);
@@ -94,7 +96,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       const plName = parts.slice(3).join('_');
       items = getUserPlaylist(db, interaction.user.id, plName);
     }
-    if (!items || items.length === 0) return await safeReply(interaction, { content: '❌ Playlist vuota', flags: MessageFlags.Ephemeral }), true;
+    if (!items || items.length === 0) return await safeReply(interaction, { content: PLAYLIST_EMPTY, flags: MessageFlags.Ephemeral }), true;
 
     const toAdd = items.map(s => ({ ...s, requester: interaction.user.id }));
     for (let i = toAdd.length - 1; i > 0; i--) {
@@ -109,7 +111,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       if (connected) await audio.playSong(interaction.guild.id, interaction);
     } else {
       if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
-      if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+      if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
     }
     await safeReply(interaction, { content: `✅ Aggiunte ${toAdd.length} canzoni dalla playlist.`, flags: MessageFlags.Ephemeral });
     return true;
@@ -196,7 +198,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         if (serverQueue.nextDeckLoaded === null || !areSameSong(serverQueue.nextDeckLoaded, playObj.url)) {
           await audio.updatePreloadAfterQueueChange(guildId);
         }
-        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
       }
       await safeReply(interaction, { content: `🚀 Avviata: **${song.title}**`, flags: MessageFlags.Ephemeral });
       return true;
@@ -276,13 +278,13 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
   if (customId && customId.startsWith('plist_delete_likes_')) {
     const plName = customId.replace('plist_delete_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
-      await safeReply(interaction, { content: `❌ La playlist "${DEFAULT_PLAYLIST_NAME}" non può essere eliminata.`, flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: defaultPlaylistNotDeletable(DEFAULT_PLAYLIST_NAME), flags: MessageFlags.Ephemeral });
       return true;
     }
     const db = loadDatabase();
     const userData = getUserData(db, interaction.user.id);
     if (!userData.playlists[plName]) {
-      await safeReply(interaction, { content: '❌ Playlist non trovata.', flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: PLAYLIST_NOT_FOUND, flags: MessageFlags.Ephemeral });
       return true;
     }
     const songCount = userData.playlists[plName].length;
@@ -307,13 +309,13 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
   if (customId && customId.startsWith('plist_delete_confirm_likes_')) {
     const plName = customId.replace('plist_delete_confirm_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
-      await safeReply(interaction, { content: `❌ La playlist "${DEFAULT_PLAYLIST_NAME}" non può essere eliminata.`, flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: defaultPlaylistNotDeletable(DEFAULT_PLAYLIST_NAME), flags: MessageFlags.Ephemeral });
       return true;
     }
     const db = loadDatabase();
     const userData = getUserData(db, interaction.user.id);
     if (!userData.playlists[plName]) {
-      await safeReply(interaction, { content: '❌ Playlist non trovata.', flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: PLAYLIST_NOT_FOUND, flags: MessageFlags.Ephemeral });
       await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
       return true;
     }
@@ -342,7 +344,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
   if (customId && customId.startsWith('plist_rename_likes_')) {
     const plName = customId.replace('plist_rename_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
-      await safeReply(interaction, { content: `❌ La playlist "${DEFAULT_PLAYLIST_NAME}" non può essere rinominata.`, flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: defaultPlaylistNotRenamable(DEFAULT_PLAYLIST_NAME), flags: MessageFlags.Ephemeral });
       return true;
     }
     const modal = new ModalBuilder().setCustomId(`modal_rename_playlist_${plName}`).setTitle('Rinomina Playlist');
@@ -379,7 +381,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     } else {
       if (!db.server) db.server = [];
       db.server.push({ ...song, addedBy: interaction.user.id });
-      try { (await import('../database/stats.js')).default.recordPlaylistAdd(interaction.user.id, 'server'); } catch { }
+      recordPlaylistAdd(interaction.user.id, 'server');
     }
     saveDatabase(db);
     if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
@@ -402,7 +404,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     } else {
       playlist.push({ ...song });
       await safeReply(interaction, { content: `✅ Aggiunta a: **${activePlName}**!`, flags: MessageFlags.Ephemeral });
-      try { (await import('../database/stats.js')).default.recordPlaylistAdd(interaction.user.id, 'personal'); } catch { }
+      recordPlaylistAdd(interaction.user.id, 'personal');
     }
     saveDatabase(db);
     return true;

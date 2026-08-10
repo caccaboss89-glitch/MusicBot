@@ -1,7 +1,7 @@
 {
   "name": "discord-music-bot",
   "version": "2.1.5",
-  "description": "Bot musicale ibrido Node/Rust",
+  "description": "Hybrid Node/Rust music bot for Discord",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -16,10 +16,10 @@
     "dotenv": "^16.4.5",
     "libsodium-wrappers": "^0.7.16",
     "opusscript": "^0.0.8",
-    "socks-proxy-agent": "^8.0.5",
     "tslib": "^2.6.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "eslint": "^10.8.1",
     "globals": "^17.9.0"
   },

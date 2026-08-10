@@ -1,62 +1,148 @@
 import 'dotenv/config';
-import { Client, GatewayIntentBits } from 'discord.js';
 import fs from 'fs';
 import path from 'path';
+import { Client, GatewayIntentBits } from 'discord.js';
+
+import { ROOT_DIR, DATA_DIR } from './config/index.js';
+import { queue, disconnectTimers, clearGuildCooldowns } from './src/state/globals.js';
+import { stateVersionManager } from './src/state/StateVersion.js';
+import { commandQueue, audioOperationBarrier } from './src/audio/SerialQueue.js';
+import { clearAllTimers } from './src/audio/PlaybackEngine.js';
+import { cleanupSkipState } from './src/audio/SkipManager.js';
+import { clearStreamErrors } from './src/audio/rust-events.js';
+import { cleanupRecoveryState } from './src/audio/recovery.js';
+import { playSong, updatePreloadAfterQueueChange } from './src/audio/index.js';
+import { resetMessageCleanupState } from './src/utils/cleanup.js';
+import { flushPendingSaves, saveQueueStateImmediate, cleanupGuild } from './src/queue/persistence.js';
+import { flushAllGuildsAndSave } from './src/database/stats.js';
+import { flushDatabaseSync } from './src/database/playlists.js';
+import { ensureBotConnection, connectToVoice } from './src/bootstrap/connection.js';
+import registerInteractionHandlers from './src/handlers/interaction.js';
+import registerVoiceStateHandler from './src/handlers/voiceState.js';
+import { pushStats } from './scripts/push-stats.js';
+
+// All paths resolve from the project root so the bot behaves the same no matter
+// which working directory it was launched from.
+const LOGS_DIR = path.join(ROOT_DIR, 'logs');
+const PUSH_STATE_FILE = path.join(DATA_DIR, 'pushState.json');
+
+const STATS_PUSH_CHECK_INTERVAL_MS = 60 * 1000;
+const STATS_PUSH_HOUR = 10; // Rome time, on the 1st of the month
+
+fs.mkdirSync(LOGS_DIR, { recursive: true });
 
 // ─── GLOBAL ERROR HANDLERS ────────────────────────────────────
-const logsDir = './logs';
-if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+
+/**
+ * Appends a fatal event to its log file. Never throws.
+ * @param {string} fileName
+ * @param {string} label
+ * @param {unknown} error
+ */
+function logFatal(fileName, label, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : 'N/A';
+  console.error(`🚨 [${label}] ${message}`);
+  console.error('Stack:', stack);
+  try {
+    fs.appendFileSync(path.join(LOGS_DIR, fileName), `[${new Date().toISOString()}] ${label}: ${message}\n${stack}\n\n`);
+  } catch { /* logging must never mask the original failure */ }
+}
+
+/**
+ * Writes everything still held in memory to disk.
+ * Shared by the shutdown signals and the uncaught-exception handler.
+ */
+function persistEverything() {
+  try {
+    flushPendingSaves();
+    queue.forEach((sq, guildId) => {
+      try { saveQueueStateImmediate(guildId, sq); } catch { /* keep saving the other guilds */ }
+    });
+  } catch (e) { console.error('❌ [SHUTDOWN] Queue save failed:', e.message); }
+  try { flushAllGuildsAndSave(); } catch (e) { console.error('❌ [SHUTDOWN] Stats flush failed:', e.message); }
+  try { flushDatabaseSync(); } catch (e) { console.error('❌ [SHUTDOWN] Playlist flush failed:', e.message); }
+}
 
 process.on('unhandledRejection', (reason) => {
-  console.error('🚨 [UNHANDLED-REJECTION] Promise rejected without handler:');
-  console.error('Reason:', reason instanceof Error ? reason.message : String(reason));
-  console.error('Stack:', reason instanceof Error ? reason.stack : 'N/A');
-  try {
-    const logEntry = `[${new Date().toISOString()}] UNHANDLED-REJECTION: ${reason instanceof Error ? reason.message : String(reason)}\n${reason instanceof Error ? reason.stack : 'N/A'}\n\n`;
-    fs.appendFileSync(path.join(logsDir, 'unhandled-rejections.log'), logEntry);
-  } catch { /* ignore */ }
+  logFatal('unhandled-rejections.log', 'UNHANDLED-REJECTION', reason);
 });
 
-process.on('uncaughtException', async (error) => {
-  console.error('🚨 [UNCAUGHT-EXCEPTION] Uncaught exception:');
-  console.error('Error:', error.message || String(error));
-  console.error('Stack:', error.stack || 'N/A');
-
-  // Save state before terminating
-  try {
-    const globalsModule = await import('./src/state/globals.js');
-    const persistenceModule = await import('./src/queue/persistence.js');
-    persistenceModule.flushPendingSaves();
-    globalsModule.queue.forEach((sq, guildId) => {
-      try { persistenceModule.saveQueueStateImmediate(guildId, sq); } catch { /* ignore */ }
-    });
-  } catch { /* ignore */ }
-
-  // Flush important data
-  try {
-    const statsModule = await import('./src/database/stats.js');
-    statsModule.flushAllGuildsAndSave();
-  } catch { /* ignore */ }
-  try {
-    const playlistsModule = await import('./src/database/playlists.js');
-    playlistsModule.flushDatabaseSync();
-  } catch { /* ignore */ }
-
-  try {
-    const logEntry = `[${new Date().toISOString()}] UNCAUGHT-EXCEPTION: ${error.message}\n${error.stack}\n\n`;
-    fs.appendFileSync(path.join(logsDir, 'uncaught-exceptions.log'), logEntry);
-  } catch { /* ignore */ }
-
+process.on('uncaughtException', (error) => {
+  logFatal('uncaught-exceptions.log', 'UNCAUGHT-EXCEPTION', error);
+  persistEverything();
   process.exit(1);
 });
 
-// ─── AUTO-PUSH STATS STATE MANAGEMENT ─────────────────────────────────────
-const PUSH_STATE_FILE = path.join('./data', 'pushState.json');
+// ─── CLIENT ───────────────────────────────────────────────────
+
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages]
+});
+
+registerInteractionHandlers(client, {
+  ensureBotConnection,
+  connectToVoice,
+  playSong,
+  updatePreloadAfterQueueChange,
+  client
+});
+
+// Voice state handler: manages disconnection timers and listening statistics
+registerVoiceStateHandler(client);
+
+// ─── CLEANUP WHEN THE BOT LEAVES A GUILD ──────────────────────
+
+client.on('guildDelete', (guild) => {
+  const guildId = guild.id;
+  console.log(`🚀 [CLEANUP] Bot left guild ${guildId} - cleaning up state`);
+
+  const sq = queue.get(guildId);
+
+  // Stop everything that could still touch this guild
+  if (sq) {
+    if (sq.dashboardState?.timer) {
+      clearTimeout(sq.dashboardState.timer);
+      sq.dashboardState.timer = null;
+    }
+    if (sq.pendingTransition?._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
+    try { sq.player?.stop(true); } catch { /* player may be detached */ }
+    if (sq.mixer) {
+      sq.intentionalKill = true;
+      try { sq.mixer.kill(); } catch { /* already dead */ }
+      sq.mixer = null;
+    }
+    try { sq.connection?.destroy(); } catch { /* already destroyed */ }
+    try {
+      if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; }
+    } catch { /* stream already torn down */ }
+  }
+
+  if (disconnectTimers.has(guildId)) {
+    clearTimeout(disconnectTimers.get(guildId));
+    disconnectTimers.delete(guildId);
+  }
+
+  clearAllTimers(guildId);
+  stateVersionManager.cleanup(guildId);
+  commandQueue.cleanup(guildId);
+  audioOperationBarrier.cleanup(guildId);
+  cleanupGuild(guildId);
+  cleanupRecoveryState(guildId);
+  clearStreamErrors(guildId);
+  cleanupSkipState(guildId);
+  resetMessageCleanupState(guildId);
+  clearGuildCooldowns(guildId);
+  queue.delete(guildId);
+
+  console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
+});
+
+// ─── AUTO-PUSH STATS ──────────────────────────────────────────
+// Checks every minute whether the monthly stats push is due (1st of the month,
+// from 10:00 Rome time onwards), so a bot started late still performs it.
 
 function loadPushState() {
-  if (!fs.existsSync(PUSH_STATE_FILE)) {
-    return { lastPushDate: null };
-  }
   try {
     return JSON.parse(fs.readFileSync(PUSH_STATE_FILE, 'utf-8'));
   } catch {
@@ -65,197 +151,76 @@ function loadPushState() {
 }
 
 function savePushState(state) {
-  const dir = path.dirname(PUSH_STATE_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(PUSH_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(PUSH_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('❌ [STATS-PUSH] Unable to save the push state:', e.message);
+  }
 }
 
-// Initialize client, handlers and login
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages] });
+/**
+ * Current date in Rome, independent of the host timezone.
+ * @returns {{year: number, month: number, day: number, hour: number}}
+ */
+function getRomeNow() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hour12: false
+  }).formatToParts(new Date());
 
-const token = process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
+  return Object.fromEntries(
+    parts.filter(p => p.type !== 'literal').map(p => [p.type, parseInt(p.value, 10)])
+  );
+}
 
-const connectionHelpers = await import('./src/bootstrap/connection.js');
-const audio = await import('./src/audio/index.js');
-
-const interactionHandler = await import('./src/handlers/interaction.js');
-interactionHandler.default(client, {
-  ensureBotConnection: connectionHelpers.ensureBotConnection,
-  connectToVoice: connectionHelpers.connectToVoice,
-  playSong: audio.playSong,
-  updatePreloadAfterQueueChange: audio.updatePreloadAfterQueueChange,
-  preloadNextSongs: audio.preloadNextSongs,
-  client
-});
-
-// Voice state handler: manages disconnection timers and reactions
-const voiceStateHandler = await import('./src/handlers/voiceState.js');
-voiceStateHandler.default(client);
-
-// ─── CLEANUP HANDLER ───────────────────────────────────────
-// Cleans versioning state, command queue, audio barrier, and timers when bot leaves a guild
-const StateVersionModule = await import('./src/state/StateVersion.js');
-const CommandQueueModule = await import('./src/audio/CommandQueue.js');
-const AudioOperationBarrierModule = await import('./src/handlers/AudioOperationBarrier.js');
-const PlaybackEngineModule = await import('./src/audio/PlaybackEngine.js');
-const SkipManagerModule = await import('./src/audio/SkipManager.js');
-
-const { stateVersionManager } = StateVersionModule;
-const { commandQueue } = CommandQueueModule;
-const { audioOperationBarrier } = AudioOperationBarrierModule;
-const PlaybackEngine = PlaybackEngineModule.default;
-const SkipManager = SkipManagerModule.default;
-
-client.on('guildDelete', async (guild) => {
-  const guildId = guild.id;
+async function tryPushStats() {
   try {
-    console.log(`🚀 [CLEANUP] Bot left guild ${guildId} - cleaning up state`);
+    const { year, month, day, hour } = getRomeNow();
+    if (day !== 1 || hour < STATS_PUSH_HOUR) return;
 
-    // Clean PlaybackEngine timers (preload, etc)
-    PlaybackEngine.clearAllTimers(guildId);
+    // Guards against pushing twice on the same day
+    const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const pushState = loadPushState();
+    if (pushState.lastPushDate === dateKey) return;
 
-    // Clean state versioning
-    stateVersionManager.cleanup(guildId);
-
-    // Clean command queue
-    commandQueue.cleanup(guildId);
-
-    // Clean audio operation barrier
-    audioOperationBarrier.cleanup(guildId);
-
-    // Clean persistence timers
-    const persistenceModule = await import('./src/queue/persistence.js');
-    persistenceModule.cleanupGuild(guildId);
-
-    // Clean playback state (lastMixerCrashTime)
-    const playbackModule = await import('./src/audio/playback.js');
-    playbackModule.cleanupPlaybackState(guildId);
-
-    // Clean stream error tracking
-    const audioIndexModule = await import('./src/audio/index.js');
-    audioIndexModule.clearStreamErrors(guildId);
-
-    // Clean skip throttle state
-    SkipManager.cleanupSkipState(guildId);
-
-    // Clean cleanup debounce (play.js)
-    const playCommandModule = await import('./src/commands/play.js');
-    playCommandModule.cleanupLastCleanupTime(guildId);
-
-    // Clean dashboard timer, disconnect timer, cooldowns and remove from queue
-    const globalsModule = await import('./src/state/globals.js');
-    const globals = globalsModule;
-    const sq = globals.queue.get(guildId);
-    if (sq && sq.dashboardState && sq.dashboardState.timer) {
-      clearTimeout(sq.dashboardState.timer);
-      sq.dashboardState.timer = null;
-    }
-    if (globals.disconnectTimers.has(guildId)) {
-      clearTimeout(globals.disconnectTimers.get(guildId));
-      globals.disconnectTimers.delete(guildId);
-    }
-    globals.interactionCooldowns.delete(guildId);
-
-    // Stop player, mixer, voice connection and low-latency stream
-    if (sq) {
-      try { if (sq.player) sq.player.stop(true); } catch { }
-      sq.intentionalKill = true;
-      try { if (sq.mixer) { sq.mixer.kill(); sq.mixer = null; } } catch { }
-      try { if (sq.connection) sq.connection.destroy(); } catch { }
-      try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { }
-    }
-
-    globals.queue.delete(guildId);
-
-    console.log(`✅ [CLEANUP] Guild ${guildId} cleaned up`);
-  } catch (e) {
-    console.error(`❌ [CLEANUP] Error cleaning up guild ${guildId}:`, e);
-  }
-});
-
-client.once('clientReady', async () => {
-  console.log(`Logged in as ${client.user?.tag}`);
-
-  // ── AUTO-PUSH STATS (Daily check to ensure push on the 1st of the month) ────────────────────────────────────────────
-  // Check every minute if it should push stats (1st of the month from 10:00 onwards)
-  const { pushStats } = await import('./scripts/push-stats.js');
-  const { flushAllGuildsAndSave } = await import('./src/database/stats.js');
-
-  const tryPushStats = async () => {
+    // Flush in-memory data first, otherwise the push misses active listeners
     try {
-      const now = new Date();
-      // Rome time: extract components via Intl.DateTimeFormat (robust, doesn't depend on local format)
-      const romaFmt = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Europe/Rome',
-        year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hour12: false
-      });
-      const romaParts = Object.fromEntries(
-        romaFmt.formatToParts(now).filter(p => p.type !== 'literal').map(p => [p.type, parseInt(p.value)])
-      );
-      const day = romaParts.day;
-      const hour = romaParts.hour;
-      const month = romaParts.month;
-      const year = romaParts.year;
-      const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // To avoid multiple pushes on the same day
-
-      const pushState = loadPushState();
-
-      // Check if it's the 1st of the month and hour is >= 10:00 and hasn't already pushed today
-      if (day === 1 && hour >= 10 && pushState.lastPushDate !== dateKey) {
-        // Flush any in-memory data to disk before push (otherwise it won't include active listeners)
-        try {
-          flushAllGuildsAndSave();
-          const playlistsModule = await import('./src/database/playlists.js');
-          playlistsModule.flushDatabaseSync();
-        } catch (e) {
-          console.warn('⚠️ [STATS-PUSH] Flush before push failed:', e.message);
-        }
-
-        console.log('📤 [STATS-PUSH] Pushing monthly stats at', `${String(romaParts.hour).padStart(2, '0')}:00`);
-        const success = await pushStats(true);
-        if (success) {
-          pushState.lastPushDate = dateKey; // Mark that push was done
-          savePushState(pushState); // Save to disk
-          console.log('✅ [STATS-PUSH] Stats pushed successfully to GitHub');
-        } else {
-          console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
-        }
-      }
+      flushAllGuildsAndSave();
+      flushDatabaseSync();
     } catch (e) {
-      console.error('❌ [STATS-PUSH] Error during interval check:', e.message);
+      console.warn('⚠️ [STATS-PUSH] Flush before push failed:', e.message);
     }
-  };
 
-  // Run first check immediately (useful if bot started mid-morning)
+    console.log(`📤 [STATS-PUSH] Pushing monthly stats at ${String(hour).padStart(2, '0')}:00`);
+    if (await pushStats(true)) {
+      pushState.lastPushDate = dateKey;
+      savePushState(pushState);
+      console.log('✅ [STATS-PUSH] Stats pushed successfully to GitHub');
+    } else {
+      console.warn('⚠️ [STATS-PUSH] Stats push failed, will retry next check');
+    }
+  } catch (e) {
+    console.error('❌ [STATS-PUSH] Error during interval check:', e.message);
+  }
+}
+
+client.once('clientReady', () => {
+  console.log(`Logged in as ${client.user?.tag}`);
   tryPushStats();
-  setInterval(tryPushStats, 60 * 1000); // Check every minute
+  setInterval(tryPushStats, STATS_PUSH_CHECK_INTERVAL_MS);
 });
 
-// ─── GRACEFUL SHUTDOWN ───────────────────────────────────────────
-// Flush statistics and save queue state at program shutdown
-async function gracefulShutdown(signal) {
+// ─── GRACEFUL SHUTDOWN ────────────────────────────────────────
+
+function gracefulShutdown(signal) {
   console.log(`\n🚫 [SHUTDOWN] Received ${signal}, saving in progress...`);
-  try {
-    const globalsModule = await import('./src/state/globals.js');
-    const persistenceModule = await import('./src/queue/persistence.js');
-    const q = globalsModule.queue;
-    persistenceModule.flushPendingSaves();
-    q.forEach((sq, gId) => {
-      try { persistenceModule.saveQueueStateImmediate(gId, sq); } catch { /* ignore */ }
-    });
-  } catch { /* ignore */ }
-  try {
-    const statsModule = await import('./src/database/stats.js');
-    statsModule.flushAllGuildsAndSave();
-  } catch { /* ignore */ }
-  try {
-    const playlistsModule = await import('./src/database/playlists.js');
-    playlistsModule.flushDatabaseSync();
-  } catch { /* ignore */ }
+  persistEverything();
   console.log('✅ [SHUTDOWN] Saving completed.');
   process.exit(0);
 }
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-client.login(token).catch(e => console.error('Login error:', e));
+client.login(process.env.DISCORD_TOKEN || process.env.BOT_TOKEN)
+  .catch(e => console.error('Login error:', e));

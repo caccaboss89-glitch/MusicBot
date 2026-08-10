@@ -10,10 +10,12 @@ import { saveQueueState } from './persistence.js';
 import { disconnectTimers } from '../state/globals.js';
 import { stateVersionManager } from '../state/StateVersion.js';
 import { DISCONNECT_TIMEOUT_MS } from '../../config/index.js';
-// Lazy imports to avoid circular dependencies
-let audioModule, statsModule, playCommandModule, playbackModule, skipManagerModule;
-
-// Funzioni utility per la gestione della coda
+import { resetMessageCleanupState } from '../utils/cleanup.js';
+import { flushGuildAndSave } from '../database/stats.js';
+import { updatePreloadAfterQueueChange } from '../audio/PlaybackEngine.js';
+import { clearStreamErrors } from '../audio/rust-events.js';
+import { cleanupRecoveryState } from '../audio/recovery.js';
+import { cleanupSkipState } from '../audio/SkipManager.js';
 
 /**
  * Check if the bot is alone in the voice channel
@@ -50,12 +52,7 @@ function clearFinishedQueue(serverQueue) {
 }
 
 /**
- * Get current song via playIndex
- * @param {object} serverQueue - Server queue
- * @returns {object|null}
- */
-/**
- * Get the current song.
+ * Index of the song actually playing.
  *
  * SOURCE OF TRUTH: if the mixer is active and the current deck has a valid binding,
  * the "real" index of the playing song is the one bound to the active deck,
@@ -65,7 +62,7 @@ function clearFinishedQueue(serverQueue) {
  * to before. This guarantees that the embed will ALWAYS show what's playing on the mixer.
  *
  * @param {object} serverQueue - Server queue
- * @returns {object|null}
+ * @returns {number}
  */
 function getPlayingIndex(serverQueue) {
   if (!serverQueue) return 0;
@@ -76,6 +73,11 @@ function getPlayingIndex(serverQueue) {
   return serverQueue.playIndex || 0;
 }
 
+/**
+ * Get the song currently playing (or the one playIndex points at).
+ * @param {object} serverQueue - Server queue
+ * @returns {object|null}
+ */
 function getCurrentSong(serverQueue) {
   if (!serverQueue || !serverQueue.songs || serverQueue.songs.length === 0) return null;
   const index = getPlayingIndex(serverQueue);
@@ -215,10 +217,7 @@ function insertSongAtIndex(serverQueue, song, index) {
       saveQueueState(guildId, serverQueue);
 
       // Increment version
-      stateVersion.incrementVersion('queue_insert', {
-        index,
-        songTitle: sanitizeTitle(song.title)
-      });
+      stateVersion.incrementVersion('queue_insert');
 
       return { success: true };
 
@@ -228,9 +227,7 @@ function insertSongAtIndex(serverQueue, song, index) {
       serverQueue.songs = previousSongs;
       serverQueue.playIndex = previousPlayIndex;
 
-      stateVersion.incrementVersion('queue_insert_rollback', {
-        error: e.message
-      });
+      stateVersion.incrementVersion('queue_insert_rollback');
 
       return { success: false, error: `Failed to insert song: ${e.message}` };
     }
@@ -300,16 +297,10 @@ async function removeSongAtIndex(serverQueue, index) {
         saveQueueState(guildId, serverQueue);
 
         // Increment version
-        stateVersion.incrementVersion('queue_remove', {
-          index,
-          songTitle: sanitizeTitle(removed.title)
-        });
+        stateVersion.incrementVersion('queue_remove');
 
-        // Notify preload update
-        try {
-          if (!audioModule) audioModule = await import('../audio/index.js');
-          audioModule.updatePreloadAfterQueueChange(guildId);
-        } catch { }
+        // The preloaded deck may now hold the wrong song
+        await updatePreloadAfterQueueChange(guildId);
 
         return { success: true, removed };
       }
@@ -324,9 +315,7 @@ async function removeSongAtIndex(serverQueue, index) {
       serverQueue.nextDeckLoaded = previousNextDeckLoaded;
       serverQueue.nextDeckTarget = previousNextDeckTarget;
 
-      stateVersion.incrementVersion('queue_remove_rollback', {
-        error: e.message
-      });
+      stateVersion.incrementVersion('queue_remove_rollback');
 
       return { success: false, error: `Failed to remove song: ${e.message}` };
     }
@@ -377,38 +366,25 @@ async function performDisconnectCleanup(serverQueue) {
     }
 
     // ── STATS: stop listening timers and save to disk ──
-    try {
-      if (!statsModule) statsModule = await import('../database/stats.js');
-      statsModule.flushGuildAndSave(serverQueue.guildId);
-    } catch { }
+    flushGuildAndSave(serverQueue.guildId);
 
     // Stop the player
-    try { if (serverQueue.player) serverQueue.player.stop(true); } catch { }
+    try { if (serverQueue.player) serverQueue.player.stop(true); } catch { /* player may be detached */ }
     // Kill mixer if present
-    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch { }
+    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch { /* already dead */ }
     // Destroy voice connection
-    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch { }
+    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch { /* already destroyed */ }
 
     // Cleanup low-latency stream to avoid pipe/fd leak
-    try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch { }
+    try {
+      if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; }
+    } catch { /* stream already torn down */ }
 
     // Cleanup per-guild audio state
-    try {
-      if (!audioModule) audioModule = await import('../audio/index.js');
-      audioModule.clearStreamErrors(serverQueue.guildId);
-    } catch { }
-    try {
-      if (!playbackModule) playbackModule = await import('../audio/playback.js');
-      playbackModule.cleanupPlaybackState(serverQueue.guildId);
-    } catch { }
-    try {
-      if (!skipManagerModule) skipManagerModule = await import('../audio/SkipManager.js');
-      skipManagerModule.default.cleanupSkipState(serverQueue.guildId);
-    } catch { }
-    try {
-      if (!playCommandModule) playCommandModule = await import('../commands/play.js');
-      playCommandModule.cleanupLastCleanupTime(serverQueue.guildId);
-    } catch { }
+    clearStreamErrors(serverQueue.guildId);
+    cleanupRecoveryState(serverQueue.guildId);
+    cleanupSkipState(serverQueue.guildId);
+    resetMessageCleanupState(serverQueue.guildId);
 
     // Reset some queue state fields
     serverQueue.connection = null;
@@ -420,13 +396,13 @@ async function performDisconnectCleanup(serverQueue) {
     clearDeckBindings(serverQueue);
 
     // Save state to disk
-    try { saveQueueState(serverQueue.guildId, serverQueue); } catch { }
+    saveQueueState(serverQueue.guildId, serverQueue);
 
-    // Make sure to remove references to mixer and player to avoid duplicates after restart
-    try { serverQueue.mixer = null; } catch { }
-    try { serverQueue.player = null; } catch { }
+    // Drop mixer and player references so a restart does not reuse dead objects
+    serverQueue.mixer = null;
+    serverQueue.player = null;
     // Clear any scheduled timer
-    try { disconnectTimers.delete(serverQueue.guildId); } catch { }
+    disconnectTimers.delete(serverQueue.guildId);
 
   } catch (e) {
     console.error('❌ [CLEANUP] Error during disconnect cleanup:', e);
@@ -449,7 +425,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
   if (timeoutMs === 0) {
     // If there's already a scheduled timer, cancel it.
     if (disconnectTimers.has(gid)) {
-      try { clearTimeout(disconnectTimers.get(gid)); } catch { }
+      try { clearTimeout(disconnectTimers.get(gid)); } catch { /* timer already fired */ }
       disconnectTimers.delete(gid);
     }
     performDisconnectCleanup(serverQueue);
@@ -492,7 +468,7 @@ function cancelScheduledDisconnect(serverQueue) {
   if (!disconnectTimers.has(gid)) return false;
   try {
     clearTimeout(disconnectTimers.get(gid));
-  } catch { }
+  } catch { /* the queue may have been removed meanwhile */ }
   disconnectTimers.delete(gid);
   console.log(`⏱️ [CANCEL] Disconnect timer cancelled for guild ${gid}`);
   return true;

@@ -1,6 +1,6 @@
 /**
  * src/ui/index.js
- * Barrel module per le funzioni UI
+ * Barrel module for UI functions
  */
 
 import { createCurrentSongEmbed, createFinishedEmbed, createPlaybackErrorEmbed } from './embeds.js';

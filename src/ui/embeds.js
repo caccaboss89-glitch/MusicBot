@@ -6,6 +6,11 @@
 import { EmbedBuilder } from 'discord.js';
 import { displayTitle } from '../utils/sanitize.js';
 import { getCurrentSong } from '../queue/QueueManager.js';
+import {
+  NO_SONGS, ADD_SONGS_TO_START, NOW_PLAYING, REQUESTED_BY,
+  QUEUE_FINISHED, QUEUE_FINISHED_HINT, LAST_PLAYED, ADD_SONGS_TO_RESTART,
+  UNKNOWN_SONG, PLAYBACK_ERROR_TITLE, PLAYBACK_ERROR_WILL_SKIP, PLAYBACK_ERROR_GAVE_UP
+} from './messages.js';
 
 /**
  * Creates the current song embed
@@ -26,8 +31,8 @@ function createCurrentSongEmbed(serverQueue) {
   if (!song || !song.url) {
     return new EmbedBuilder()
       .setColor(0x555555)
-      .setTitle('🚫 Nessuna canzone')
-      .setDescription('Aggiungi una canzone per iniziare!');
+      .setTitle(NO_SONGS)
+      .setDescription(ADD_SONGS_TO_START);
   }
 
   const embed = new EmbedBuilder()
@@ -36,11 +41,11 @@ function createCurrentSongEmbed(serverQueue) {
   // Discord does NOT interpret markdown in embed titles, so the title is
   // shown RAW (even with ** or other symbols) without breaking and without visible backslashes,
   // and is clickable thanks to setURL().
-    .setAuthor({ name: '🎶 Now Playing' })
+    .setAuthor({ name: NOW_PLAYING })
     .setTitle(displayTitle(song.title))
     .setURL(song.url)
     .setThumbnail(song.thumbnail)
-    .addFields({ name: 'Requested by', value: `<@${song.requester}>`, inline: true });
+    .addFields({ name: REQUESTED_BY, value: `<@${song.requester}>`, inline: true });
 
   // Loading footer (set by SkipManager during loading)
   if (serverQueue && serverQueue.loadingFooter) {
@@ -58,15 +63,15 @@ function createCurrentSongEmbed(serverQueue) {
 function createFinishedEmbed(lastSong) {
   const embed = new EmbedBuilder()
     .setColor(0x555555)
-    .setAuthor({ name: '🚫 Queue Finished' })
+    .setAuthor({ name: QUEUE_FINISHED })
     .setThumbnail(lastSong ? lastSong.thumbnail : null)
-    .setFooter({ text: 'Press 🔁 to replay the last song' });
+    .setFooter({ text: QUEUE_FINISHED_HINT });
 
   if (lastSong) {
     // Raw and clickable title (see note in createCurrentSongEmbed): no masked link.
-    embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Last played:');
+    embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription(LAST_PLAYED);
   } else {
-    embed.setTitle('No song').setDescription('Add songs to restart!');
+    embed.setTitle(NO_SONGS).setDescription(ADD_SONGS_TO_RESTART);
   }
 
   return embed;
@@ -81,17 +86,15 @@ function createFinishedEmbed(lastSong) {
 function createPlaybackErrorEmbed(song, willSkip = true) {
   const embed = new EmbedBuilder()
     .setColor(0xE74C3C)
-    .setAuthor({ name: '⚠️ Playback Error' })
-    .setDescription(willSkip
-      ? 'No audio could be received for this song. Skipping to the next one.'
-      : 'No audio could be received. Too many failures in a row, playback stopped.')
+    .setAuthor({ name: PLAYBACK_ERROR_TITLE })
+    .setDescription(willSkip ? PLAYBACK_ERROR_WILL_SKIP : PLAYBACK_ERROR_GAVE_UP)
     .setThumbnail(song ? song.thumbnail : null);
 
   if (song) {
     // Raw and clickable title (see note in createCurrentSongEmbed): no masked link.
     embed.setTitle(displayTitle(song.title)).setURL(song.url);
   } else {
-    embed.setTitle('Unknown song');
+    embed.setTitle(UNKNOWN_SONG);
   }
 
   return embed;

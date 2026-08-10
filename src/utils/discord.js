@@ -15,7 +15,7 @@ async function safeReply(interaction, data) {
     } else {
       await interaction.reply(data);
     }
-  } catch (e) {
+  } catch {
     // Ignore errors from expired or already-handled interaction
   }
 }
@@ -23,3 +23,4 @@ async function safeReply(interaction, data) {
 export {
   safeReply
 };
+

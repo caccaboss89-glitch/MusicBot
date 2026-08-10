@@ -1,18 +1,43 @@
 import { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
 import { interactionCooldowns } from '../state/globals.js';
-import { audioOperationBarrier } from './AudioOperationBarrier.js';
+import { audioOperationBarrier } from '../audio/SerialQueue.js';
 import * as audio from '../audio/index.js';
 import { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong } from '../queue/QueueManager.js';
 import { createDashboardComponents } from '../ui/index.js';
 import { sanitizeTitle, areSameSong, safeParseInt, getYoutubeId } from '../utils/sanitize.js';
 import { getVideoInfo } from '../utils/youtube.js';
+import { getLyrics, chunkLyrics } from '../utils/lyrics.js';
 import { loadDatabase } from '../database/playlists.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { safeReply } from '../utils/discord.js';
 import { MAX_QUEUE_SIZE } from '../../config/index.js';
-import * as SkipManager from '../audio/SkipManager.js';
 import { handlePlaylist } from './playlistHandlers.js';
 import handleModal from './modalHandlers.js';
+import * as msg from '../ui/messages.js';
+
+// Discord rejects messages longer than this
+const MESSAGE_MAX_LENGTH = 2000;
+// Minimum gap between two component interactions from the same user
+const INTERACTION_COOLDOWN_MS = 200;
+// Shared settings for every operation routed through the audio barrier
+const AUDIO_OP_OPTIONS = { timeout: 10000, minThrottle: 2000 };
+
+/**
+ * Refreshes the buttons of the dashboard message, preferring an interaction
+ * update (instant, no extra API call) and falling back to editing the message.
+ * @param {import('discord.js').Interaction} interaction
+ * @param {object} serverQueue
+ */
+async function refreshComponents(interaction, serverQueue) {
+  const components = createDashboardComponents(serverQueue);
+  try {
+    await interaction.update({ components });
+  } catch {
+    if (serverQueue.dashboardMessage) {
+      await serverQueue.dashboardMessage.edit({ components }).catch(() => { });
+    }
+  }
+}
 
 // ─── Button Handlers ────────────────────────────────────────
 
@@ -34,174 +59,195 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
     bindDeckSong(serverQueue, serverQueue.currentDeck, 0, currentSong.url);
   }
   saveQueueState(guildId, serverQueue);
-  try { await audio.updatePreloadAfterQueueChange(guildId); } catch { }
-  if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+  await audio.updatePreloadAfterQueueChange(guildId);
+  if (serverQueue.dashboardMessage) {
+    await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
+  }
 }
 
 async function handlePause(interaction, serverQueue, guildId, deps) {
   const result = await audio.togglePauseResume(guildId, serverQueue, { connectToVoice: deps.connectToVoice });
   if (!result.success) {
     console.error(`❌ [PAUSE-BUTTON] ${result.error}`);
-    await safeReply(interaction, { content: `❌ Error during ${result.action === 'pause' ? 'pause' : 'resume'}.`, flags: MessageFlags.Ephemeral }).catch(() => { });
+    await safeReply(interaction, { content: msg.PAUSE_TOGGLE_FAILED, flags: MessageFlags.Ephemeral });
     return;
   }
   saveQueueState(guildId, serverQueue);
-  try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  await refreshComponents(interaction, serverQueue);
 }
 
 async function handleYtMix(interaction, serverQueue, guildId, deps) {
   serverQueue.isTaskRunning = true;
   let statusMsg = null;
-  try { statusMsg = await interaction.followUp({ content: '✨ **YouTube Mix generation in progress...**', flags: MessageFlags.Ephemeral }); } catch { }
+  try {
+    statusMsg = await interaction.followUp({ content: msg.MIX_GENERATING, flags: MessageFlags.Ephemeral });
+  } catch { /* the interaction may already be gone */ }
+
+  const setStatus = (content) => statusMsg ? statusMsg.edit({ content }).catch(() => { }) : Promise.resolve();
+
   try {
     const db = loadDatabase();
     const currentSong = getCurrentSong(serverQueue);
     const seedSource = db.server.length > 0 ? db.server : (currentSong ? [currentSong] : serverQueue.history);
-    if (!seedSource || seedSource.length === 0) { if (statusMsg) await statusMsg.edit({ content: '❌ At least one saved or playing song is needed to generate a Mix!' }).catch(() => { }); return; }
+    if (!seedSource || seedSource.length === 0) return await setStatus(msg.MIX_NEEDS_SEED);
+
     const randomSong = seedSource[Math.floor(Math.random() * seedSource.length)];
     const videoId = getYoutubeId(randomSong.url);
     if (!videoId) throw new Error('Invalid video ID');
-    const mixUrl = `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`;
-    const songsFound = await getVideoInfo(mixUrl);
-    if (songsFound && songsFound.length > 0) {
-      const currentMixSong = getCurrentSong(serverQueue);
-      if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
-      if (serverQueue.songs.length + (serverQueue.history || []).length + songsFound.length > MAX_QUEUE_SIZE) { if (statusMsg) await statusMsg.edit({ content: '❌ **Limite Coda Raggiunto!**' }).catch(() => { }); return; }
-      clearFinishedQueue(serverQueue);
-      songsFound.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
-      saveQueueState(guildId, serverQueue);
-      if (!serverQueue.currentDeckLoaded) {
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (connected) audio.playSong(interaction.guild.id);
-      } else {
-        if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
-        if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+
+    const songsFound = await getVideoInfo(`https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`);
+    if (!songsFound || songsFound.length === 0) return await setStatus(msg.MIX_NO_RESULTS);
+
+    // The mix starts with the seed song itself: skip it if it is already playing
+    const currentMixSong = getCurrentSong(serverQueue);
+    if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
+
+    if (serverQueue.songs.length + (serverQueue.history || []).length + songsFound.length > MAX_QUEUE_SIZE) {
+      return await setStatus(msg.QUEUE_LIMIT_REACHED);
+    }
+
+    clearFinishedQueue(serverQueue);
+    songsFound.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
+    saveQueueState(guildId, serverQueue);
+
+    if (!serverQueue.currentDeckLoaded) {
+      const connected = await deps.connectToVoice(serverQueue, interaction);
+      if (connected) await audio.playSong(guildId);
+    } else {
+      await audio.updatePreloadAfterQueueChange(guildId);
+      if (serverQueue.dashboardMessage) {
+        await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
       }
-      if (statusMsg) await statusMsg.edit({ content: `✨ Generated YouTube Mix from: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
-    } else { if (statusMsg) await statusMsg.edit({ content: '❌ No songs found in Mix.' }).catch(() => { }); }
+    }
+    await setStatus(msg.mixGeneratedFrom(sanitizeTitle(randomSong.title)));
   } catch (e) {
     console.error('Mix error:', e);
-    if (statusMsg) await statusMsg.edit({ content: '❌ Error during Mix generation.' }).catch(() => { });
-  } finally { serverQueue.isTaskRunning = false; }
+    await setStatus(msg.MIX_ERROR);
+  } finally {
+    serverQueue.isTaskRunning = false;
+  }
 }
 
 async function handleReplay(interaction, serverQueue, guildId, deps) {
-  const result = await audioOperationBarrier.request(guildId, 'replay', async () => {
-    if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs && serverQueue.songs.length > 0) {
-      serverQueue.sessionRestored = false; serverQueue.isPaused = false;
+  const result = await audioOperationBarrier.run(guildId, 'replay', async () => {
+    if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs.length > 0) {
+      serverQueue.sessionRestored = false;
+      serverQueue.isPaused = false;
       const connected = await deps.connectToVoice(serverQueue, interaction);
-      if (connected) await audio.playSong(interaction.guild.id, interaction);
+      if (connected) await audio.playSong(guildId, interaction);
       return;
     }
     if (serverQueue.currentDeckLoaded) {
-      await audio.restartCurrentSong(interaction.guild.id);
-    } else if (serverQueue.songs.length > 0) {
-      serverQueue.playIndex = 0;
-      serverQueue.currentDeckLoaded = null;
-      const connected = await deps.connectToVoice(serverQueue, interaction);
-      if (connected) await audio.playSong(interaction.guild.id, interaction);
+      await audio.restartCurrentSong(guildId);
+      return;
     }
-  }, { timeout: 10000, minThrottle: 2000 });
+    if (serverQueue.songs.length > 0) {
+      serverQueue.playIndex = 0;
+      const connected = await deps.connectToVoice(serverQueue, interaction);
+      if (connected) await audio.playSong(guildId, interaction);
+    }
+  }, AUDIO_OP_OPTIONS);
 
-  if (!result.throttled && !result.success) {
+  if (!result.success && !result.throttled) {
     console.error('❌ [REPLAY] Error:', result.error?.message);
   }
 }
 
 async function handleSkip(interaction, serverQueue, guildId, deps) {
-  const result = await audioOperationBarrier.request(guildId, 'skip', async () => {
+  const result = await audioOperationBarrier.run(guildId, 'skip', async () => {
     if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs.length > 1) {
-      serverQueue.sessionRestored = false; serverQueue.isPaused = false;
-      await audio.playSong(interaction.guildId);
+      serverQueue.sessionRestored = false;
+      serverQueue.isPaused = false;
+      await audio.playSong(guildId);
       return;
     }
-    if (!serverQueue.currentDeckLoaded && (!serverQueue.mixer || !serverQueue.mixer.isProcessAlive())) {
-      if (serverQueue.songs && serverQueue.songs.length > 0) {
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (connected) await audio.playSong(interaction.guildId, interaction);
-        return;
-      }
+    // Nothing is playing and there is no mixer: start from the current song
+    if (!serverQueue.currentDeckLoaded && !serverQueue.mixer?.isProcessAlive?.() && serverQueue.songs.length > 0) {
+      const connected = await deps.connectToVoice(serverQueue, interaction);
+      if (connected) await audio.playSong(guildId, interaction);
+      return;
     }
-    await SkipManager.skipNext(guildId);
-  }, { timeout: 10000, minThrottle: 2000 });
+    await audio.skipNext(guildId);
+  }, AUDIO_OP_OPTIONS);
 
-  if (!result.throttled && !result.success) {
+  if (!result.success && !result.throttled) {
     console.error('❌ [SKIP] Error:', result.error?.message);
-    await safeReply(interaction, { content: '❌ Unable to skip. Try again in a moment.', flags: MessageFlags.Ephemeral }).catch(() => { });
+    await safeReply(interaction, { content: msg.SKIP_FAILED, flags: MessageFlags.Ephemeral });
   }
 }
 
 async function handlePrev(interaction, serverQueue, guildId, deps) {
-  const result = await audioOperationBarrier.request(guildId, 'prev', async () => {
-    if (!serverQueue.currentDeckLoaded && (!serverQueue.mixer || !serverQueue.mixer.isProcessAlive())) {
-      if (serverQueue.sessionRestored) {
-        const newIndex = (serverQueue.playIndex || 0) - 1;
-        if (newIndex >= 0) serverQueue.playIndex = newIndex;
+  const result = await audioOperationBarrier.run(guildId, 'prev', async () => {
+    if (!serverQueue.currentDeckLoaded && !serverQueue.mixer?.isProcessAlive?.() && serverQueue.songs.length > 0) {
+      if (serverQueue.sessionRestored && (serverQueue.playIndex || 0) > 0) {
+        serverQueue.playIndex -= 1;
       }
-      if (serverQueue.songs && serverQueue.songs.length > 0) {
-        const connected = await deps.connectToVoice(serverQueue, interaction);
-        if (connected) await audio.playSong(interaction.guildId, interaction);
-        return;
-      }
+      const connected = await deps.connectToVoice(serverQueue, interaction);
+      if (connected) await audio.playSong(guildId, interaction);
+      return;
     }
-    await SkipManager.skipPrev(guildId);
-  }, { timeout: 10000, minThrottle: 2000 });
+    await audio.skipPrev(guildId);
+  }, AUDIO_OP_OPTIONS);
 
-  if (!result.throttled && !result.success) {
+  if (!result.success && !result.throttled) {
     console.error('❌ [PREV] Error:', result.error?.message);
   }
 }
 
 async function handleSelectQueue(interaction, serverQueue, guildId) {
-  const result = await audioOperationBarrier.request(guildId, 'skipToIndex', async () => {
+  const result = await audioOperationBarrier.run(guildId, 'skipToIndex', async () => {
     const targetIdx = safeParseInt(interaction.values[0], -1);
-    if (targetIdx < 0 || targetIdx >= serverQueue.songs.length) return;
-    if (targetIdx === (serverQueue.playIndex || 0)) return;
-    await SkipManager.skipToIndex(guildId, targetIdx);
-  }, { timeout: 10000, minThrottle: 2000 });
+    if (targetIdx < 0) return;
+    await audio.skipToIndex(guildId, targetIdx);
+  }, AUDIO_OP_OPTIONS);
 
-  if (!result.throttled && !result.success) {
+  if (!result.success && !result.throttled) {
     console.error('❌ [SELECT-QUEUE] Error:', result.error?.message);
   }
 }
 
 async function handleLoop(interaction, serverQueue, guildId) {
   serverQueue.loopEnabled = !serverQueue.loopEnabled;
-  if (serverQueue.mixer && serverQueue.mixer.isProcessAlive()) {
-    try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch { }
+  if (serverQueue.mixer?.isProcessAlive?.()) {
+    try { serverQueue.mixer.setLoop(serverQueue.loopEnabled); } catch { /* mixer just died: state resyncs on restart */ }
   }
   saveQueueState(guildId, serverQueue);
-  try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  await refreshComponents(interaction, serverQueue);
 }
 
 async function handleShuffle(interaction, serverQueue, guildId) {
-  if (serverQueue.songs.length >= 2) {
-    // Cancel pending deferred transition before shuffle
-    if (serverQueue.pendingTransition) {
-      if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
-      serverQueue.pendingTransition = null;
-    }
-    const currentIdx = serverQueue.playIndex || 0;
-    const before = serverQueue.songs.slice(0, currentIdx + 1);
-    const after = serverQueue.songs.slice(currentIdx + 1);
-    for (let i = after.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[after[i], after[j]] = [after[j], after[i]]; }
-    serverQueue.songs = [...before, ...after];
-    serverQueue.nextDeckLoaded = null;
-    serverQueue.nextDeckTarget = null;
-    saveQueueState(guildId, serverQueue);
-    try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-    catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
-    audio.updatePreloadAfterQueueChange(guildId).catch(() => { });
-  } else { try { await interaction.deferUpdate(); } catch { } }
+  if (serverQueue.songs.length < 2) {
+    await interaction.deferUpdate().catch(() => { });
+    return;
+  }
+
+  // Cancel pending deferred transition before shuffle
+  if (serverQueue.pendingTransition) {
+    if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
+    serverQueue.pendingTransition = null;
+  }
+
+  // Only the part of the queue after the current song is shuffled
+  const currentIdx = serverQueue.playIndex || 0;
+  const played = serverQueue.songs.slice(0, currentIdx + 1);
+  const upcoming = serverQueue.songs.slice(currentIdx + 1);
+  for (let i = upcoming.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [upcoming[i], upcoming[j]] = [upcoming[j], upcoming[i]];
+  }
+  serverQueue.songs = [...played, ...upcoming];
+  serverQueue.nextDeckLoaded = null;
+  serverQueue.nextDeckTarget = null;
+
+  saveQueueState(guildId, serverQueue);
+  await refreshComponents(interaction, serverQueue);
+  await audio.updatePreloadAfterQueueChange(guildId);
 }
 
 async function handleFade(interaction, serverQueue, guildId) {
   serverQueue.fadeEnabled = !serverQueue.fadeEnabled;
   saveQueueState(guildId, serverQueue);
-  try { await interaction.update({ components: createDashboardComponents(serverQueue, interaction.user.id) }); }
-  catch { if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { }); }
+  await refreshComponents(interaction, serverQueue);
 }
 
 async function handleLyrics(interaction, serverQueue) {
@@ -210,32 +256,30 @@ async function handleLyrics(interaction, serverQueue) {
 
   const song = getCurrentSong(serverQueue);
   if (!song || !song.title) {
-    await interaction.editReply({ content: '❌ No song currently playing.' }).catch(() => { });
+    await interaction.editReply({ content: msg.NO_SONG_PLAYING }).catch(() => { });
     return;
   }
 
-  await interaction.editReply({ content: `🔎 Searching for lyrics of **${sanitizeTitle(song.title)}**...` }).catch(() => { });
+  const title = sanitizeTitle(song.title);
+  await interaction.editReply({ content: msg.lyricsSearching(title) }).catch(() => { });
 
   let lyrics = null;
   try {
-    const { getLyrics } = await import('../utils/lyrics.js');
     lyrics = await getLyrics(song);
   } catch (e) {
     console.error('❌ [LYRICS] Error fetching lyrics:', e.message);
   }
 
   if (!lyrics) {
-    await interaction.editReply({ content: `📜 Lyrics not found for **${sanitizeTitle(song.title)}**.` }).catch(() => { });
+    await interaction.editReply({ content: msg.lyricsNotFound(title) }).catch(() => { });
     return;
   }
 
-  const { chunkLyrics } = await import('../utils/lyrics.js');
-  const header = `📜 **${sanitizeTitle(song.title)}**\n\n`;
-  // First chunk includes header: leave margin to not exceed 2000 characters.
-  const chunks = chunkLyrics(lyrics, 2000 - header.length - 10);
+  const header = msg.lyricsHeader(title);
+  // First chunk carries the header: leave margin to stay under the length limit.
+  const chunks = chunkLyrics(lyrics, MESSAGE_MAX_LENGTH - header.length - 10);
 
   await interaction.editReply({ content: header + chunks[0] }).catch(() => { });
-
   for (let i = 1; i < chunks.length; i++) {
     await interaction.followUp({ content: chunks[i], flags: MessageFlags.Ephemeral }).catch(() => { });
   }
@@ -257,14 +301,33 @@ const BUTTON_HANDLERS = {
   btn_lyrics: handleLyrics
 };
 
+// Buttons that answer with their own interaction response, so the dispatcher
+// must NOT consume it with a deferUpdate() first.
+const SELF_RESPONDING_BUTTONS = new Set([
+  'btn_loop', 'btn_shuffle', 'btn_fade',   // reply via interaction.update()
+  'btn_lyrics',                            // replies via deferReply()
+  'plist_create', 'plist_search_server'    // open a modal
+]);
+
+/**
+ * True when the customId belongs to a button that opens a modal or replies on
+ * its own; those must reach their handler with the interaction untouched.
+ * @param {string} customId
+ * @returns {boolean}
+ */
+function isSelfResponding(customId) {
+  return SELF_RESPONDING_BUTTONS.has(customId)
+    || customId.startsWith('plist_rename_likes_')
+    || customId.startsWith('plist_search_likes_');
+}
+
 // ─── Main Dispatcher ────────────────────────────────────────
 
 export default function registerInteractionHandlers(client, deps) {
   client.on(Events.InteractionCreate, async interaction => {
     try {
       if (interaction.isChatInputCommand()) {
-        let commands = {};
-        try { const commandsModule = await import('../commands/index.js'); commands = commandsModule.default || commandsModule; } catch { }
+        const commands = await import('../commands/index.js');
         const cmd = commands[interaction.commandName];
         if (cmd && typeof cmd.execute === 'function') {
           try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error:', e); }
@@ -276,26 +339,23 @@ export default function registerInteractionHandlers(client, deps) {
         const guildId = interaction.guildId;
         const customId = interaction.customId;
 
-        // Quick path for modal
+        // Quick path for the "add song" modal
         if (customId === 'btn_add_modal') {
-          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle('Add Song');
-          modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('song_input').setLabel('Link or Name').setStyle(TextInputStyle.Short)));
+          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle('Aggiungi canzone');
+          modal.addComponents(new ActionRowBuilder().addComponents(
+            new TextInputBuilder().setCustomId('song_input').setLabel('Link o nome').setStyle(TextInputStyle.Short)
+          ));
           await interaction.showModal(modal);
           return;
         }
 
-        // Defer update (except buttons with immediate update or modal-opening buttons)
-        const immediateUpdateButtons = ['btn_loop', 'btn_shuffle', 'btn_fade'];
-        const deferReplyButtons = ['btn_lyrics'];
-        const modalButtons = ['plist_create', 'plist_search_server'];
-        const isModalButton = modalButtons.includes(customId) || customId.startsWith('plist_rename_likes_') || customId.startsWith('plist_search_likes_');
-        if (!immediateUpdateButtons.includes(customId) && !deferReplyButtons.includes(customId) && !isModalButton) {
-          try { await interaction.deferUpdate(); } catch { }
+        if (!isSelfResponding(customId)) {
+          await interaction.deferUpdate().catch(() => { });
         }
 
-        const now = Date.now();
         const cooldownKey = `${guildId}_${interaction.user.id}`;
-        if (interactionCooldowns.has(cooldownKey) && now < interactionCooldowns.get(cooldownKey) + 200) return;
+        const now = Date.now();
+        if (now - (interactionCooldowns.get(cooldownKey) || 0) < INTERACTION_COOLDOWN_MS) return;
         interactionCooldowns.set(cooldownKey, now);
 
         const serverQueue = await deps.ensureBotConnection(interaction);
@@ -305,9 +365,11 @@ export default function registerInteractionHandlers(client, deps) {
         // Try playlist handlers first
         try {
           if (await handlePlaylist(interaction, serverQueue, guildId, customId, deps)) return;
-        } catch (e) { console.error(`❌ [PLAYLIST-HANDLER] Error (${customId}):`, e); return; }
+        } catch (e) {
+          console.error(`❌ [PLAYLIST-HANDLER] Error (${customId}):`, e);
+          return;
+        }
 
-        // Then button handlers
         const handler = BUTTON_HANDLERS[customId];
         if (handler) {
           try { await handler(interaction, serverQueue, guildId, deps); }
@@ -319,8 +381,9 @@ export default function registerInteractionHandlers(client, deps) {
       if (interaction.isModalSubmit()) {
         try { await handleModal(interaction, interaction.guildId, deps); }
         catch (e) { console.error(`❌ [MODAL-HANDLER] Error (${interaction.customId}):`, e); }
-        return;
       }
-    } catch (e) { console.error('Handler error:', e); }
+    } catch (e) {
+      console.error('Handler error:', e);
+    }
   });
 }

@@ -5,6 +5,7 @@ import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../queue/Q
 import { loadQueueBackup } from '../queue/persistence.js';
 import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } from '../../config/index.js';
 import { safeReply } from '../utils/discord.js';
+import { JOIN_VOICE, VOICE_CONNECTION_ERROR } from '../ui/messages.js';
 
 async function ensureBotConnection(interaction) {
   if (!interaction || !interaction.guildId) return null;
@@ -40,7 +41,7 @@ async function ensureBotConnection(interaction) {
   } else {
     if (!serverQueue.player || typeof serverQueue.player.play !== 'function') serverQueue.player = createAudioPlayer();
     serverQueue.textChannel = serverQueue.textChannel || interaction.channel || null;
-    serverQueue.voiceChannel = serverQueue.voiceChannel || interaction.member?.voice?.channel || serverQueue.voiceChannel || null;
+    serverQueue.voiceChannel = serverQueue.voiceChannel || interaction.member?.voice?.channel || null;
   }
   return serverQueue;
 }
@@ -52,7 +53,7 @@ async function connectToVoice(serverQueue, interaction) {
     const memberVoice = interaction?.member?.voice?.channel || null;
     const targetVoice = memberVoice || serverQueue.voiceChannel || null;
     if (!targetVoice) {
-      await safeReply(interaction, { content: '❌ Entra in vocale!', flags: 64 });
+      await safeReply(interaction, { content: JOIN_VOICE, flags: 64 });
       return false;
     }
     // Update the stored `voiceChannel` to target (we're trying to follow the user)
@@ -73,21 +74,21 @@ async function connectToVoice(serverQueue, interaction) {
           serverQueue._isReconnecting = false;
           return true;
         }
-      } catch (e) {
+      } catch {
         // fallthrough: recreate the connection
       }
       // Existing connection obsolete or in wrong channel — remove listeners BEFORE destroying
       // to prevent destroy from triggering cleanup cascade
       const oldConn = serverQueue.connection;
       if (serverQueue._connStateHandler) {
-        try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch { }
+        try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch { /* listener already removed */ }
         serverQueue._connStateHandler = null;
       }
       if (serverQueue._connErrorHandler) {
-        try { oldConn.off('error', serverQueue._connErrorHandler); } catch { }
+        try { oldConn.off('error', serverQueue._connErrorHandler); } catch { /* listener already removed */ }
         serverQueue._connErrorHandler = null;
       }
-      try { oldConn.destroy(); } catch { }
+      try { oldConn.destroy(); } catch { /* connection already destroyed */ }
       serverQueue.connection = null;
     }
 
@@ -144,16 +145,16 @@ async function connectToVoice(serverQueue, interaction) {
                         }
                       }
                     }
-                  } catch { }
+                  } catch { /* the guild or channel may have gone away meanwhile */ }
                 }, RECONCILE_WINDOW_MS);
               }
-            } catch { }
+            } catch { /* reconciliation is best effort */ }
 
           } else if (newState.status === VoiceConnectionStatus.Disconnected) {
             // Try a short reconnection window, otherwise schedule cleanup
             scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
           }
-        } catch { }
+        } catch { /* a listener error must not break the connection */ }
       };
       const errorHandler = (err) => {
         console.error('VoiceConnection error:', err);
@@ -164,21 +165,21 @@ async function connectToVoice(serverQueue, interaction) {
       serverQueue._connErrorHandler = errorHandler;
       connection.on('stateChange', stateChangeHandler);
       connection.on('error', errorHandler);
-    } catch { }
-    try { serverQueue.connection.subscribe(serverQueue.player); } catch { }
+    } catch { /* listeners are best effort */ }
+    try { serverQueue.connection.subscribe(serverQueue.player); } catch { /* player not ready yet: playSong() subscribes again */ }
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
     } catch (e) {
       console.error('Voice connection failed:', e);
       // Remove listeners BEFORE destroying to prevent cleanup cascade
-      try { connection.off('stateChange', serverQueue._connStateHandler); } catch { }
-      try { connection.off('error', serverQueue._connErrorHandler); } catch { }
+      try { connection.off('stateChange', serverQueue._connStateHandler); } catch { /* listener already removed */ }
+      try { connection.off('error', serverQueue._connErrorHandler); } catch { /* listener already removed */ }
       serverQueue._connStateHandler = null;
       serverQueue._connErrorHandler = null;
-      try { connection.destroy(); } catch { }
+      try { connection.destroy(); } catch { /* connection already destroyed */ }
       serverQueue.connection = null;
       serverQueue._isReconnecting = false;
-      await safeReply(interaction, { content: '❌ Errore connessione vocale', flags: 64 });
+      await safeReply(interaction, { content: VOICE_CONNECTION_ERROR, flags: 64 });
       return false;
     }
     serverQueue._isReconnecting = false;
@@ -191,3 +192,4 @@ async function connectToVoice(serverQueue, interaction) {
 }
 
 export { ensureBotConnection, connectToVoice };
+

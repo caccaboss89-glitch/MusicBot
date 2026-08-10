@@ -14,6 +14,14 @@
 import fs from 'fs';
 import path from 'path';
 import { STATS_FILE } from '../../config/paths.js';
+import { canonicalSongKey } from '../utils/sanitize.js';
+
+// NOTE ON CACHING: unlike playlists.js, this module deliberately re-reads
+// stats.json on every mutation instead of holding the document in memory.
+// The monthly rollover (scripts/push-stats.js) archives and TRUNCATES the file
+// underneath a running bot; an in-memory copy would write the closed month
+// straight back over the fresh one. Writes happen a few times per song, so the
+// cost is irrelevant compared to that risk.
 
 // ─── In-memory map of active timers ──────────────────────
 // guildId → Map<userId, startTimestamp>
@@ -24,7 +32,7 @@ const pendingTime = {};
 
 // Periodic flush of pending time to reduce data loss on non-graceful crash
 setInterval(() => {
-  try { flushPendingAndSave(); } catch { }
+  try { flushPendingAndSave(); } catch { /* periodic flush: retried on the next tick */ }
 }, 60 * 1000); // Every 60 seconds
 
 // ─── Loading / Saving ──────────────────────────────
@@ -263,18 +271,6 @@ function flushAllGuildsAndSave() {
 // ─── Song playback tracking ────────────────────────
 
 /**
- * Normalize a YouTube URL (including music.youtube.com links) to canonical form
- * video ID only. Used for stats keying (dedup independent of playlist/mix).
- */
-function normalizeYoutubeUrl(url) {
-  if (!url) return url;
-  // Also supports music.youtube.com and m.youtube.com
-  const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/|music\.youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/);
-  if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
-  return url;
-}
-
-/**
  * Record a confirmed playback start: the song is really producing audio.
  * Single entry point for "a song was listened to": bumps the global counter,
  * the play count (global and for every listener in the voice channel) and
@@ -286,7 +282,7 @@ function normalizeYoutubeUrl(url) {
 function recordSongStart(guildId, songInfo, voiceChannel = null) {
   try {
     if (!songInfo || !songInfo.url) return;
-    const url = normalizeYoutubeUrl(songInfo.url);
+    const url = canonicalSongKey(songInfo.url);
     const entry = {
       title: songInfo.title || 'Unknown',
       url,
@@ -387,46 +383,9 @@ function recordPlaylistAdd(userId, type, discordUser = null) {
   }
 }
 
-/**
- * Update Discord user information in statistics
- * @param {string} userId
- * @param {object} discordUser - Discord user object
- */
-function updateUserDiscordInfo(userId, discordUser) {
-  try {
-    if (!userId || !discordUser) return;
-    const data = loadStats();
-    ensureUser(data, userId, discordUser);
-    saveStats(data);
-  } catch (e) {
-    console.error('⚠️ [STATS] Error in updateUserDiscordInfo:', e.message);
-  }
-}
-
-// ─── Debug / Utility ────────────────────────────────────────
-
-/**
- * Return current state of active timers (for debug).
- */
-function getActiveListenersDebug() {
-  const result = {};
-  activeListeners.forEach((guildMap, guildId) => {
-    result[guildId] = {};
-    guildMap.forEach((startTime, userId) => {
-      result[guildId][userId] = {
-        startTime: new Date(startTime).toISOString(),
-        elapsedMs: Date.now() - startTime
-      };
-    });
-  });
-  return result;
-}
-
+// Named exports only: a second (default) export listing the same functions has
+// to be kept in sync by hand, and forgetting one fails silently at runtime.
 export {
-  // Loading
-  loadStats,
-  saveStats,
-
   // Listening timers
   startListening,
   stopListening,
@@ -442,31 +401,7 @@ export {
   // Playlist counters
   recordPlaylistAdd,
 
-  // Discord info
-  updateUserDiscordInfo,
-
   // Song tracking
   recordSongStart,
-  computeTopSongs,
-
-  // Debug
-  getActiveListenersDebug
-};
-
-export default {
-  loadStats,
-  saveStats,
-  startListening,
-  stopListening,
-  startAllListeners,
-  stopAllListeners,
-  flushGuildAndSave,
-  flushAllGuildsAndSave,
-  flushPendingAndSave,
-  incrementSongsCompleted,
-  recordPlaylistAdd,
-  updateUserDiscordInfo,
-  recordSongStart,
-  computeTopSongs,
-  getActiveListenersDebug
+  computeTopSongs
 };

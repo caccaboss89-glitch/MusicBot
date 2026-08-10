@@ -5,5 +5,10 @@ logs/
 temp/
 audio_engine/target/
 audio_engine/Cargo.lock
-data/
 package-lock.json
+
+# Runtime-only state. Everything else under data/ (stats.json, playlists.json,
+# monthly-stats/) is versioned on purpose: it is the monthly snapshot published
+# by the stats site and the playlist backup.
+data/queue_backup.json
+data/pushState.json
