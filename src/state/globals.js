@@ -1,36 +1,36 @@
 /**
  * src/state/globals.js
- * Stato globale centralizzato per il bot
- * Tutte le Map e variabili condivise tra moduli
+ * Centralized global state for the bot
+ * All Maps and variables shared between modules
  */
 
-// ─── CODA PER GUILD ───────────────────────────────────────
+// ─── QUEUE FOR GUILD ───────────────────────────────────────
 // Map<guildId, serverQueue>
 export const queue = new Map();
 
-// ─── TIMER DISCONNESSIONE ───────────────────────────────────
-// Map<guildId, timeoutId> - Timer per disconnettere il bot quando resta solo
+// ─── DISCONNECTION TIMER ───────────────────────────────────
+// Map<guildId, timeoutId> - Timer to disconnect bot when alone
 export const disconnectTimers = new Map();
 
-// --- COOLDOWN INTERAZIONI ---
-// Map<guildId, Map<interactionId, timestamp>> - Previene spam di bottoni
+// --- INTERACTION COOLDOWN ---
+// Map<guildId, Map<interactionId, timestamp>> - Prevents button spam
 export const interactionCooldowns = new Map();
 
-// NOTA: I pending skip sono gestiti internamente da SkipManager v3 (skipLock).
+// NOTE: Pending skips are managed internally by SkipManager v3 (skipLock).
 
-// --- GENERAZIONE MIXER ---
-// Contatore globale per invalidare eventi da mixer vecchi
+// --- MIXER GENERATION ---
+// Global counter to invalidate events from old mixers
 let globalMixerGeneration = 0;
 
 /**
- * Incrementa e restituisce la nuova generazione mixer
- * @returns {number} Nuova generazione
+ * Increment and return the new mixer generation
+ * @returns {number} New generation
  */
 export function getNextMixerGeneration() {
   return ++globalMixerGeneration;
 }
 
-// Pulizia periodica cooldown interazioni per prevenire memory leak (ogni 5 minuti)
+// Periodic cleanup of interaction cooldowns to prevent memory leak (every 5 minutes)
 setInterval(() => {
   const now = Date.now();
   for (const [key, timestamp] of interactionCooldowns) {

@@ -84,8 +84,8 @@ async function performTransition(guildId, targetIndex, reason) {
   const stateVersion = stateVersionManager.get(guildId);
   const operationId = `skip_${guildId}_${Date.now()}`;
 
-  // Acquisisci lock esclusivo per questa operazione di skip
-  // Timeout: 30s max per completare tutto (load, buffer wait, crossfade, etc)
+  // Acquire exclusive lock for this skip operation
+  // Timeout: 30s max to complete everything (load, buffer wait, crossfade, etc)
   const lock = stateVersion.acquireLock(operationId, 30000);
 
   try {
@@ -237,7 +237,7 @@ async function performTransition(guildId, targetIndex, reason) {
     sq.songStartTime = Date.now();
     sq.loadingFooter = null;
     sq._lastTransitionTime = Date.now();
-    // Conferma il binding deck→canzone e azzera quello dell'altro deck
+    // Confirm binding: target deck now plays song at target index, clear other deck
     bindDeckSong(sq, targetDeck, targetIndex, targetSong.url);
     bindDeckSong(sq, oldDeck, null, null);
 
@@ -248,25 +248,25 @@ async function performTransition(guildId, targetIndex, reason) {
       stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
     } catch { }
 
-    // Incrementa versione dopo tutte le mutazioni
+    // Increment version after all mutations
     stateVersion.incrementVersion('skip_complete', {
       targetIndex,
       targetDeck,
       reason
     });
 
-    // Salva e aggiorna UI
+    // Save and update UI
     saveQueueState(guildId, sq);
-    try { call('refreshDashboard', sq, targetSong.requester); } catch { /* ignora */ }
+    try { call('refreshDashboard', sq, targetSong.requester); } catch { /* ignore */ }
 
-    // Avvia ciclo preload + monitoraggio fine per la nuova canzone
+    // Start preload + end-monitor cycle for new song
     call('onSongStart', guildId);
 
-    // Se era in pausa durante lo skip, riprendi automaticamente
+    // If paused during skip, resume automatically
     try {
       await call('resumeIfPaused', sq, guildId, targetDeck);
     } catch (e) {
-      console.warn('⚠️  [SKIP] Errore durante resumeIfPaused:', e.message);
+      console.warn('⚠️  [SKIP] Error during resumeIfPaused:', e.message);
     }
 
     console.log(`✅ [SKIP] ${reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${targetIndex}, deck=${targetDeck}, fade=${fadeEnabled})`);
@@ -289,7 +289,7 @@ async function performTransition(guildId, targetIndex, reason) {
     if (sqF) {
       sqF.loadingFooter = null;
     }
-    // Rilascia il lock
+    // Release the lock
     lock.release();
   }
 }
@@ -454,7 +454,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   const pt = sq.pendingTransition;
   if (!pt) return;
 
-  // Rimuovi subito per evitare doppia esecuzione
+  // Remove immediately to avoid double execution
   sq.pendingTransition = null;
   if (pt._cleanupTimer) clearTimeout(pt._cleanupTimer);
 

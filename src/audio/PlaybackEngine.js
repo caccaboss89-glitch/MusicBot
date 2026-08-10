@@ -90,15 +90,15 @@ function onSongStart(guildId) {
   const currentSong = getCurrentSong(sq);
   if (!currentSong || !isMixerAlive(sq)) return;
 
-  // Cancella timer precedenti
+  // Clear previous timers
   clearAllTimers(guildId);
 
-  // ── Timer: Precarica la canzone successiva dopo 5 secondi ──
+  // ── Timer: Preload the next song after 5 seconds ──
   const preloadTimer = setTimeout(() => {
     preloadNextSong(guildId);
   }, PRELOAD_DELAY_MS);
 
-  // Salva il timer
+  // Save the timer
   timers.set(guildId, { preloadTimer });
 
   console.log(`🎵 [PLAYBACK] Started: "${sanitizeTitle(currentSong.title)}"`);

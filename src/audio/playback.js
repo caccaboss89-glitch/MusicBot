@@ -235,7 +235,7 @@ async function playSong(guildId, interaction = null) {
         }
         stdout = serverQueue.mixer && serverQueue.mixer.getStdout ? serverQueue.mixer.getStdout() : null;
         if (!stdout) {
-          console.error('❌ [PLAY] Mixer stdout non disponibile, aborting');
+          console.error('❌ [PLAY] Mixer stdout not available, aborting');
           try { serverQueue.mixer.kill(); } catch { } serverQueue.mixer = null;
           serverQueue.mixerStarting = false;
           return;
@@ -243,7 +243,7 @@ async function playSong(guildId, interaction = null) {
 
         await new Promise(r => setTimeout(r, 200));
         if (!serverQueue.mixer || !serverQueue.mixer.isProcessAlive()) {
-          console.error('❌ [PLAY] Mixer morto prima del primo comando');
+          console.error('❌ [PLAY] Mixer dead before first command');
           try { serverQueue.mixer.kill(); } catch { } serverQueue.mixer = null;
           serverQueue.mixerStarting = false;
           return;
@@ -258,7 +258,7 @@ async function playSong(guildId, interaction = null) {
         // Clean up old stream to prevent resource leak
         cleanupLowLatencyStream(serverQueue);
         const llStream = createLowLatencyStream(stdout);
-        serverQueue._llStream = llStream; // Salva riferimento per cleanup
+        serverQueue._llStream = llStream; // Save reference for cleanup
         const resource = createAudioResource(llStream, { inputType: StreamType.Raw, inlineVolume: false });
         serverQueue.player.removeAllListeners('error');
         serverQueue.player.on('error', e => console.error(`AudioPlayer Error: ${e.message}`));
@@ -347,10 +347,10 @@ function recordMixerCrashTime(guildId) {
 }
 
 /**
- * Gestisce il toggle pause/resume in modo atomico con state machine
+ * Handles pause/resume toggle atomically with state machine
  * @param {string} guildId
  * @param {object} serverQueue
- * @param {object} deps - Dipendenze (connectToVoice)
+ * @param {object} deps - Dependencies (connectToVoice)
  * @returns {Promise<{success: boolean, action: 'play'|'pause'|'resume'|'error', error?: string}>}
  */
 async function togglePauseResume(guildId, serverQueue, deps = {}) {

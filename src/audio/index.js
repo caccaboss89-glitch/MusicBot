@@ -231,7 +231,7 @@ async function handleRustEvent(guildId, log) {
     if (log.event === 'error' || log.event === 'yt_error') {
       console.error(`🦀 [RUST-${guildId}] ERROR`, log.data || '');
     }
-  } catch { /* ignora */ }
+  } catch { /* ignore */ }
 }
 
 // ─── Auto-gapless handlers ──────────────────────────────────
@@ -305,7 +305,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
       stats.recordSongPlay(guildId, nextSong, sq.voiceChannel);
     } catch { }
 
-    // Salva stato e aggiorna UI
+    // Save state and update UI
     const { saveQueueState } = await import('../queue/persistence.js');
     saveQueueState(guildId, sq);
     ui.refreshDashboard(sq, nextSong ? nextSong.requester : null);
@@ -315,7 +315,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
 
     console.log(`⚡ [AUTO-GAPLESS] → "${nextSong ? sanitizeTitle(nextSong.title) : '?'}" (idx=${nextIndex}, deck=${newDeck})`);
   } catch (e) {
-    console.error('❌ [AUTO-GAPLESS] Errore handleAutoEndSwitch:', e);
+    console.error('❌ [AUTO-GAPLESS] handleAutoEndSwitch error:', e);
   }
 }
 /**
@@ -401,7 +401,7 @@ async function handleMixerCrash(guildId, reason) {
       return;
     }
 
-    try { playback.recordMixerCrashTime(guildId); } catch { /* ignora */ }
+    try { playback.recordMixerCrashTime(guildId); } catch { /* ignore */ }
 
     sq.crashRecoveryAttempts = (sq.crashRecoveryAttempts || 0) + 1;
     console.warn(`⚠️  [CRASH-RECOVERY] Attempt #${sq.crashRecoveryAttempts} for guild=${guildId}`);

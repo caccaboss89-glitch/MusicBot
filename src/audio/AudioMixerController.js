@@ -20,7 +20,7 @@ class AudioMixerController {
     this.process = null;
     this.onLog = onLog;
     this.onBufferReady = onBufferReady;
-    this.onCrash = onCrash; // Callback per recovery automatico dopo crash
+    this.onCrash = onCrash; // Callback for automatic recovery after crash
     this.isAlive = false;
     this.lastRestartTime = 0;
     this.stdoutClosed = false;
@@ -44,7 +44,7 @@ class AudioMixerController {
     const now = Date.now();
     if (now - this.lastRestartTime < RESTART_COOLDOWN_MS) {
       const waitTime = RESTART_COOLDOWN_MS - (now - this.lastRestartTime);
-      console.warn(`⚠️ [RUST] Cooldown attivo, attendi ${(waitTime / 1000).toFixed(1)}s prima del prossimo restart`);
+      console.warn(`⚠️ [RUST] Cooldown active, wait ${(waitTime / 1000).toFixed(1)}s before next restart`);
       return;
     }
     this.lastRestartTime = now;

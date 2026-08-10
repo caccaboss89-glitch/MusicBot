@@ -166,10 +166,10 @@ async function updateDashboardToFinished(serverQueue, lastSong) {
       // action row: enable 'add' and 'mix' if finished, keep 'clear' disabled
       if (components[4] && components[4].components) {
         if (components[4].components[0]) components[4].components[0].setDisabled(false); // add
-        if (components[4].components[1]) components[4].components[1].setDisabled(!isTerminated); // mix solo quando terminata
+        if (components[4].components[1]) components[4].components[1].setDisabled(!isTerminated); // mix only when finished
         if (components[4].components[2]) components[4].components[2].setDisabled(true); // clear
       }
-    } catch { /* ignora */ }
+    } catch { /* ignore */ }
   }
   await updateDashboard(serverQueue, embed, components);
 }

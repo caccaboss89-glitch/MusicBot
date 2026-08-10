@@ -159,7 +159,7 @@ async function connectToVoice(serverQueue, interaction) {
         console.error('VoiceConnection error:', err);
         scheduleDisconnectIfAlone(serverQueue, 0);
       };
-      // Salva riferimenti per poterli rimuovere alla prossima connessione
+      // Save references to remove them at next connection
       serverQueue._connStateHandler = stateChangeHandler;
       serverQueue._connErrorHandler = errorHandler;
       connection.on('stateChange', stateChangeHandler);
