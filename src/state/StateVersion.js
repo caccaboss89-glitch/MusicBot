@@ -1,11 +1,11 @@
 /**
  * src/state/StateVersion.js
  *
- * Sistema di versioning per lo stato della coda.
- * Previene race conditions rilevando letture stale del queue state.
+ * Versioning system for queue state.
+ * Prevents race conditions by detecting stale queue state reads.
  *
- * Ogni mutazione critica incrementa la versione.
- * Chi legge lo stato legge anche la versione per rilevare conflitti.
+ * Every critical mutation increments the version.
+ * Readers also check the version to detect conflicts.
  */
 
 class QueueStateVersion {
@@ -14,15 +14,15 @@ class QueueStateVersion {
     this.version = 0;
     this.lastMutationTime = Date.now();
     this.lastMutationType = 'init';
-    this.mutationLog = []; // ultimi 50 eventi
-    this.locks = new Map(); // tracker per operazioni critiche
+    this.mutationLog = []; // last 50 events
+    this.locks = new Map(); // tracker for critical operations
   }
 
   /**
-     * Incrementa la versione e registra il tipo di mutazione
-     * @param {string} mutationType - Tipo di mutazione (e.g., 'skip_start', 'deck_change', 'clear_queue')
-     * @param {object} details - Dettagli aggiuntivi della mutazione
-     * @returns {number} - Nuova versione
+     * Increments version and logs mutation type
+     * @param {string} mutationType - Mutation type (e.g., 'skip_start', 'deck_change', 'clear_queue')
+     * @param {object} details - Additional mutation details
+     * @returns {number} - New version
      */
   incrementVersion(mutationType, details = {}) {
     this.version++;
@@ -45,17 +45,17 @@ class QueueStateVersion {
   }
 
   /**
-     * Legge la versione corrente senza incrementare
-     * @returns {number} - Versione corrente
+     * Reads current version without incrementing
+     * @returns {number} - Current version
      */
   getVersion() {
     return this.version;
   }
 
   /**
-     * Verifica se una versione letta è ancora valida (non stale)
-     * @param {number} versionRead - Versione che era stata letta prima
-     * @param {number} maxAgeMsec - Età massima consentita in millisecondi (default: 5s)
+     * Checks if a read version is still valid (not stale)
+     * @param {number} versionRead - Version that was previously read
+     * @param {number} maxAgeMsec - Max age allowed in milliseconds (default: 5s)
      * @returns {{isValid: boolean, reason?: string}}
      */
   isVersionValid(versionRead, maxAgeMsec = 5000) {
@@ -81,12 +81,12 @@ class QueueStateVersion {
   }
 
   /**
-     * Acquisisce un lock per un'operazione critica
-     * @param {string} operationId - Identificatore univoco dell'operazione (e.g., 'skip_123')
-     * @returns {object} - Lock con metodi release() e isExpired()
+     * Acquires a lock for a critical operation
+     * @param {string} operationId - Unique operation identifier (e.g., 'skip_123')
+     * @returns {object} - Lock with release() and isExpired() methods
      */
   acquireLock(operationId, timeoutMs = 30000) {
-    // Lazy cleanup: rimuovi lock scaduti o rilasciati
+    // Lazy cleanup: remove expired or released locks
     for (const [lockId, existingLock] of this.locks) {
       if (existingLock.released || existingLock.isExpired()) {
         this.locks.delete(lockId);
@@ -112,10 +112,10 @@ class QueueStateVersion {
   }
 
   /**
-     * Verifica se esiste un lock attivo il cui operationId inizia con il prefisso dato.
-     * Usato per rilevare skip concorrenti: acquireLock usa operationId con timestamp,
-     * ma hasActiveLock cerca per prefisso (es. 'skip_GUILDID').
-     * @param {string} operationPrefix - Prefisso dell'operationId da cercare
+     * Checks if there's an active lock whose operationId starts with given prefix.
+     * Used to detect concurrent skips: acquireLock uses operationId with timestamp,
+     * but hasActiveLock searches by prefix (e.g., 'skip_GUILDID').
+     * @param {string} operationPrefix - Operation ID prefix to search for
      * @returns {boolean}
      */
   hasActiveLock(operationPrefix) {
@@ -128,7 +128,7 @@ class QueueStateVersion {
   }
 
   /**
-     * Ottiene log delle mutazioni recenti per debugging
+     * Gets log of recent mutations for debugging
      * @returns {array}
      */
   getMutationLog() {
@@ -136,7 +136,7 @@ class QueueStateVersion {
   }
 
   /**
-     * Resetta lo stato di versioning (usato quando il bot lascia la guild)
+     * Resets versioning state (used when bot leaves guild)
      */
   reset() {
     this.version = 0;
@@ -154,7 +154,7 @@ class StateVersionManager {
   }
 
   /**
-     * Ottiene il versioning object per una guild
+     * Gets the versioning object for a guild
      * @param {string} guildId
      * @returns {QueueStateVersion}
      */
@@ -166,7 +166,7 @@ class StateVersionManager {
   }
 
   /**
-     * Pulisce il versioning per una guild (quando bot lascia)
+     * Cleans up versioning for a guild (when bot leaves)
      * @param {string} guildId
      */
   cleanup(guildId) {
@@ -177,7 +177,7 @@ class StateVersionManager {
   }
 
   /**
-     * Ottiene versioning info per tutte le guild (per debugging)
+     * Gets versioning info for all guilds (for debugging)
      * @returns {object}
      */
   getDebugInfo() {

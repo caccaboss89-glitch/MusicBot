@@ -1,5 +1,5 @@
 /**
- * Funzioni per interagire con YouTube tramite `yt-dlp`.
+ * Functions to interact with YouTube via `yt-dlp`.
  */
 
 import { spawn } from 'child_process';
@@ -11,10 +11,10 @@ import {
 } from '../../config/index.js';
 import { normalizeYoutubeUrl } from './sanitize.js';
 
-const DURATION_FETCH_CONCURRENCY = 3; // Max processi yt-dlp paralleli per fetch durata
+const DURATION_FETCH_CONCURRENCY = 3; // Max concurrent yt-dlp processes for duration fetch
 
-// ─── Semaforo globale per limitare processi yt-dlp concorrenti ──────
-const MAX_YTDLP_CONCURRENT = 6; // Max processi yt-dlp globali (cross-guild)
+// ─── Global semaphore to limit concurrent yt-dlp processes ──────
+const MAX_YTDLP_CONCURRENT = 6; // Max global yt-dlp processes (cross-guild)
 let _activeProcesses = 0;
 const _waitQueue = [];
 
@@ -35,14 +35,14 @@ function releaseSlot() {
 }
 
 /**
- * Estrae solo la durata di un video (funzione veloce di ripiego)
- * @param {string} videoUrl - URL del video YouTube
- * @returns {Promise<number>} - Durata in secondi (0 se fallisce)
+ * Extracts only the duration of a video (fast fallback function)
+ * @param {string} videoUrl - YouTube video URL
+ * @returns {Promise<number>} - Duration in seconds (0 if fails)
  */
 async function getVideoDuration(videoUrl) {
   await acquireSlot();
   try {
-    // Normalizza anche qui per robustezza (code legacy o restore da disco)
+    // Normalize here too for robustness (legacy code or restore from disk)
     if (videoUrl && typeof videoUrl === 'string' && videoUrl.startsWith('http')) {
       videoUrl = normalizeYoutubeUrl(videoUrl);
     }
@@ -63,7 +63,7 @@ async function getVideoDuration(videoUrl) {
 
       const killTimer = setTimeout(() => {
         if (!processSearch.killed) {
-          console.warn(`⏱️ [DURATION] Timeout per ${videoUrl.substring(0, 50)}...`);
+          console.warn(`⏱️ [DURATION] Timeout for ${videoUrl.substring(0, 50)}...`);
           processSearch.kill();
         }
       }, VIDEO_DURATION_TIMEOUT_MS);
@@ -75,7 +75,7 @@ async function getVideoDuration(videoUrl) {
         clearTimeout(killTimer);
 
         if (code !== 0 && errorData) {
-          console.warn(`⚠️ [DURATION] codice di uscita yt-dlp ${code}: ${errorData.substring(0, 200)}`);
+          console.warn(`⚠️ [DURATION] yt-dlp exit code ${code}: ${errorData.substring(0, 200)}`);
         }
 
         try {
@@ -83,14 +83,14 @@ async function getVideoDuration(videoUrl) {
           const duration = info.duration || 0;
           resolve(duration);
         } catch (e) {
-          console.warn(`⚠️ [DURATION] Errore di parsing: ${e.message}`);
+          console.warn(`⚠️ [DURATION] Parse error: ${e.message}`);
           resolve(0);
         }
       });
 
       processSearch.on('error', (e) => {
         clearTimeout(killTimer);
-        console.error(`❌ [DURATION] Errore spawn processo: ${e.message}`);
+        console.error(`❌ [DURATION] Process spawn error: ${e.message}`);
         resolve(0);
       });
     });
@@ -98,16 +98,16 @@ async function getVideoDuration(videoUrl) {
 }
 
 /**
- * Ottiene informazioni complete su un video o playlist
- * @param {string} query - URL o termine di ricerca
- * @returns {Promise<Array>} - Array di oggetti canzone
+ * Gets complete information about a video or playlist
+ * @param {string} query - URL or search term
+ * @returns {Promise<Array>} - Array of song objects
  * @throws {string} - 'TIMEOUT', 'TOO_LARGE'
  */
 async function getVideoInfo(query) {
   await acquireSlot();
   try {
-    // Normalizza URL music.youtube.com / m.youtube.com / tracking params → www.youtube.com canonico.
-    // Questo risolve casi in cui yt-dlp con client ANDROID_MUSIC su single video music. restituisce "null".
+    // Normalize URL music.youtube.com / m.youtube.com / tracking params → canonical www.youtube.com.
+    // This solves cases where yt-dlp with ANDROID_MUSIC client on a single video returns "null".
     if (query && typeof query === 'string' && query.startsWith('http')) {
       query = normalizeYoutubeUrl(query);
     }
@@ -122,13 +122,13 @@ async function getVideoInfo(query) {
       '--force-ipv4',
       '--paths', `home:${LOCAL_TEMP_DIR}`,
       '--skip-download',
-      // ⚠️ CRITICO (fix link video singoli): per un video singolo yt-dlp esegue
-      // la selezione del formato; con il client ANDROID_MUSIC questa spesso fallisce
-      // ("Requested format is not available") e l'output diventa null → "Nessun risultato".
-      // Le ricerche/playlist usano l'estrazione flat e non toccano i formati, quindi
-      // funzionavano. Qui ci servono SOLO i metadati (titolo, url, durata): il download
-      // reale e la scelta del formato avvengono nel motore Rust. Ignorando l'errore di
-      // formato otteniamo comunque i metadati anche per i video singoli.
+      // ⚠️ CRITICAL (single video link fix): for a single video yt-dlp performs
+      // format selection; with the ANDROID_MUSIC client this often fails
+      // ("Requested format is not available") and output becomes null → "No results".
+      // Searches/playlists use flat extraction and don't touch formats, so
+      // worked. Here we only need metadata (title, url, duration): actual download
+      // and format choice happen in Rust engine. By ignoring format error we still
+      // get metadata even for single videos.
       '--ignore-no-formats-error',
       '--compat-options', 'no-youtube-unavailable-videos',
       '--yes-playlist'
@@ -164,13 +164,13 @@ async function getVideoInfo(query) {
         clearTimeout(killTimer);
         if (settled) return;
         if (!data) {
-          console.warn(`[getVideoInfo] Nessun dato da yt-dlp per query: ${query.substring(0, 120)}`);
+          console.warn(`[getVideoInfo] No data from yt-dlp for query: ${query.substring(0, 120)}`);
           return resolve([]);
         }
         try {
           const info = JSON.parse(data);
           if (!info || typeof info !== 'object') {
-            console.warn(`[getVideoInfo] yt-dlp ha restituito null/empty per query: ${query.substring(0, 120)}`);
+            console.warn(`[getVideoInfo] yt-dlp returned null/empty for query: ${query.substring(0, 120)}`);
             return resolve([]);
           }
           if (info.entries && info.entries.length > 0) {
@@ -182,7 +182,7 @@ async function getVideoInfo(query) {
               duration: entry.duration || 0
             }));
 
-            // Se la durata è mancante, recuperala con una query veloce (max N alla volta)
+            // If duration is missing, fetch it with a quick query (max N at a time)
             const needsDuration = results.filter(s => !s.duration || s.duration === 0);
             for (let i = 0; i < needsDuration.length; i += DURATION_FETCH_CONCURRENCY) {
               const batch = needsDuration.slice(i, i + DURATION_FETCH_CONCURRENCY);
@@ -191,7 +191,7 @@ async function getVideoInfo(query) {
                   const dur = await getVideoDuration(song.url);
                   if (dur && dur > 0) song.duration = dur;
                 } catch (e) {
-                  // Mantieni duration: 0 se fallisce
+                  // Keep duration: 0 if fails
                 }
               }));
             }
@@ -206,8 +206,8 @@ async function getVideoInfo(query) {
             duration: info.duration || 0
           };
 
-          // Fallback: se il root non ha info video utili ma c'è una entries con 1 elemento (es. list non espanso ma video principale presente)
-          const hasUsableVideo = result.url || (result.title && result.title !== 'Titolo Sconosciuto');
+          // Fallback: if root doesn't have useful video info but has entries with 1 element (e.g. unexpanded list but main video present)
+          const hasUsableVideo = result.url || (result.title && result.title !== 'Unknown Title');
           if (!hasUsableVideo && Array.isArray(info.entries) && info.entries.length > 0) {
             const first = info.entries[0];
             result = {
@@ -219,20 +219,20 @@ async function getVideoInfo(query) {
             };
           }
 
-          // Se la durata è mancante per single video
+          // If duration is missing for single video
           if (!result.duration || result.duration === 0) {
             try {
               const dur = await getVideoDuration(result.url);
               if (dur && dur > 0) result.duration = dur;
             } catch (e) {
-              // Mantieni duration: 0 se fallisce
+              // Keep duration: 0 if fails
             }
           }
 
           return resolve([result]);
         } catch (e) {
-          console.warn(`[getVideoInfo] Errore elaborazione output yt-dlp per "${query.substring(0, 80)}": ${e.message}`);
-          console.warn(`[getVideoInfo] Dati grezzi (primi 500 char): ${data ? data.substring(0, 500) : '(vuoto)'}`);
+          console.warn(`[getVideoInfo] Error processing yt-dlp output for "${query.substring(0, 80)}": ${e.message}`);
+          console.warn(`[getVideoInfo] Raw data (first 500 chars): ${data ? data.substring(0, 500) : '(empty)'}`);
           resolve([]);
         }
       });

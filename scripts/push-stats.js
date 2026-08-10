@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Script per versionare stats.json, playlists.json e data/monthly-stats/ su GitHub.
- * Flusso mensile (es. 1 luglio): push GitHub (stats+playlists+archivio) → archiviazione locale → reset stats.json
+ * Script to version stats.json, playlists.json and data/monthly-stats/ on GitHub.
+ * Monthly flow (e.g., July 1): GitHub push (stats+playlists+archive) → local archiving → reset stats.json
  */
 
 import fs from 'fs';
@@ -34,7 +34,7 @@ function getRomeCalendarParts(date = new Date()) {
   return { year: parts.year, month: parts.month, day: parts.day };
 }
 
-/** Mese chiuso da archiviare rispetto al calendario Roma (es. 1 luglio → giugno). */
+/** Closed month to archive relative to Rome calendar (e.g., July 1 → June). */
 function getClosedMonthArchivePaths(now = new Date()) {
   const { year, month } = getRomeCalendarParts(now);
   let archiveYear = year;
@@ -49,7 +49,7 @@ function getClosedMonthArchivePaths(now = new Date()) {
   return { yearMonth, dateStr, backupFileName: `stats-${dateStr}.json` };
 }
 
-/** Etichetta italiana del mese chiuso (es. 1 luglio → "giugno 2026"). */
+/** Italian label for closed month (e.g., July 1 → "June 2026"). */
 function getClosedMonthLabel(now = new Date()) {
   const { yearMonth } = getClosedMonthArchivePaths(now);
   const [year, month] = yearMonth.split('-').map(Number);
@@ -73,15 +73,15 @@ async function flushDataToDisk() {
   try {
     const playlistsModule = await import('../src/database/playlists.js');
     playlistsModule.flushDatabaseSync();
-    console.log('💾 Playlist flush su disco completato');
+    console.log('💾 Playlist flush to disk completed');
   } catch (e) {
-    console.warn('⚠️ Playlist flush fallito:', e.message);
+    console.warn('⚠️ Playlist flush failed:', e.message);
   }
 }
 
 /**
- * Commit e push di stats.json, playlists.json e monthly-stats/ su GitHub.
- * @returns {boolean} false solo se push fallisce
+ * Commits and pushes stats.json, playlists.json and monthly-stats/ to GitHub.
+ * @returns {boolean} false only if push fails
  */
 function gitPushDataFiles(commitMsg) {
   const gitPaths = getGitDataPaths();
@@ -91,7 +91,7 @@ function gitPushDataFiles(commitMsg) {
   const status = execSync(`git status --porcelain ${gitPathsArg}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
 
   if (!status.trim()) {
-    console.log('ℹ️ Nessun cambiamento in stats.json / playlists.json / monthly-stats da sincronizzare su GitHub');
+    console.log('ℹ️ No changes in stats.json / playlists.json / monthly-stats to sync to GitHub');
     return true;
   }
 
@@ -103,15 +103,15 @@ function gitPushDataFiles(commitMsg) {
 
   try {
     execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-    console.log('✅ stats.json, playlists.json e monthly-stats pushati su GitHub');
+    console.log('✅ stats.json, playlists.json and monthly-stats pushed to GitHub');
   } catch {
-    console.warn('⚠️ [STATS-PUSH] Push non-fast-forward; eseguo git pull --rebase e ritento...');
+    console.warn('⚠️ [STATS-PUSH] Non-fast-forward push; executing git pull --rebase and retrying...');
     try {
       execSync('git pull --rebase origin main', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-      console.log('✅ Push riuscito dopo rebase');
+      console.log('✅ Push successful after rebase');
     } catch (e) {
-      console.error('❌ [STATS-PUSH] Push fallito:', rebaseErr.message);
+      console.error('❌ [STATS-PUSH] Push failed:', rebaseErr.message);
       return false;
     }
   }
@@ -119,7 +119,7 @@ function gitPushDataFiles(commitMsg) {
   return true;
 }
 
-/** Copia stats.json in monthly-stats/ (locale; il push GitHub avviene prima del rollover). */
+/** Copies stats.json to monthly-stats/ (local; GitHub push happens before rollover). */
 async function archiveMonthlyStats() {
   try {
     const statsContent = fs.readFileSync(STATS_FILE, 'utf-8');
@@ -128,9 +128,9 @@ async function archiveMonthlyStats() {
     try {
       const statsModule = await import('../src/database/stats.js');
       statsModule.computeTopSongs(statsData, 5);
-      console.log('🏆 Top songs calcolate per backup locale');
+      console.log('🏆 Top songs calculated for local backup');
     } catch (e) {
-      console.warn('⚠️ Errore nel calcolo top songs:', e.message);
+      console.warn('⚠️ Error calculating top songs:', e.message);
     }
 
     const { yearMonth, backupFileName } = getClosedMonthArchivePaths();
@@ -142,7 +142,7 @@ async function archiveMonthlyStats() {
 
     const backupFilePath = path.join(monthDir, backupFileName);
     fs.writeFileSync(backupFilePath, JSON.stringify(statsData, null, 2), 'utf-8');
-    console.log(`📊 Archivio locale: ${backupFilePath}`);
+    console.log(`📊 Local archive: ${backupFilePath}`);
 
     return { success: true, backupFilePath };
   } catch (e) {
@@ -158,7 +158,7 @@ function resetStatsFile() {
       global: { songsStarted: 0, songsCompleted: 0, songPlays: {} }
     };
     fs.writeFileSync(STATS_FILE, JSON.stringify(emptyStats, null, 2), 'utf-8');
-    console.log('🧹 stats.json resettato per il nuovo mese');
+    console.log('🧹 stats.json reset for new month');
     return true;
   } catch (e) {
     console.error('❌ Error resetting stats file:', e.message);
@@ -189,7 +189,7 @@ async function pushStats(forceArchive = false) {
 
     const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' }).trim();
     if (currentBranch !== 'main') {
-      console.warn(`⚠️ Branch corrente: ${currentBranch} (non 'main'), procederò comunque`);
+      console.warn(`⚠️ Current branch: ${currentBranch} (not 'main'), will proceed anyway`);
     }
 
     await flushDataToDisk();
@@ -200,23 +200,23 @@ async function pushStats(forceArchive = false) {
       ? `Monthly data snapshot - ${closedMonthLabel}`
       : `Data update - ${monthYear}`;
 
-    // 1. Push GitHub: stats.json + playlists.json + monthly-stats/ (prima dell'archivio locale)
-    console.log('📤 Push stats.json, playlists.json e monthly-stats su GitHub...');
+    // 1. GitHub Push: stats.json + playlists.json + monthly-stats/ (before local archiving)
+    console.log('📤 Pushing stats.json, playlists.json and monthly-stats to GitHub...');
     if (!gitPushDataFiles(commitMsg)) {
       return false;
     }
 
-    // 2. Archiviazione locale + 3. reset (solo rollover mensile)
+    // 2. Local archiving + 3. reset (only monthly rollover)
     if (shouldArchive) {
       const closed = getClosedMonthArchivePaths();
-      console.log(`📦 Archiviazione locale mese chiuso (Roma): ${closed.yearMonth}`);
+      console.log(`📦 Local archiving of closed month (Rome): ${closed.yearMonth}`);
       const archiveResult = await archiveMonthlyStats();
       if (!archiveResult.success) {
-        console.error(`❌ Push ok ma archiviazione locale fallita: ${archiveResult.error}`);
+        console.error(`❌ Push ok but local archiving failed: ${archiveResult.error}`);
         return false;
       }
       if (!resetStatsFile()) {
-        console.error('❌ Archiviazione ok ma reset stats.json fallito');
+        console.error('❌ Archiving ok but stats.json reset failed');
         return false;
       }
     }

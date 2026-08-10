@@ -1,28 +1,28 @@
 /**
- * Sistema di statistiche per il bot musicale
- * Traccia:
- * - Tempo di ascolto per utente (solo quando il bot canta, non in pausa)
- * - Interazioni "aggiungi a playlist" per utente (server e personale)
- * - Contatori globali: canzoni avviate e completate
+ * Statistics system for the music bot
+ * Tracks:
+ * - Listening time per user (only when bot plays, not paused)
+ * - "Add to playlist" interactions per user (server and personal)
+ * - Global counters: songs started and completed
  */
 
 import fs from 'fs';
 import path from 'path';
 import { STATS_FILE } from '../../config/paths.js';
 
-// ─── Mappa in memoria dei timer attivi ──────────────────────
+// ─── In-memory map of active timers ──────────────────────
 // guildId → Map<userId, startTimestamp>
 const activeListeners = new Map();
 
-// Buffer statico per il tempo pendente (non ancora scritto su disco)
+// Static buffer for pending time (not yet written to disk)
 const pendingTime = {};
 
-// Flush periodico del tempo pendente per ridurre perdita dati su crash non-graceful
+// Periodic flush of pending time to reduce data loss on non-graceful crash
 setInterval(() => {
   try { flushPendingAndSave(); } catch { }
-}, 60 * 1000); // Ogni 60 secondi
+}, 60 * 1000); // Every 60 seconds
 
-// ─── Caricamento / Salvataggio ──────────────────────────────
+// ─── Loading / Saving ──────────────────────────────
 
 function getDefaultStats() {
   return {
@@ -41,7 +41,7 @@ function loadStats() {
     if (fs.existsSync(STATS_FILE)) {
       const raw = fs.readFileSync(STATS_FILE, 'utf-8');
       const data = JSON.parse(raw);
-      // Assicura struttura base
+      // Ensure base structure
       if (!data.users) data.users = {};
       if (!data.global) data.global = { songsStarted: 0, songsCompleted: 0 };
       if (!data.global.songsStarted) data.global.songsStarted = 0;
@@ -50,7 +50,7 @@ function loadStats() {
       return data;
     }
   } catch (e) {
-    console.error('⚠️ [STATS] Errore caricamento stats:', e.message);
+    console.error('⚠️ [STATS] Error loading stats:', e.message);
   }
   return getDefaultStats();
 }
@@ -61,12 +61,12 @@ function saveStats(data) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
     data.lastUpdated = new Date().toISOString();
-    // Scrittura atomica: scrivi su temp file, poi rinomina (previene corruzione su crash)
+    // Atomic write: write to temp file, then rename (prevents corruption on crash)
     const tmpFile = STATS_FILE + '.tmp';
     fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tmpFile, STATS_FILE);
   } catch (e) {
-    console.error('❌ [STATS] Errore salvataggio stats:', e.message);
+    console.error('❌ [STATS] Error saving stats:', e.message);
   }
 }
 
@@ -78,14 +78,14 @@ function ensureUser(data, userId, discordUser = null) {
       personalPlaylistAdds: 0
     };
   }
-  // Migrazione: assicura tutti i campi
+  // Migration: ensure all fields
   const u = data.users[userId];
   if (typeof u.listeningTimeMs !== 'number') u.listeningTimeMs = 0;
   if (typeof u.serverPlaylistAdds !== 'number') u.serverPlaylistAdds = 0;
   if (typeof u.personalPlaylistAdds !== 'number') u.personalPlaylistAdds = 0;
   if (!u.songPlays) u.songPlays = {};
 
-  // Aggiungi info Discord se fornite
+  // Add Discord info if provided
   if (discordUser) {
     u.username = discordUser.username;
     u.global_name = discordUser.globalName || null;
@@ -95,11 +95,11 @@ function ensureUser(data, userId, discordUser = null) {
   return u;
 }
 
-// ─── Timer di ascolto ───────────────────────────────────────
+// ─── Listening timers ───────────────────────────────────────
 
 /**
- * Inizia a tracciare il tempo di ascolto di un utente in una guild.
- * Se l'utente è già tracciato, non fa nulla (evita doppio conteggio).
+ * Start tracking listening time for a user in a guild.
+ * If the user is already tracked, does nothing (avoids double counting).
  */
 function startListening(guildId, userId) {
   if (!guildId || !userId) return;
@@ -108,15 +108,15 @@ function startListening(guildId, userId) {
     guildMap = new Map();
     activeListeners.set(guildId, guildMap);
   }
-  // Se già tracciato, ignora
+  // If already tracked, ignore
   if (guildMap.has(userId)) return;
   guildMap.set(userId, Date.now());
 }
 
 /**
- * Ferma il tracciamento per un singolo utente e accumula il tempo nella stats in memoria.
- * Ritorna i ms accumulati (o 0 se non era tracciato).
- * NON salva su disco — il salvataggio avviene separatamente.
+ * Stop tracking for a single user and accumulate time in in-memory stats.
+ * Returns accumulated ms (or 0 if not tracked).
+ * Does NOT save to disk — saving happens separately.
  */
 function stopListening(guildId, userId) {
   if (!guildId || !userId) return 0;
@@ -129,9 +129,9 @@ function stopListening(guildId, userId) {
 
   const elapsed = Math.max(0, Date.now() - startTime);
 
-  // Accumula nel file stats (carica, aggiorna, salva subito NO — lo facciamo in batch)
-  // Usiamo un buffer intermedio per evitare I/O per ogni singolo stop
-  // Il flush effettivo su disco avviene in flushGuildAndSave o flushAllGuildsAndSave
+  // Accumulate in stats file (load, update, save immediately NO — we do it in batch)
+  // We use an intermediate buffer to avoid I/O for each single stop
+  // Actual flush to disk happens in flushGuildAndSave or flushAllGuildsAndSave
   if (!pendingTime[userId]) pendingTime[userId] = 0;
   pendingTime[userId] += elapsed;
 
@@ -142,7 +142,7 @@ function stopListening(guildId, userId) {
 const MAX_LISTENER_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 /**
- * Rimuove listener orfani attivi da più di 24h (stale da crash/bug).
+ * Remove orphaned listeners active for more than 24h (stale from crash/bug).
  */
 function cleanupStaleListeners() {
   const now = Date.now();
@@ -157,8 +157,8 @@ function cleanupStaleListeners() {
 }
 
 /**
- * Avvia il tracciamento per tutti gli umani nel canale vocale del bot.
- * Da chiamare quando il bot inizia a suonare o resume da pausa.
+ * Start tracking for all humans in the bot's voice channel.
+ * Should be called when bot starts playing or resumes from pause.
  */
 function startAllListeners(guildId, voiceChannel) {
   if (!guildId || !voiceChannel || !voiceChannel.members) return;
@@ -169,20 +169,20 @@ function startAllListeners(guildId, voiceChannel) {
       }
     });
   } catch (e) {
-    console.warn('⚠️ [STATS] Errore startAllListeners:', e.message);
+    console.warn('⚠️ [STATS] Error in startAllListeners:', e.message);
   }
 }
 
 /**
- * Ferma il tracciamento per tutti gli utenti attivi in una guild.
- * NON salva su disco — accumula solo i tempi nel buffer pendente.
+ * Stop tracking for all active users in a guild.
+ * Does NOT save to disk — only accumulates times in pending buffer.
  */
 function stopAllListeners(guildId) {
   if (!guildId) return;
   const guildMap = activeListeners.get(guildId);
   if (!guildMap || guildMap.size === 0) return;
 
-  // Copia le chiavi prima di iterare (evita modifiche durante iterazione)
+  // Copy keys before iterating (avoids modifications during iteration)
   const userIds = [...guildMap.keys()];
   for (const userId of userIds) {
     stopListening(guildId, userId);
@@ -190,12 +190,12 @@ function stopAllListeners(guildId) {
 }
 
 /**
- * Scrive su disco tutti i tempi pendenti accumulati + salva il file stats.
- * Da chiamare alla disconnessione del bot da un canale o allo shutdown.
+ * Write all accumulated pending times to disk + save stats file.
+ * Should be called on bot disconnect from channel or shutdown.
  */
 function flushPendingAndSave() {
   try {
-    // Pulisci listener stalli (attivi da >24h sono certamente orfani)
+    // Clean stale listeners (active for >24h are definitely orphaned)
     cleanupStaleListeners();
 
     const pending = pendingTime;
@@ -215,13 +215,13 @@ function flushPendingAndSave() {
       delete pendingTime[key];
     }
   } catch (e) {
-    console.error('❌ [STATS] Errore flushPendingAndSave:', e.message);
+    console.error('❌ [STATS] Error in flushPendingAndSave:', e.message);
   }
 }
 
 /**
- * Ferma tutti i timer attivi per una guild specifica, poi flush su disco.
- * Usato alla disconnessione del bot da un canale vocale.
+ * Stop all active timers for a specific guild, then flush to disk.
+ * Used when bot disconnects from a voice channel.
  */
 function flushGuildAndSave(guildId) {
   stopAllListeners(guildId);
@@ -229,8 +229,8 @@ function flushGuildAndSave(guildId) {
 }
 
 /**
- * Ferma TUTTI i timer attivi su TUTTE le guild, poi flush su disco.
- * Usato allo shutdown del programma (SIGINT, uncaughtException).
+ * Stop ALL active timers on ALL guilds, then flush to disk.
+ * Used on program shutdown (SIGINT, uncaughtException).
  */
 function flushAllGuildsAndSave() {
   try {
@@ -239,28 +239,28 @@ function flushAllGuildsAndSave() {
       stopAllListeners(guildId);
     }
     flushPendingAndSave();
-    console.log(`📊 [STATS] Flush completo di tutte le guild (${guildIds.length} attive)`);
+    console.log(`📊 [STATS] Complete flush of all guilds (${guildIds.length} active)`);
   } catch (e) {
-    console.error('❌ [STATS] Errore flushAllGuildsAndSave:', e.message);
+    console.error('❌ [STATS] Error in flushAllGuildsAndSave:', e.message);
   }
 }
 
-// ─── Tracciamento riproduzioni canzoni ────────────────────────
+// ─── Song playback tracking ────────────────────────
 
 /**
- * Registra la riproduzione di una canzone globalmente e per ogni ascoltatore
- * nel canale vocale (usato per calcolare le top 5 canzoni del mese).
+ * Record song playback globally and for each listener
+ * in the voice channel (used to calculate top 5 songs of the month).
  * @param {string} guildId
  * @param {{ url: string, title: string, thumbnail?: string }} songInfo
- * @param {object|null} voiceChannel - Canale vocale Discord (con .members)
+ * @param {object|null} voiceChannel - Discord voice channel (with .members)
  */
 /**
- * Normalizza un URL YouTube (compresi link music.youtube.com) alla forma canonica
- * solo video ID. Usato per keying stats (dedup indipendente da playlist/mix).
+ * Normalize a YouTube URL (including music.youtube.com links) to canonical form
+ * video ID only. Used for stats keying (dedup independent of playlist/mix).
  */
 function normalizeYoutubeUrl(url) {
   if (!url) return url;
-  // Supporta anche music.youtube.com e m.youtube.com
+  // Also supports music.youtube.com and m.youtube.com
   const match = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/|music\.youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/);
   if (match && match[1]) return `https://www.youtube.com/watch?v=${match[1]}`;
   return url;
@@ -278,7 +278,7 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
 
     const data = loadStats();
 
-    // ── Globale ──
+    // ── Global ──
     if (!data.global.songPlays[url]) {
       data.global.songPlays[url] = { ...entry, count: 0 };
     }
@@ -286,7 +286,7 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
     data.global.songPlays[url].title = entry.title;
     if (entry.thumbnail) data.global.songPlays[url].thumbnail = entry.thumbnail;
 
-    // ── Per utente: tutti nel canale vocale ──
+    // ── Per user: all in voice channel ──
     if (voiceChannel && voiceChannel.members) {
       voiceChannel.members.forEach(member => {
         if (member.user.bot) return;
@@ -303,16 +303,16 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
 
     saveStats(data);
   } catch (e) {
-    console.error('⚠️ [STATS] Errore recordSongPlay:', e.message);
+    console.error('⚠️ [STATS] Error in recordSongPlay:', e.message);
   }
 }
 
 /**
- * Calcola le top N canzoni globali e per ogni utente, aggiungendo i campi
- * `topSongs` al data object. Da chiamare prima dell'archiviazione mensile.
- * @param {object} data - Stats data (mutato in-place)
- * @param {number} limit - Numero di canzoni top da conservare (default: 5)
- * @returns {object} data con topSongs aggiunti
+ * Calculate top N songs globally and per user, adding
+ * `topSongs` fields to data object. Should be called before monthly archiving.
+ * @param {object} data - Stats data (mutated in-place)
+ * @param {number} limit - Number of top songs to keep (default: 5)
+ * @returns {object} data with added topSongs
  */
 function computeTopSongs(data, limit = 5) {
   const sortByCounts = plays =>
@@ -330,7 +330,7 @@ function computeTopSongs(data, limit = 5) {
   return data;
 }
 
-// ─── Contatori globali canzoni ──────────────────────────────
+// ─── Global song counters ──────────────────────────────
 
 function incrementSongsStarted() {
   try {
@@ -338,7 +338,7 @@ function incrementSongsStarted() {
     data.global.songsStarted = (data.global.songsStarted || 0) + 1;
     saveStats(data);
   } catch (e) {
-    console.error('⚠️ [STATS] Errore incrementSongsStarted:', e.message);
+    console.error('⚠️ [STATS] Error in incrementSongsStarted:', e.message);
   }
 }
 
@@ -348,17 +348,17 @@ function incrementSongsCompleted() {
     data.global.songsCompleted = (data.global.songsCompleted || 0) + 1;
     saveStats(data);
   } catch (e) {
-    console.error('⚠️ [STATS] Errore incrementSongsCompleted:', e.message);
+    console.error('⚠️ [STATS] Error in incrementSongsCompleted:', e.message);
   }
 }
 
-// ─── Contatori interazioni playlist ─────────────────────────
+// ─── Playlist interaction counters ─────────────────────────
 
 /**
- * Registra un'aggiunta a playlist (solo aggiunte, non rimozioni).
+ * Record a playlist addition (additions only, not removals).
  * @param {string} userId
  * @param {'server'|'personal'} type
- * @param {object} discordUser - Opzionale, info Discord dell'utente
+ * @param {object} discordUser - Optional, user's Discord info
  */
 function recordPlaylistAdd(userId, type, discordUser = null) {
   try {
@@ -372,14 +372,14 @@ function recordPlaylistAdd(userId, type, discordUser = null) {
     }
     saveStats(data);
   } catch (e) {
-    console.error('⚠️ [STATS] Errore recordPlaylistAdd:', e.message);
+    console.error('⚠️ [STATS] Error in recordPlaylistAdd:', e.message);
   }
 }
 
 /**
- * Aggiorna le informazioni Discord di un utente nelle statistiche
+ * Update Discord user information in statistics
  * @param {string} userId
- * @param {object} discordUser - Oggetto utente Discord
+ * @param {object} discordUser - Discord user object
  */
 function updateUserDiscordInfo(userId, discordUser) {
   try {
@@ -388,14 +388,14 @@ function updateUserDiscordInfo(userId, discordUser) {
     ensureUser(data, userId, discordUser);
     saveStats(data);
   } catch (e) {
-    console.error('⚠️ [STATS] Errore updateUserDiscordInfo:', e.message);
+    console.error('⚠️ [STATS] Error in updateUserDiscordInfo:', e.message);
   }
 }
 
 // ─── Debug / Utility ────────────────────────────────────────
 
 /**
- * Restituisce lo stato corrente dei timer attivi (per debug).
+ * Return current state of active timers (for debug).
  */
 function getActiveListenersDebug() {
   const result = {};

@@ -11,7 +11,7 @@ export default (client) => {
       const serverQueue = queue.get(guildId);
       if (!serverQueue) return;
 
-      // Se lo stato del bot è cambiato (spostato/disconnesso)
+      // If bot state has changed (moved/disconnected)
       const botId = client.user?.id;
       const oldIsBot = oldState?.member?.id === botId;
       const newIsBot = newState?.member?.id === botId;
@@ -19,33 +19,33 @@ export default (client) => {
       if (oldIsBot || newIsBot) {
         const botChannel = newState?.channel || newState?.member?.voice?.channel || null;
         if (!botChannel) {
-          // Se è in corso una riconnessione (cambio canale), non interferire
+          // If reconnection is in progress (channel change), don't interfere
           if (serverQueue._isReconnecting) return;
-          // Il bot è stato disconnesso/espulso - ferma tutti i timer ascolto
+          // Bot was disconnected/kicked - stop all listeners
           try { stats.stopAllListeners(guildId); } catch { }
-          // Aggiorna lo stato della coda per riflettere l'assenza di canale
+          // Update queue state to reflect lack of channel
           serverQueue.voiceChannel = null;
-          // Forza cleanup immediato
+          // Force immediate cleanup
           scheduleDisconnectIfAlone(serverQueue, 0);
           return;
         } else {
-          // Il bot si è spostato in un altro canale - aggiorna `voiceChannel` memorizzato
+          // Bot moved to another channel - update stored `voiceChannel`
           serverQueue.voiceChannel = botChannel;
-          // Conta gli umani (escludi i bot)
+          // Count humans (exclude bots)
           const humanCount = botChannel.members ? botChannel.members.filter(m => !m.user.bot).size : 0;
           if (humanCount === 0) {
-            // Finestra di riconciliazione breve: se nessuno entra entro questo intervallo, disconnetti
+            // Short reconciliation window: if nobody joins within this interval, disconnect
             scheduleDisconnectIfAlone(serverQueue, RECONCILE_WINDOW_MS);
           } else {
             cancelScheduledDisconnect(serverQueue);
           }
         }
       } else {
-        // Stato non-bot cambiato (membro entrato/uscito) - riesamina il canale del bot
+        // Non-bot state changed (user joined/left) - reexamine bot's channel
         const vc = serverQueue.voiceChannel;
         if (!vc) return;
 
-        // ── STATS: traccia ingresso/uscita utente dal canale del bot mentre canta ──
+        // ── STATS: track user entry/exit from bot channel while playing ──
         try {
           const memberId = oldState?.member?.id || newState?.member?.id;
           const isBot = oldState?.member?.user?.bot || newState?.member?.user?.bot;
@@ -55,10 +55,10 @@ export default (client) => {
             const botChannelId = vc.id;
 
             if (oldChannelId === botChannelId && newChannelId !== botChannelId) {
-              // Utente uscito dal canale del bot
+              // User left bot's channel
               stats.stopListening(guildId, memberId);
             } else if (oldChannelId !== botChannelId && newChannelId === botChannelId) {
-              // Utente entrato nel canale del bot
+              // User joined bot's channel
               stats.startListening(guildId, memberId);
             }
           }
@@ -70,7 +70,7 @@ export default (client) => {
       }
 
     } catch (e) {
-      console.error('Errore in voiceStateUpdate:', e);
+      console.error('Error in voiceStateUpdate:', e);
     }
   });
 };

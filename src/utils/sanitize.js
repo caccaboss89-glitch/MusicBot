@@ -1,14 +1,14 @@
 /**
- * Funzioni di utilità per parsing e sanitizzazione
+ * Utility functions for parsing and sanitization
  */
 
 import fs from 'fs';
 
 /**
- * Parsing sicuro di un intero con valore di default
- * @param {any} value - Valore da parsare
- * @param {number} defaultValue - Valore di default se parsing fallisce
- * @returns {number} - Intero >= 0
+ * Safe integer parsing with default value
+ * @param {any} value - Value to parse
+ * @param {number} defaultValue - Default value if parsing fails
+ * @returns {number} - Integer >= 0
  */
 export function safeParseInt(value, defaultValue = 0) {
   const parsed = parseInt(value);
@@ -30,36 +30,36 @@ export function safeParseInt(value, defaultValue = 0) {
  * @returns {string} - Titolo sicuro per masked link
  */
 export function sanitizeTitle(title) {
-  if (!title) return 'Titolo Sconosciuto';
+  if (!title) return 'Unknown Title';
   const cleaned = String(title)
-    .replace(/\[/g, '(')   // le quadre romperebbero la sintassi [testo](url)
+    .replace(/\[/g, '(')   // brackets would break [text](url) syntax
     .replace(/\]/g, ')')
-    .replace(/\*/g, '∗')   // U+2217: evita bold/italic accidentali senza backslash visibili
-    .replace(/\r?\n/g, ' ') // niente a capo dentro la descrizione
+    .replace(/\*/g, '∗')   // U+2217: avoids accidental bold/italic without visible backslash
+    .replace(/\r?\n/g, ' ') // no line breaks in description
     .trim();
-  return cleaned || 'Titolo Sconosciuto';
+  return cleaned || 'Unknown Title';
 }
 
 /**
- * Titolo per `EmbedBuilder.setTitle()`. Discord NON interpreta il markdown nei titoli
- * degli embed: possiamo mostrare il titolo COMPLETAMENTE RAW (compresi `**`, `_`, `~`...),
- * cliccabile tramite setURL(). Togliamo solo gli a-capo e rispettiamo il limite di 256.
+ * Title for `EmbedBuilder.setTitle()`. Discord does NOT interpret markdown in embed titles:
+ * we can show the title COMPLETELY RAW (including `**`, `_`, `~`...),
+ * clickable via setURL(). We only remove line breaks and respect the 256 limit.
  *
- * @param {string} title - Titolo originale
+ * @param {string} title - Original title
  * @returns {string}
  */
 export function displayTitle(title) {
-  if (!title) return 'Titolo Sconosciuto';
+  if (!title) return 'Unknown Title';
   const cleaned = String(title).replace(/\r?\n/g, ' ').trim();
-  if (!cleaned) return 'Titolo Sconosciuto';
+  if (!cleaned) return 'Unknown Title';
   return cleaned.length > 256 ? cleaned.slice(0, 255) + '…' : cleaned;
 }
 
 /**
- * Parsing sicuro di un file JSON con creazione se non esiste
- * @param {string} filename - Percorso del file JSON
- * @param {any} defaultData - Dati di default se file non esiste o è corrotto
- * @returns {any} - Dati parsati o default
+ * Safe JSON file parsing with creation if doesn't exist
+ * @param {string} filename - Path to JSON file
+ * @param {any} defaultData - Default data if file doesn't exist or is corrupted
+ * @returns {any} - Parsed data or default
  */
 export function safeJSONParse(filename, defaultData) {
   if (!fs.existsSync(filename)) {
@@ -71,20 +71,20 @@ export function safeJSONParse(filename, defaultData) {
   try {
     return JSON.parse(fs.readFileSync(filename, 'utf-8'));
   } catch {
-    // File corrotto: salva backup prima di sovrascrivere
+    // Corrupted file: save backup before overwriting
     try {
       fs.copyFileSync(filename, filename + '.corrupted.bak');
-      console.warn(`⚠️ [SANITIZE] File corrotto: ${filename} — backup salvato come ${filename}.corrupted.bak`);
+      console.warn(`⚠️ [SANITIZE] Corrupted file: ${filename} — backup saved as ${filename}.corrupted.bak`);
     } catch { /* ignore */ }
-    try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch { /* ignoriamo */ }
+    try { fs.writeFileSync(filename, JSON.stringify(defaultData, null, 2)); } catch { /* ignore */ }
     return defaultData;
   }
 }
 
 /**
- * Estrae l'ID video da un URL YouTube
- * @param {string} url - URL YouTube
- * @returns {string|null} - ID video o null
+ * Extracts video ID from a YouTube URL
+ * @param {string} url - YouTube URL
+ * @returns {string|null} - Video ID or null
  */
 export function getYoutubeId(url) {
   if (!url) return null;
@@ -93,11 +93,11 @@ export function getYoutubeId(url) {
 }
 
 /**
- * Normalizza un URL YouTube (o YouTube Music) alla forma canonica www.youtube.com
- * - Converte music.youtube.com → www.youtube.com
- * - Rimuove parametri di tracking (si, pp, feature, ecc.)
- * - Preserva list= e index= quando presenti (utile per mix/playlist context)
- * - Gestisce youtu.be, /embed/, /shorts/, /v/ ecc.
+ * Normalize a YouTube (or YouTube Music) URL to canonical www.youtube.com form
+ * - Converts music.youtube.com → www.youtube.com
+ * - Removes tracking parameters (si, pp, feature, etc.)
+ * - Preserves list= and index= when present (useful for mix/playlist context)
+ * - Handles youtu.be, /embed/, /shorts/, /v/ etc.
  * @param {string} url
  * @returns {string}
  */
@@ -105,10 +105,10 @@ export function normalizeYoutubeUrl(url) {
   if (!url || typeof url !== 'string') return url;
   let u = url.trim();
 
-  // 1. Converti domini music.youtube e m.youtube a www.youtube
+  // 1. Convert music.youtube and m.youtube domains to www.youtube
   u = u.replace(/^https?:\/\/(?:music|m)\.youtube\.com\//i, 'https://www.youtube.com/');
 
-  // 2. Prova parsing URL per pulizia precisa dei query params
+  // 2. Try URL parsing for precise query param cleanup
   try {
     const parsed = new URL(u);
     if (parsed.hostname.endsWith('youtube.com') || parsed.hostname === 'youtu.be') {
@@ -142,14 +142,14 @@ export function normalizeYoutubeUrl(url) {
         return `https://www.youtube.com/playlist?list=${list}`;
       }
 
-      // Non è un video singolo riconoscibile, restituisci con dominio normalizzato
+      // Not a recognizable single video, return with normalized domain
       return u.replace(/^https?:\/\/[^/]+/, 'https://www.youtube.com');
     }
   } catch {
-    // Fallback regex semplice
+    // Simple regex fallback
   }
 
-  // Fallback regex-based (per URL malformati o casi edge)
+  // Regex-based fallback (for malformed URLs or edge cases)
   const idMatch = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|playlist\?list=))([a-zA-Z0-9_-]{11,})/);
   if (idMatch && idMatch[1] && idMatch[1].length === 11) {
     // Se c'è list= nel query originale, prova a preservarlo
@@ -164,10 +164,10 @@ export function normalizeYoutubeUrl(url) {
 }
 
 /**
- * Confronta due URL per verificare se puntano alla stessa canzone
- * @param {string} url1 - Primo URL
- * @param {string} url2 - Secondo URL
- * @returns {boolean} - true se sono la stessa canzone
+ * Compares two URLs to check if they point to the same song
+ * @param {string} url1 - First URL
+ * @param {string} url2 - Second URL
+ * @returns {boolean} - true if they are the same song
  */
 export function areSameSong(url1, url2) {
   if (url1 === url2) return true;

@@ -1,23 +1,23 @@
 /**
- * Sistema di skip pulito e unificato
+ * Clean and unified skip system
  *
- * Due tipi di skip:
- * 1. MANUALI: bottoni (next/prev) e menu a tendina (skipToIndex)
- * 2. AUTOMATICI: fine canzone (autoSkip chiamato da PlaybackEngine)
+ * Two types of skips:
+ * 1. MANUAL: buttons (next/prev) and dropdown menu (skipToIndex)
+ * 2. AUTOMATIC: song end (autoSkip called by PlaybackEngine)
  *
- * Logica centrale (performTransition):
- *  - Verifica se la canzone target è precaricata nell'altro deck
- *  - Verifica se il fade è attivo
- *  - Se precaricata + fade → crossfade
- *  - Se precaricata + no fade → transizione istantanea (skipTo)
- *  - Se NON precaricata → mostra "Caricamento...", carica, poi transizione
- *  - Dopo la transizione aggiorna playIndex (senza toccare l'array songs)
+ * Central logic (performTransition):
+ *  - Checks if target song is preloaded on other deck
+ *  - Checks if fade is active
+ *  - If preloaded + fade → crossfade
+ *  - If preloaded + no fade → instant transition (skipTo)
+ *  - If NOT preloaded → show "Loading...", load, then transition
+ *  - After transition updates playIndex (without touching songs array)
  *
- * La coda (songs[]) resta IMMUTABILE durante gli skip.
- * La navigazione avviene solo tramite playIndex.
+ * The queue (songs[]) stays IMMUTABLE during skips.
+ * Navigation happens only via playIndex.
  *
- * VERSIONING: Usa StateVersion per tracciare mutazioni atomiche e prevenire
- * race conditions causate da letture stale dello stato.
+ * VERSIONING: Uses StateVersion to track atomic mutations and prevent
+ * race conditions caused by stale state reads.
  */
 
 import { queue } from '../state/globals.js';
@@ -31,7 +31,7 @@ import { bindDeckSong } from '../queue/QueueManager.js';
 import { clearDeckBindings } from '../queue/QueueManager.js';
 import { call, register } from './audio-bridge.js';
 
-// Throttle per prevenire spam di skip ravvicinati
+// Throttle to prevent spam of rapid skips
 const skipThrottle = new Map();  // guildId -> timestamp
 
 function cleanupSkipState(guildId) {
@@ -53,17 +53,17 @@ function isThrottled(guildId) {
 }
 
 /**
- * Attende che il buffer di un deck sia pronto (polling ogni 50ms)
- * Non controlla la versione: se il buffer è pronto, è pronto (indipendentemente da altri skip)
+ * Waits for deck buffer to be ready (polling every 50ms)
+ * Does not check version: if buffer is ready, it's ready (regardless of other skips)
  */
 // ─── Core ───────────────────────────────────────────────────
 
 /**
- * Esegue la transizione verso una canzone target con versioning atomico.
- * Gestisce preload, fade/istantaneo, e aggiornamento stato con tracciamento di versione.
+ * Performs transition to target song with atomic versioning.
+ * Handles preload, fade/instant, and state update with version tracking.
  *
  * @param {string} guildId
- * @param {number} targetIndex  – indice assoluto in songs[]
+ * @param {number} targetIndex  – absolute index in songs[]
  * @param {string} reason       – 'manual' | 'manual-select' | 'manual-prev' | 'auto'
  * @returns {Promise<boolean>}
  */
@@ -71,13 +71,13 @@ async function performTransition(guildId, targetIndex, reason) {
   const sq = queue.get(guildId);
   if (!sq || !isMixerAlive(sq)) return false;
 
-  // ⚠️  CRITICO: Non permettere skip durante un crossfade in corso
-  // Anche se il flag isCrossfading è false (cancellato da onSongStart()),
-  // il Rust potrebbe still essere nel mezzo del crossfade
-  // Controlla il timestamp: se il crossfade è iniziato da meno di CROSSFADE_DURATION_MS, aspetta
+  // ⚠️  CRITICAL: Do not allow skip during ongoing crossfade
+  // Even if isCrossfading flag is false (cleared by onSongStart()),
+  // Rust might still be in the middle of crossfade
+  // Check timestamp: if crossfade started less than CROSSFADE_DURATION_MS ago, wait
   if (sq.crossfadeStartTime && Date.now() - sq.crossfadeStartTime < CROSSFADE_DURATION_MS) {
     const timeElapsed = Date.now() - sq.crossfadeStartTime;
-    console.warn(`⚠️  [SKIP] Crossfade in corso (iniziato ${timeElapsed}ms fa), aspetto che finisca prima di skippa`);
+    console.warn(`⚠️  [SKIP] Crossfade in progress (started ${timeElapsed}ms ago), waiting for it to finish before skipping`);
     return false;
   }
 
@@ -89,15 +89,15 @@ async function performTransition(guildId, targetIndex, reason) {
   const lock = stateVersion.acquireLock(operationId, 30000);
 
   try {
-    // Prevenire skip concorrenti
+    // Prevent concurrent skips
     if (stateVersion.hasActiveLock(`skip_${guildId}`) && stateVersion.hasActiveLock(operationId) === false) {
-      console.warn('⚠️  [SKIP] Ignorato – skip già in corso');
+      console.warn('⚠️  [SKIP] Ignored – skip already in progress');
       return false;
     }
 
     const targetSong = sq.songs[targetIndex];
     if (!targetSong || !targetSong.url) {
-      console.warn(`⚠️  [SKIP] Canzone target non valida (index=${targetIndex})`);
+      console.warn(`⚠️  [SKIP] Invalid target song (index=${targetIndex})`);
       return false;
     }
 
@@ -112,26 +112,26 @@ async function performTransition(guildId, targetIndex, reason) {
     const oldDeck = sq.currentDeck || 'A';
     const targetUrl = targetSong.url;
 
-    // Verifica se la canzone è precaricata sul deck target
-    // CRITICO: Controlla sia l'URL che lo stato bufferReady per evitare false-positive
-    // "preloaded" significa che il Rust ha dati audio pronti, non solo che l'URL è stato inviato
+    // Check if song is preloaded on target deck
+    // CRITICAL: Check both URL and bufferReady state to avoid false-positives
+    // "preloaded" means Rust has audio data ready, not just that URL was sent
     const isPreloaded = sq.nextDeckLoaded === targetUrl
             && sq.nextDeckTarget === targetDeck
             && sq.bufferReady && sq.bufferReady[targetDeck];
 
-    // Pulisci timer del brano corrente (preload / end-monitor)
+    // Clean up current song timers (preload / end-monitor)
     call('clearAllTimers', guildId);
 
     if (isPreloaded) {
-      // ── FAST PATH: precaricata ──
-      // Il Rust gestisce il buffer internamente: se il deck ha dati, switcha subito.
-      // Se il deck non ha ancora dati, il Rust imposta un "pending skip" e
-      // continua a riprodurre il deck corrente fino a quando i dati arrivano.
+      // ── FAST PATH: preloaded ──
+      // Rust manages buffer internally: if deck has data, it switches immediately.
+      // If deck doesn't have data yet, Rust sets a "pending skip" and
+      // keeps playing current deck until data arrives.
 
-      // SERIALIZZA il comando attraverso command queue per evitare race conditions
+      // SERIALIZE command through command queue to avoid race conditions
       if (fadeEnabled) {
         sq.isCrossfading = true;
-        sq.crossfadeStartTime = Date.now();  // ⚠️  Traccia il momento di inizio per sincronizzazione
+        sq.crossfadeStartTime = Date.now();  // ⚠️  Track start time for sync
 
         await commandQueue.enqueue(
           guildId,
@@ -142,10 +142,10 @@ async function performTransition(guildId, targetIndex, reason) {
 
         console.log(`🎚️  [SKIP] Crossfade → deck ${targetDeck} (${reason}, preloaded)`);
 
-        // ⚠️  NON cancellare il flag qui con setTimeout
-        // Il flag verrà cancellato quando onSongStart() viene callato,
-        // che significa che il crossfade è definitivamente completato nel Rust
-        // e la nuova canzone ha iniziato a riprodursi
+        // ⚠️  Do NOT clear flag here with setTimeout
+        // Flag will be cleared when onSongStart() is called,
+        // which means crossfade is definitely complete in Rust
+        // and the new song has started playing
       } else {
         await commandQueue.enqueue(
           guildId,
@@ -157,39 +157,39 @@ async function performTransition(guildId, targetIndex, reason) {
       }
 
     } else {
-      // ── NON precaricata: carica da zero ──
-      try { sq.mixer.stopDeck(targetDeck); } catch { /* ignora */ }
+      // ── NOT preloaded: load from scratch ──
+      try { sq.mixer.stopDeck(targetDeck); } catch { /* ignore */ }
       sq.bufferReady = sq.bufferReady || {};
       sq.bufferReady[targetDeck] = false;
 
-      // Stiamo sovrascrivendo il deck che era usato per il preload "next": invalida
-      // il vecchio preload e lega il deck alla canzone target REALE. Così qualunque
-      // evento successivo (buffer_ready, auto-gapless) conosce l'indice corretto.
+      // We are overwriting the deck used for "next" preload: invalidate
+      // old preload and bind deck to REAL target song. So any subsequent
+      // event (buffer_ready, auto-gapless) knows correct index.
       sq.nextDeckLoaded = null;
       sq.nextDeckTarget = null;
       bindDeckSong(sq, targetDeck, targetIndex, targetUrl);
 
-      // SERIALIZZA il comando load
+      // SERIALIZE load command
       await commandQueue.enqueue(
         guildId,
         'load',
-        () => { sq.mixer.load(targetUrl, targetDeck, false); },  // autoplay: false, il skipTo/crossfade lo attiva
+        () => { sq.mixer.load(targetUrl, targetDeck, false); },  // autoplay: false, skipTo/crossfade activates it
         { timeout: 8000, priority: 'high' }
       );
 
       if (reason !== 'auto') {
-        sq.loadingFooter = '⏳ Caricamento in corso...';
-        try { call('refreshDashboard', sq); } catch { /* ignora */ }
+        sq.loadingFooter = '⏳ Loading in progress...';
+        try { call('refreshDashboard', sq); } catch { /* ignore */ }
       }
 
-      // ── TRANSIZIONE DIFFERITA ──
-      // Il download su Linux richiede 10-12s; aspettare qui bloccherebbe la barrier
-      // e causerebbe timeout sistematici. Invece registriamo una pendingTransition e
-      // ritorniamo subito. completePendingTransition() verrà chiamato da:
-      //   • handleBufferReady()   → deck pronto mentre il brano è ancora in riproduzione
-      //   • handleAutoEndSwitch() → il Rust ha switchato autonomous via auto-gapless stall
+      // ── DEFERRED TRANSITION ──
+      // Download on Linux takes 10-12s; waiting here would block barrier
+      // and cause systematic timeouts. Instead we register pendingTransition and
+      // return immediately. completePendingTransition() will be called by:
+      //   • handleBufferReady()   → deck ready while song still playing
+      //   • handleAutoEndSwitch() → Rust switched autonomous via auto-gapless stall
 
-      // Annulla eventuale pending precedente per lo stesso deck
+      // Cancel any previous pending for same deck
       if (sq.pendingTransition && sq.pendingTransition.targetDeck === targetDeck) {
         if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
       }
@@ -201,13 +201,13 @@ async function performTransition(guildId, targetIndex, reason) {
         if (!sq2 || !sq2.pendingTransition || sq2.pendingTransition.startTime !== pendingStartTime) return;
 
         if (sq2.isPaused) {
-          console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) in pausa – forzo transizione`);
-          // Forza la transizione anche se non abbiamo ricevuto buffer_ready dal Rust.
+          console.warn(`⚠️  [SKIP] Pending transition expired (${timeoutMs}ms) while paused – forcing transition`);
+          // Force transition even if we didn't get buffer_ready from Rust.
           completePendingTransition(guildId).catch(e => {
-            console.error('❌ [SKIP] Errore forzando completePendingTransition:', e);
+            console.error('❌ [SKIP] Error forcing completePendingTransition:', e);
           });
         } else {
-          console.warn(`⚠️  [SKIP] Pending transition scaduta (${timeoutMs}ms) – annullo`);
+          console.warn(`⚠️  [SKIP] Pending transition expired (${timeoutMs}ms) – canceling`);
           sq2.pendingTransition = null;
           sq2.loadingFooter = null;
           try { call('refreshDashboard', sq2); } catch { }
@@ -224,11 +224,11 @@ async function performTransition(guildId, targetIndex, reason) {
         _cleanupTimer: cleanupTimer
       };
 
-      console.log(`⏳ [SKIP] Deck ${targetDeck} in download (${reason}) – transizione differita`);
-      return true; // Stato verrà aggiornato da completePendingTransition
+      console.log(`⏳ [SKIP] Deck ${targetDeck} downloading (${reason}) – deferred transition`);
+      return true; // State will be updated by completePendingTransition
     }
-    // ── Aggiorna stato ATOMICAMENTE ──
-    // Tutte le mutazioni in una transazione logica per evitare state corruption
+    // ── Update state ATOMICALLY ──
+    // All mutations in one logical transaction to prevent state corruption
     sq.playIndex = targetIndex;
     sq.currentDeck = targetDeck;
     sq.currentDeckLoaded = targetSong.url;
@@ -241,7 +241,7 @@ async function performTransition(guildId, targetIndex, reason) {
     bindDeckSong(sq, targetDeck, targetIndex, targetSong.url);
     bindDeckSong(sq, oldDeck, null, null);
 
-    // ── STATS: nuova canzone avviata (transizione) ──
+    // ── STATS: new song started (transition) ──
     try {
       const stats = (await import('../database/stats.js')).default;
       stats.incrementSongsStarted();
@@ -273,9 +273,9 @@ async function performTransition(guildId, targetIndex, reason) {
     return true;
 
   } catch (e) {
-    console.error(`❌ [SKIP] Errore durante transizione (${reason}):`, e);
+    console.error(`❌ [SKIP] Error during transition (${reason}):`, e);
     stateVersion.incrementVersion('skip_error', { reason, error: e.message });
-    // Cleanup crossfade flags solo in caso di errore
+    // Cleanup crossfade flags only on error
     const sqErr = queue.get(guildId);
     if (sqErr) {
       sqErr.isCrossfading = false;
@@ -283,8 +283,8 @@ async function performTransition(guildId, targetIndex, reason) {
     }
     return false;
   } finally {
-    // Pulisci solo il footer di caricamento — i flag crossfade sono gestiti da
-    // onSongStart() (successo) o dal catch (errore)
+    // Clean up only loading footer — crossfade flags are managed by
+    // onSongStart() (success) or catch (error)
     const sqF = queue.get(guildId);
     if (sqF) {
       sqF.loadingFooter = null;
@@ -297,7 +297,7 @@ async function performTransition(guildId, targetIndex, reason) {
 // ─── Public API ─────────────────────────────────────────────
 
 /**
- * Skip manuale al prossimo brano (bottone ⏭️)
+ * Manual skip to next song (⏭️ button)
  */
 async function skipNext(guildId) {
   if (isThrottled(guildId)) return false;
@@ -305,7 +305,7 @@ async function skipNext(guildId) {
   const sq = queue.get(guildId);
   if (!sq) return false;
 
-  // Loop → riavvia canzone corrente
+  // Loop → restart current song
   if (sq.loopEnabled) {
     await call('restartCurrentSong', guildId);
     return true;
@@ -314,7 +314,7 @@ async function skipNext(guildId) {
   const nextIndex = (sq.playIndex || 0) + 1;
 
   if (nextIndex >= sq.songs.length) {
-    // Nessuna canzone successiva → termina la coda
+    // No next song → end queue
     await endQueue(guildId);
     return true;
   }
@@ -323,7 +323,7 @@ async function skipNext(guildId) {
 }
 
 /**
- * Skip manuale al brano precedente (bottone ⏮️)
+ * Manual skip to previous song (⏮️ button)
  */
 async function skipPrev(guildId) {
   if (isThrottled(guildId)) return false;
@@ -338,7 +338,7 @@ async function skipPrev(guildId) {
 }
 
 /**
- * Skip manuale a un indice specifico (menu a tendina)
+ * Manual skip to specific index (dropdown menu)
  */
 async function skipToIndex(guildId, targetIndex) {
   if (isThrottled(guildId)) return false;
@@ -346,22 +346,22 @@ async function skipToIndex(guildId, targetIndex) {
   const sq = queue.get(guildId);
   if (!sq) return false;
   if (targetIndex < 0 || targetIndex >= sq.songs.length) return false;
-  if (targetIndex === (sq.playIndex || 0)) return false; // Già in riproduzione
+  if (targetIndex === (sq.playIndex || 0)) return false; // Already playing
 
   return await performTransition(guildId, targetIndex, 'manual-select');
 }
 
 /**
- * Skip automatico a fine canzone (chiamato da PlaybackEngine)
+ * Automatic skip at song end (called by PlaybackEngine)
  */
 async function autoSkip(guildId) {
   const sq = queue.get(guildId);
   if (!sq) return false;
 
-  // ── STATS: canzone completata (fine naturale) ──
+  // ── STATS: song completed (natural end) ──
   try { (await import('../database/stats.js')).default.incrementSongsCompleted(); } catch { }
 
-  // Loop → riavvia canzone corrente
+  // Loop → restart current song
   if (sq.loopEnabled) {
     await call('restartCurrentSong', guildId);
     return true;
@@ -378,8 +378,8 @@ async function autoSkip(guildId) {
 }
 
 /**
- * Termina la coda.
- * Mantiene l'ultima canzone in songs[0] per il replay (schermata "Coda Terminata").
+ * Ends the queue.
+ * Keeps last song in songs[0] for replay ("Queue Ended" screen).
  */
 async function endQueue(guildId) {
   const sq = queue.get(guildId);
@@ -387,16 +387,16 @@ async function endQueue(guildId) {
 
   call('clearAllTimers', guildId);
 
-  // ── STATS: ferma timer ascolto e salva ──
+  // ── STATS: stop listening timer and save ──
   try {
     const stats = (await import('../database/stats.js')).default;
     stats.flushGuildAndSave(guildId);
   } catch { }
 
-  // Ultima canzone riprodotta (per embed "Coda Terminata" e replay)
+  // Last song played (for "Queue Ended" embed and replay)
   const lastSong = sq.songs[sq.playIndex || 0] || null;
 
-  // Reset stato – l'ultima canzone resta per il replay
+  // Reset state – last song remains for replay
   sq.songs = lastSong ? [lastSong] : [];
   sq.history = [];
   sq.playIndex = 0;
@@ -408,31 +408,31 @@ async function endQueue(guildId) {
   sq.currentDeck = 'A';
   sq.isPaused = false;
   clearDeckBindings(sq);
-  // Annulla eventuale pending transition
+  // Cancel any pending transition
   if (sq.pendingTransition) {
     if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
     sq.pendingTransition = null;
   }
 
-  // Ferma player e mixer (marca come intenzionale per evitare crash-recovery)
-  try { if (sq.player) sq.player.stop(true); } catch { /* ignora */ }
+  // Stop player and mixer (mark as intentional to avoid crash-recovery)
+  try { if (sq.player) sq.player.stop(true); } catch { /* ignore */ }
   sq.intentionalKill = true;
   if (sq.mixer) {
-    try { sq.mixer.kill(); } catch { /* ignora */ }
+    try { sq.mixer.kill(); } catch { /* ignore */ }
     sq.mixer = null;
   }
-  // Distruggi il low-latency stream per evitare pipe/fd leak
-  try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { /* ignora */ }
+  // Destroy low-latency stream to prevent pipe/fd leak
+  try { if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; } } catch { /* ignore */ }
 
   saveQueueState(guildId, sq);
   const uiModule = await import('../ui/index.js');
   await uiModule.default.updateDashboardToFinished(sq, lastSong);
 
-  console.log(`🏁 [QUEUE-END] Coda terminata${lastSong ? ' (replay: ' + sanitizeTitle(lastSong.title) + ')' : ''}`);
+  console.log(`🏁 [QUEUE-END] Queue ended${lastSong ? ' (replay: ' + sanitizeTitle(lastSong.title) + ')' : ''}`);
 }
 
 /**
- * Verifica se c'è uno skip in corso (usando state versioning)
+ * Checks if a skip is in progress (using state versioning)
  */
 function hasSkipInProgress(guildId) {
   const stateVersion = stateVersionManager.get(guildId);
@@ -440,12 +440,12 @@ function hasSkipInProgress(guildId) {
 }
 
 /**
- * Completa una transizione differita quando il deck target diventa pronto.
- * Chiamato da handleBufferReady() o handleAutoEndSwitch() in src/audio/index.js.
+ * Completes a deferred transition when target deck becomes ready.
+ * Called by handleBufferReady() or handleAutoEndSwitch() in src/audio/index.js.
  *
  * @param {string} guildId
- * @param {boolean} [alreadySwitched=false] – true se il Rust ha già switchato (auto-gapless):
- *   in quel caso non inviamo skip_to/crossfade, aggiorniamo solo lo stato Node.js.
+ * @param {boolean} [alreadySwitched=false] – true if Rust already switched (auto-gapless):
+ *   in that case we don't send skip_to/crossfade, only update Node.js state.
  */
 async function completePendingTransition(guildId, alreadySwitched = false) {
   const sq = queue.get(guildId);
@@ -463,22 +463,22 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     return;
   }
 
-  // Verifica che la canzone target sia ancora valida in coda
+  // Check that target song is still valid in queue
   const targetSong = sq.songs[pt.targetIndex];
   if (!targetSong || targetSong.url !== pt.targetUrl) {
-    console.warn('⚠️  [SKIP] Pending transition invalidata: canzone rimossa dalla coda');
-    // Il deck target ha caricato audio di una canzone non più in coda: invalida il binding.
+    console.warn('⚠️  [SKIP] Pending transition invalidated: song removed from queue');
+    // Target deck loaded audio for song no longer in queue: invalidate binding.
     bindDeckSong(sq, pt.targetDeck, null, null);
     sq.loadingFooter = null;
     try { call('refreshDashboard', sq); } catch { }
     return;
   }
 
-  // Se siamo già sul deck target (auto-gapless ha già switchato), non mandare comandi a Rust
+  // If we're already on target deck (auto-gapless already switched), don't send commands to Rust
   const rustAlreadySwitched = alreadySwitched || (sq.currentDeck === pt.targetDeck);
 
   if (!rustAlreadySwitched) {
-    // Esegui il comando di switch
+    // Execute switch command
     try {
       if (pt.fadeEnabled) {
         sq.isCrossfading = true;
@@ -490,7 +490,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
         console.log(`⚡ [SKIP] → deck ${pt.targetDeck} (${pt.reason}, deferred)`);
       }
     } catch (e) {
-      console.error('❌ [SKIP] Errore comando pending transition:', e.message);
+      console.error('❌ [SKIP] Error in pending transition command:', e.message);
       sq.isCrossfading = false;
       sq.crossfadeStartTime = null;
       sq.loadingFooter = null;
@@ -498,7 +498,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
     }
   }
 
-  // ── Aggiorna stato ──
+  // ── Update state ──
   sq.playIndex = pt.targetIndex;
   sq.currentDeck = pt.targetDeck;
   sq.currentDeckLoaded = pt.targetUrl;
@@ -507,7 +507,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   sq.songStartTime = Date.now();
   sq.loadingFooter = null;
   sq._lastTransitionTime = Date.now();
-  // Conferma binding: il deck target ora suona la canzone all'indice target
+  // Confirm binding: target deck now plays song at target index
   bindDeckSong(sq, pt.targetDeck, pt.targetIndex, pt.targetUrl);
   bindDeckSong(sq, (pt.targetDeck === 'A' ? 'B' : 'A'), null, null);
 

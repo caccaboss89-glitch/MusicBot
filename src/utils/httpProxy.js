@@ -1,6 +1,6 @@
 /**
- * Utility per richieste HTTP sensibili via proxy SOCKS.
- * Usare solo per endpoint YouTube/bloccati, non per Discord API.
+ * Utility for sensitive HTTP requests via SOCKS proxy.
+ * Use only for YouTube/blocked endpoints, not for Discord API.
  */
 
 import { SocksProxyAgent } from 'socks-proxy-agent.js';
@@ -26,7 +26,7 @@ function getYoutubeSocksAgent() {
   const proxyUrl = getYoutubeProxyUrl();
   if (!proxyUrl) return null;
 
-  // socks-proxy-agent usa schema socks5://; yt-dlp richiede socks5h://.
+  // socks-proxy-agent uses socks5:// schema; yt-dlp requires socks5h://.
   const normalized = proxyUrl.replace(/^socks5h:\/\//i, 'socks5://');
   return new SocksProxyAgent(normalized);
 }

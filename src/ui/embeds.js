@@ -1,6 +1,6 @@
 /**
  * src/ui/embeds.js
- * Funzioni per la creazione di embed Discord
+ * Functions for creating Discord embeds
  */
 
 import { EmbedBuilder } from 'discord.js';
@@ -8,9 +8,9 @@ import { displayTitle } from '../utils/sanitize.js';
 import { getCurrentSong } from '../queue/QueueManager.js';
 
 /**
- * Crea l'embed della canzone corrente
- * @param {Object} serverQueue - La coda del server
- * @returns {EmbedBuilder} L'embed della canzone corrente
+ * Creates the current song embed
+ * @param {Object} serverQueue - Server queue
+ * @returns {EmbedBuilder} Current song embed
  */
 function createCurrentSongEmbed(serverQueue) {
   let song = null;
@@ -20,7 +20,7 @@ function createCurrentSongEmbed(serverQueue) {
       song = getCurrentSong(serverQueue);
     }
   } catch (e) {
-    console.error('[EMBED] Errore durante determinazione canzone corrente:', e);
+    console.error('[EMBED] Error determining current song:', e);
   }
 
   if (!song || !song.url) {
@@ -32,17 +32,17 @@ function createCurrentSongEmbed(serverQueue) {
 
   const embed = new EmbedBuilder()
     .setColor(song.isLive ? 0xFF0000 : 0x0099FF)
-  // "🎶 In Riproduzione" come header (author): il TITOLO dell'embed diventa la canzone.
-  // Discord NON interpreta il markdown nei titoli degli embed, quindi il titolo viene
-  // mostrato RAW (anche con ** o altri simboli) senza rompersi e senza backslash visibili,
-  // ed è cliccabile grazie a setURL().
-    .setAuthor({ name: '🎶 In Riproduzione' })
+  // "🎶 Now Playing" as header (author): the TITLE of the embed becomes the song.
+  // Discord does NOT interpret markdown in embed titles, so the title is
+  // shown RAW (even with ** or other symbols) without breaking and without visible backslashes,
+  // and is clickable thanks to setURL().
+    .setAuthor({ name: '🎶 Now Playing' })
     .setTitle(displayTitle(song.title))
     .setURL(song.url)
     .setThumbnail(song.thumbnail)
-    .addFields({ name: 'Richiesta da', value: `<@${song.requester}>`, inline: true });
+    .addFields({ name: 'Requested by', value: `<@${song.requester}>`, inline: true });
 
-  // Footer di caricamento (impostato da SkipManager durante il loading)
+  // Loading footer (set by SkipManager during loading)
   if (serverQueue && serverQueue.loadingFooter) {
     embed.setFooter({ text: serverQueue.loadingFooter });
   }
@@ -51,22 +51,22 @@ function createCurrentSongEmbed(serverQueue) {
 }
 
 /**
- * Crea l'embed per coda terminata
- * @param {Object|null} lastSong - L'ultima canzone riprodotta
- * @returns {EmbedBuilder} L'embed di coda terminata
+ * Creates finished queue embed
+ * @param {Object|null} lastSong - Last played song
+ * @returns {EmbedBuilder} Finished queue embed
  */
 function createFinishedEmbed(lastSong) {
   const embed = new EmbedBuilder()
     .setColor(0x555555)
-    .setAuthor({ name: '🚫 Coda Terminata' })
+    .setAuthor({ name: '🚫 Queue Finished' })
     .setThumbnail(lastSong ? lastSong.thumbnail : null)
-    .setFooter({ text: 'Premi 🔁 per riascoltare l\'ultima canzone' });
+    .setFooter({ text: 'Press 🔁 to replay the last song' });
 
   if (lastSong) {
-    // Titolo RAW e cliccabile (vedi nota in createCurrentSongEmbed): niente masked link.
-    embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Ultima riproduzione:');
+    // Raw and clickable title (see note in createCurrentSongEmbed): no masked link.
+    embed.setTitle(displayTitle(lastSong.title)).setURL(lastSong.url).setDescription('Last played:');
   } else {
-    embed.setTitle('Nessuna canzone').setDescription('Aggiungi canzoni per ripartire!');
+    embed.setTitle('No song').setDescription('Add songs to restart!');
   }
 
   return embed;

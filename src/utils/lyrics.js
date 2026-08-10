@@ -1,15 +1,15 @@
 /**
  * src/utils/lyrics.js
- * Recupero testi canzoni tramite LRCLIB (https://lrclib.net).
+ * Song lyrics retrieval via LRCLIB (https://lrclib.net).
  *
- * Perché LRCLIB:
- *  - 100% gratuito, nessuna API key, nessun rate limit dichiarato
- *  - API REST diretta che restituisce plainLyrics / syncedLyrics
- *  - Legale e pensata proprio per i music bot (vedi guide.txt.temp)
+ * Why LRCLIB:
+ *  - 100% free, no API key, no stated rate limit
+ *  - Direct REST API returning plainLyrics / syncedLyrics
+ *  - Legal and designed for music bots (see guide.txt.temp)
  *
- * Usa il modulo nativo `https` (nessuna dipendenza extra). LRCLIB è
- * raggiungibile direttamente: NON passa dal proxy SOCKS usato per YouTube.
- * Se il titolo non include l'artista, usa YouTube oEmbed sul link del video.
+ * Uses native `https` module (no extra dependencies). LRCLIB is
+ * directly reachable: does NOT go through the SOCKS proxy used for YouTube.
+ * If the title doesn't include the artist, uses YouTube oEmbed on the video link.
  */
 
 import https from 'https';
@@ -19,12 +19,12 @@ const YOUTUBE_HOST = 'www.youtube.com';
 const USER_AGENT = 'DiscordMusicBot (https://github.com/discord-music-bot)';
 const REQUEST_TIMEOUT_MS = 8000;
 
-// Cache in-memory semplice (url canzone → testo) per evitare richieste ripetute.
+// Simple in-memory cache (song url → lyrics) to avoid repeated requests.
 const _cache = new Map();
 const CACHE_MAX = 200;
 
 /**
- * GET JSON con timeout.
+ * GET JSON with timeout.
  * @param {string} host
  * @param {string} path
  * @returns {Promise<any|null>}
@@ -59,7 +59,7 @@ function _getJson(host, path) {
 }
 
 /**
- * Pulisce un titolo YouTube per migliorare il match su LRCLIB.
+ * Cleans a YouTube title to improve matching on LRCLIB.
  * @param {string} str
  * @returns {string}
  */
@@ -76,7 +76,7 @@ function cleanQuery(str) {
 }
 
 /**
- * Pulisce il nome artista da suffissi tipici dei canali YouTube.
+ * Cleans artist name from typical YouTube channel suffixes.
  * @param {string} str
  * @returns {string}
  */
@@ -91,7 +91,7 @@ function cleanArtist(str) {
 }
 
 /**
- * Prova a separare "Artista - Titolo" da un titolo YouTube.
+ * Tries to separate "Artist - Title" from a YouTube title.
  * @param {string} fullTitle
  * @returns {{artist: string, track: string}}
  */
@@ -105,8 +105,8 @@ function splitArtistTrack(fullTitle) {
 }
 
 /**
- * Risolve artista e titolo affidabili per la ricerca lyrics.
- * Usa metadati locali, poi oEmbed YouTube se l'artista manca.
+ * Resolves reliable artist and title for lyrics search.
+ * Uses local metadata first, then YouTube oEmbed if artist is missing.
  *
  * @param {{title?: string, url?: string, author?: string, uploader?: string}} song
  * @returns {Promise<{artist: string, track: string}>}
@@ -152,7 +152,7 @@ async function resolveTrackInfo(song) {
 }
 
 /**
- * Estrae testo plain o synced da un record LRCLIB.
+ * Extracts plain or synced lyrics from an LRCLIB record.
  * @param {any} record
  * @returns {string|null}
  */
@@ -163,9 +163,9 @@ function extractLyrics(record) {
 }
 
 /**
- * Recupera il testo di una canzone.
- * Strategia: risolvi artista/titolo → match preciso /api/get → ricerca mirata.
- * Evita ricerche solo per titolo quando manca l'artista (rischio testo sbagliato).
+ * Retrieves song lyrics.
+ * Strategy: resolve artist/title → exact match /api/get → targeted search.
+ * Avoids title-only searches when artist is missing (risk of wrong lyrics).
  *
  * @param {{title: string, url?: string, duration?: number}} song
  * @returns {Promise<string|null>}
@@ -204,7 +204,7 @@ async function getLyrics(song) {
       if (lyrics) break;
     }
   } else {
-    // Senza artista affidabile non usiamo track_name da solo: match troppo generici.
+    // Without reliable artist, don't use track_name alone: matches too generic.
     const results = await _getJson(LRCLIB_HOST, `/api/search?q=${encodeURIComponent(track)}`);
     if (Array.isArray(results) && results.length > 0) {
       const best = results.find(r => r && r.plainLyrics) || results.find(r => r && r.syncedLyrics) || results[0];
@@ -217,7 +217,7 @@ async function getLyrics(song) {
 }
 
 /**
- * Rimuove i timestamp [mm:ss.xx] dai testi sincronizzati LRC.
+ * Removes timestamps [mm:ss.xx] from synced LRC lyrics.
  * @param {string|null} synced
  * @returns {string|null}
  */
@@ -235,7 +235,7 @@ function _setCache(key, value) {
 }
 
 /**
- * Spezza un testo lungo in chunk <= maxLen caratteri, rispettando le righe.
+ * Breaks a long text into chunks <= maxLen characters, respecting line breaks.
  * @param {string} text
  * @param {number} maxLen
  * @returns {string[]}

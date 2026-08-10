@@ -16,9 +16,9 @@ async function ensureBotConnection(interaction) {
       textChannel: interaction.channel || null,
       voiceChannel: interaction.member?.voice?.channel || null
     });
-    // Inserisci subito la queue nella mappa per evitare race condition
+    // Insert queue into map immediately to avoid race condition
     queue.set(guildId, serverQueue);
-    // Tentativo di ripristino da backup salvato
+    // Attempt to restore from saved backup
     try {
       const backup = loadQueueBackup(guildId);
       if (backup && ((backup.songs && backup.songs.length > 0) || (backup.history && backup.history.length > 0))) {
@@ -30,13 +30,13 @@ async function ensureBotConnection(interaction) {
         serverQueue.fadeEnabled = !!backup.fadeEnabled;
         serverQueue.dashboardMessageId = backup.dashboardMessageId || null;
         serverQueue.textChannelId = backup.textChannelId || null;
-        // NON ripristinare currentDeckLoaded: al riavvio del bot non c'è mixer,
-        // quindi il deck non è effettivamente caricato. Impostarlo causerebbe
-        // il mancato avvio di playSong() quando l'utente aggiunge canzoni.
+        // DO NOT restore currentDeckLoaded: on bot restart there is no mixer,
+        // so the deck is not actually loaded. Setting it would cause
+        // playSong() not to start when the user adds songs.
         serverQueue.currentDeckLoaded = null;
         serverQueue.sessionRestored = true;
       }
-    } catch (e) { console.error('Errore caricamento backup coda:', e); }
+    } catch (e) { console.error('Error loading queue backup:', e); }
   } else {
     if (!serverQueue.player || typeof serverQueue.player.play !== 'function') serverQueue.player = createAudioPlayer();
     serverQueue.textChannel = serverQueue.textChannel || interaction.channel || null;
@@ -48,23 +48,23 @@ async function ensureBotConnection(interaction) {
 async function connectToVoice(serverQueue, interaction) {
   try {
     if (!serverQueue) return false;
-    // Preferisci il canale vocale del membro invocante (cerca di seguire l'utente), ripiego a quello memorizzato
+    // Prefer the calling member's voice channel (try to follow the user), fall back to stored one
     const memberVoice = interaction?.member?.voice?.channel || null;
     const targetVoice = memberVoice || serverQueue.voiceChannel || null;
     if (!targetVoice) {
       await safeReply(interaction, { content: '❌ Entra in vocale!', flags: 64 });
       return false;
     }
-    // Aggiorna il `voiceChannel` memorizzato al target (cerchiamo di seguire l'utente)
+    // Update the stored `voiceChannel` to target (we're trying to follow the user)
     serverQueue.voiceChannel = targetVoice;
 
-    // Cancella qualsiasi timer di disconnect pendente — stiamo (ri)connettendo intenzionalmente
+    // Clear any pending disconnect timer — we're (re)connecting intentionally
     cancelScheduledDisconnect(serverQueue);
 
-    // Flag: impedisce a voiceStateUpdate/cleanup di distruggere la nuova connessione durante il cambio canale
+    // Flag: prevents voiceStateUpdate/cleanup from destroying the new connection during channel change
     serverQueue._isReconnecting = true;
 
-    // Se esiste una connessione, convalidala. Se è pronta e corrisponde al canale target, riutilizzala.
+    // If a connection exists, validate it. If it's ready and matches the target channel, reuse it.
     if (serverQueue.connection) {
       try {
         const status = serverQueue.connection.state?.status;
@@ -74,10 +74,10 @@ async function connectToVoice(serverQueue, interaction) {
           return true;
         }
       } catch (e) {
-        // fallthrough: ricrea la connessione
+        // fallthrough: recreate the connection
       }
-      // Connessione esistente obsoleta o nel canale sbagliato — rimuovi listener PRIMA di distruggere
-      // per evitare che il destroy scateni cleanup cascade
+      // Existing connection obsolete or in wrong channel — remove listeners BEFORE destroying
+      // to prevent destroy from triggering cleanup cascade
       const oldConn = serverQueue.connection;
       if (serverQueue._connStateHandler) {
         try { oldConn.off('stateChange', serverQueue._connStateHandler); } catch { }
@@ -98,17 +98,17 @@ async function connectToVoice(serverQueue, interaction) {
       selfDeaf: false
     });
     serverQueue.connection = connection;
-    // Cancella timer di riconciliazione pendente
+    // Clear pending reconciliation timer
     if (serverQueue._reconcileTimer) {
       clearTimeout(serverQueue._reconcileTimer);
       serverQueue._reconcileTimer = null;
     }
-    // Aggiungi listener sul ciclo di vita per reagire a disconnessioni/spostamenti
+    // Add lifecycle listener to react to disconnections/moves
     try {
       const stateChangeHandler = (oldState, newState) => {
         try {
           if (newState.status === VoiceConnectionStatus.Destroyed) {
-            // Forza cleanup immediato
+            // Force immediate cleanup
             scheduleDisconnectIfAlone(serverQueue, 0);
           } else if (newState.status === VoiceConnectionStatus.Ready) {
             // Connected; cancel any pending auto-disconnect
@@ -119,18 +119,18 @@ async function connectToVoice(serverQueue, interaction) {
               const connChannelId = connection.joinConfig?.channelId;
               const storedChannelId = serverQueue.voiceChannel?.id;
               if (connChannelId && storedChannelId && connChannelId !== storedChannelId) {
-                // Cancella timer precedente se esiste
+                // Clear previous timer if exists
                 if (serverQueue._reconcileTimer) {
                   clearTimeout(serverQueue._reconcileTimer);
                 }
-                // Attendi una finestra breve e poi riconcilia
+                // Wait a short window then reconcile
                 serverQueue._reconcileTimer = setTimeout(() => {
                   serverQueue._reconcileTimer = null;
                   try {
                     const latestStoredId = serverQueue.voiceChannel?.id;
                     const latestConnId = connection.joinConfig?.channelId;
                     if (latestStoredId !== latestConnId) {
-                      // Prova a risolvere l'oggetto canale dalla cache dei canali della guild
+                      // Try to resolve the channel object from guild channel cache
                       const guild = serverQueue.voiceChannel?.guild;
                       if (guild && guild.channels && guild.channels.cache) {
                         const newChan = guild.channels.cache.get(latestConnId);
@@ -150,13 +150,13 @@ async function connectToVoice(serverQueue, interaction) {
             } catch { }
 
           } else if (newState.status === VoiceConnectionStatus.Disconnected) {
-            // Prova una breve finestra di riconnessione, altrimenti programma il cleanup
+            // Try a short reconnection window, otherwise schedule cleanup
             scheduleDisconnectIfAlone(serverQueue, DISCONNECT_TIMEOUT_MS);
           }
         } catch { }
       };
       const errorHandler = (err) => {
-        console.error('Errore VoiceConnection:', err);
+        console.error('VoiceConnection error:', err);
         scheduleDisconnectIfAlone(serverQueue, 0);
       };
       // Salva riferimenti per poterli rimuovere alla prossima connessione
@@ -169,8 +169,8 @@ async function connectToVoice(serverQueue, interaction) {
     try {
       await entersState(connection, VoiceConnectionStatus.Ready, VOICE_CONNECTION_TIMEOUT_MS);
     } catch (e) {
-      console.error('Connessione vocale fallita:', e);
-      // Rimuovi listener PRIMA di distruggere per evitare cascade di cleanup
+      console.error('Voice connection failed:', e);
+      // Remove listeners BEFORE destroying to prevent cleanup cascade
       try { connection.off('stateChange', serverQueue._connStateHandler); } catch { }
       try { connection.off('error', serverQueue._connErrorHandler); } catch { }
       serverQueue._connStateHandler = null;
@@ -184,7 +184,7 @@ async function connectToVoice(serverQueue, interaction) {
     serverQueue._isReconnecting = false;
     return true;
   } catch (e) {
-    console.error('Errore connectToVoice:', e);
+    console.error('connectToVoice error:', e);
     if (serverQueue) serverQueue._isReconnecting = false;
     return false;
   }

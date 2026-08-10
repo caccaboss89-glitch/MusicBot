@@ -1,6 +1,6 @@
 /**
- * Gestione database playlist (server e utenti)
- * Supporta playlist multiple per utente con migrazione automatica dal formato legacy
+ * Playlist database management (server and user)
+ * Supports multiple playlists per user with automatic legacy format migration
  */
 
 import fs from 'fs';
@@ -8,14 +8,14 @@ import { PLAYLIST_FILE } from '../../config/index.js';
 import { safeJSONParse } from '../utils/sanitize.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
 
-// ─── Cache singleton per evitare race condition read-modify-write ──────
+// ─── Singleton cache to avoid read-modify-write race condition ──────
 let _dbCache = null;
 let _dbDirty = false;
 let _dbFlushTimer = null;
-const DB_FLUSH_INTERVAL_MS = 2000; // Flush su disco ogni 2 secondi se dirty
+const DB_FLUSH_INTERVAL_MS = 2000; // Flush to disk every 2 seconds if dirty
 
 /**
- * Carica il database delle playlist
+ * Loads the playlist database
  * @returns {object} - { server: [], users: {} }
  */
 function loadDatabase() {
@@ -25,9 +25,9 @@ function loadDatabase() {
 }
 
 /**
- * Salva il database delle playlist
- * Marca la cache come dirty e schedula un flush su disco.
- * @param {object} data - Dati da salvare (deve essere lo stesso riferimento della cache)
+ * Saves the playlist database
+ * Marks cache as dirty and schedules a disk flush.
+ * @param {object} data - Data to save (must be the same cache reference)
  */
 function saveDatabase(data) {
   _dbCache = data;
@@ -40,7 +40,7 @@ function saveDatabase(data) {
 }
 
 /**
- * Forza la scrittura immediata su disco (per shutdown).
+ * Forces immediate write to disk (for shutdown).
  */
 function flushDatabaseSync() {
   if (_dbFlushTimer) {
@@ -59,23 +59,23 @@ function _flushToFile() {
     fs.renameSync(tmpFile, PLAYLIST_FILE);
     _dbDirty = false;
   } catch (e) {
-    console.error('❌ [DATABASE] Errore salvataggio playlist:', e.message);
+    console.error('❌ [DATABASE] Error saving playlist:', e.message);
   }
 }
 
 /**
- * Migra i dati utente dal formato legacy (array) al nuovo formato (oggetto con playlists).
- * Se i dati sono già nel nuovo formato, li restituisce invariati.
- * @param {Array|Object} userData - Dati utente (array legacy o oggetto nuovo)
+ * Migrates user data from legacy format (array) to new format (object with playlists).
+ * If data is already in new format, returns it unchanged.
+ * @param {Array|Object} userData - User data (legacy array or new object)
  * @returns {Object} - { playlists: { Generale: [...], ... }, activePlaylist: 'Generale' }
  */
 function migrateUserData(userData) {
   if (Array.isArray(userData)) {
-    // Formato legacy: singolo array → diventa playlist "Generale"
+    // Legacy format: single array → becomes "Generale" playlist
     return { playlists: { [DEFAULT_PLAYLIST_NAME]: userData }, activePlaylist: DEFAULT_PLAYLIST_NAME };
   }
   if (userData && typeof userData === 'object' && userData.playlists) {
-    // Già nel nuovo formato — assicura che 'Generale' esista
+    // Already in new format — ensure 'Generale' exists
     if (!userData.playlists[DEFAULT_PLAYLIST_NAME]) {
       userData.playlists[DEFAULT_PLAYLIST_NAME] = [];
     }
@@ -84,15 +84,15 @@ function migrateUserData(userData) {
     }
     return userData;
   }
-  // Dati non validi → struttura vuota
+  // Invalid data → empty structure
   return { playlists: { [DEFAULT_PLAYLIST_NAME]: [] }, activePlaylist: DEFAULT_PLAYLIST_NAME };
 }
 
 /**
- * Ottiene i dati utente nel nuovo formato, con migrazione automatica.
- * Modifica db.users[userId] in-place se necessario.
- * @param {Object} db - Database completo
- * @param {string} userId - ID utente Discord
+ * Gets user data in new format, with automatic migration.
+ * Modifies db.users[userId] in-place if necessary.
+ * @param {Object} db - Complete database
+ * @param {string} userId - Discord user ID
  * @returns {Object} - { playlists: {...}, activePlaylist: '...' }
  */
 function getUserData(db, userId) {
@@ -106,11 +106,11 @@ function getUserData(db, userId) {
 }
 
 /**
- * Ottiene l'array di canzoni di una specifica playlist utente.
- * @param {Object} db - Database completo
- * @param {string} userId - ID utente Discord
- * @param {string} playlistName - Nome della playlist
- * @returns {Array} - Array di canzoni
+ * Gets the song array for a specific user playlist.
+ * @param {Object} db - Complete database
+ * @param {string} userId - Discord user ID
+ * @param {string} playlistName - Playlist name
+ * @returns {Array} - Song array
  */
 function getUserPlaylist(db, userId, playlistName) {
   const data = getUserData(db, userId);
@@ -118,10 +118,10 @@ function getUserPlaylist(db, userId, playlistName) {
 }
 
 /**
- * Ottiene il nome della playlist attiva per un utente.
- * @param {Object} db - Database completo
- * @param {string} userId - ID utente Discord
- * @returns {string} - Nome della playlist attiva
+ * Gets the active playlist name for a user.
+ * @param {Object} db - Complete database
+ * @param {string} userId - Discord user ID
+ * @returns {string} - Active playlist name
  */
 function getActivePlaylistName(db, userId) {
   const data = getUserData(db, userId);
@@ -129,10 +129,10 @@ function getActivePlaylistName(db, userId) {
 }
 
 /**
- * Imposta la playlist attiva per un utente.
- * @param {Object} db - Database completo
- * @param {string} userId - ID utente Discord
- * @param {string} name - Nome della playlist da attivare
+ * Sets the active playlist for a user.
+ * @param {Object} db - Complete database
+ * @param {string} userId - Discord user ID
+ * @param {string} name - Playlist name to activate
  */
 function setActivePlaylist(db, userId, name) {
   const data = getUserData(db, userId);
@@ -142,34 +142,34 @@ function setActivePlaylist(db, userId, name) {
 }
 
 /**
- * Ottiene l'elenco dei nomi di tutte le playlist di un utente.
- * La playlist 'Generale' è sempre prima.
- * @param {Object} db - Database completo
- * @param {string} userId - ID utente Discord
- * @returns {string[]} - Nomi delle playlist
+ * Gets the list of all playlist names for a user.
+ * The 'Generale' playlist is always first.
+ * @param {Object} db - Complete database
+ * @param {string} userId - Discord user ID
+ * @returns {string[]} - Playlist names
  */
 function getUserPlaylistNames(db, userId) {
   const data = getUserData(db, userId);
   const names = Object.keys(data.playlists);
-  // Assicura che Generale sia sempre prima
+  // Ensure Generale is always first
   const sorted = [DEFAULT_PLAYLIST_NAME, ...names.filter(n => n !== DEFAULT_PLAYLIST_NAME)];
   return sorted;
 }
 
 /**
- * Valida un nome di playlist.
- * @param {string} name - Nome da validare
- * @returns {{ valid: boolean, error?: string }} - Risultato validazione
+ * Validates a playlist name.
+ * @param {string} name - Name to validate
+ * @returns {{ valid: boolean, error?: string }} - Validation result
  */
 function validatePlaylistName(name) {
-  if (!name || typeof name !== 'string') return { valid: false, error: 'Il nome non può essere vuoto.' };
+  if (!name || typeof name !== 'string') return { valid: false, error: 'The name cannot be empty.' };
   const trimmed = name.trim();
-  if (trimmed.length === 0) return { valid: false, error: 'Il nome non può essere vuoto.' };
-  if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `Il nome non può superare ${MAX_PLAYLIST_NAME_LENGTH} caratteri.` };
-  if (trimmed.includes('_')) return { valid: false, error: 'Il nome non può contenere underscore (_).' };
-  // Permetti alfanumerici, spazi, trattini, accenti e altri caratteri unicode comuni
+  if (trimmed.length === 0) return { valid: false, error: 'The name cannot be empty.' };
+  if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `The name cannot exceed ${MAX_PLAYLIST_NAME_LENGTH} characters.` };
+  if (trimmed.includes('_')) return { valid: false, error: 'The name cannot contain underscores (_).' };
+  // Allow alphanumeric, spaces, hyphens, accents and other common unicode characters
   const nameRegex = new RegExp(`^[^\\n\\r_]{1,${MAX_PLAYLIST_NAME_LENGTH}}$`);
-  if (!nameRegex.test(trimmed)) return { valid: false, error: 'Il nome contiene caratteri non validi.' };
+  if (!nameRegex.test(trimmed)) return { valid: false, error: 'The name contains invalid characters.' };
   return { valid: true };
 }
 

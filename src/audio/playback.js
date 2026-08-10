@@ -1,8 +1,8 @@
 /**
- * Funzioni base di riproduzione
- * Responsabilità:
- *  - playSong:            avvia la riproduzione della canzone corrente (songs[playIndex])
- *  - restartCurrentSong:  riavvia la canzone corrente dall'inizio (replay)
+ * Basic playback functions
+ * Responsibilities:
+ *  - playSong:            starts playback of the current song (songs[playIndex])
+ *  - restartCurrentSong:  restarts the current song from the beginning (replay)
  */
 
 import { queue } from '../state/globals.js';
@@ -14,15 +14,15 @@ import { safeMixerInvoke } from './mixer-utils.js';
 import { PassThrough } from 'stream';
 import { call, register, get } from './audio-bridge.js';
 
-// Fattore chiave per la latenza di pipeline:
-// highWaterMark basso = meno audio bufferizzato nel pipe = skip più reattivi
-// 3840 bytes = esattamente 1 frame Discord (20ms a 48kHz stereo 16-bit)
-const LOW_LATENCY_HWM = 3840 * 2; // 2 frames = 40ms di buffer
+// Key factor for pipeline latency:
+// low highWaterMark = less audio buffered in pipe = more reactive skips
+// 3840 bytes = exactly 1 Discord frame (20ms at 48kHz stereo 16-bit)
+const LOW_LATENCY_HWM = 3840 * 2; // 2 frames = 40ms of buffer
 
 /**
- * Crea un wrapper a bassa latenza attorno allo stdout del mixer.
- * Riduce il buffer interno di Node.js per minimizzare il delay
- * tra il momento in cui Rust cambia deck e quando Discord lo sente.
+ * Creates a low-latency wrapper around the mixer's stdout.
+ * Reduces Node.js internal buffer to minimize delay
+ * between when Rust switches decks and when Discord hears it.
  */
 function createLowLatencyStream(stdout) {
   const passthrough = new PassThrough({ highWaterMark: LOW_LATENCY_HWM });
@@ -31,7 +31,7 @@ function createLowLatencyStream(stdout) {
 }
 
 /**
- * Pulisce il low-latency stream per evitare resource leak
+ * Cleans up the low-latency stream to prevent resource leak
  */
 function cleanupLowLatencyStream(serverQueue) {
   if (serverQueue && serverQueue._llStream) {
@@ -40,7 +40,7 @@ function cleanupLowLatencyStream(serverQueue) {
   }
 }
 
-// Traccia timestamp di ultimi crash per guild (per evitare restart troppo veloci)
+// Tracks timestamp of last crash per guild (to prevent too-quick restarts)
 const lastMixerCrashTime = new Map();
 const MIXER_CRASH_COOLDOWN_MS = 1500;
 
@@ -49,22 +49,22 @@ function cleanupPlaybackState(guildId) {
 }
 
 /**
- * Riprende la riproduzione se era in pausa (utility per evitare duplicazione)
- * Usato sia per replay che per skip quando la musica era ferma
+ * Resumes playback if it was paused (utility to avoid duplication)
+ * Used for both replay and skip when music was stopped
  * @param {object} serverQueue
  * @param {string} guildId
- * @param {string} deckToResume - Deck da riprendere (di solito il current deck)
+ * @param {string} deckToResume - Deck to resume (usually the current deck)
  */
 async function resumeIfPaused(serverQueue, guildId, deckToResume) {
-  if (!serverQueue.isPaused) return; // Niente da fare se non era in pausa
+  if (!serverQueue.isPaused) return; // Nothing to do if not paused
 
   serverQueue.isPaused = false;
   serverQueue.pauseStart = null;
 
-  // Riprendi il player Discord
+  // Resume Discord player
   try { serverQueue.player?.unpause(); } catch { }
 
-  // Riprendi il mixer Rust
+  // Resume Rust mixer
   const mixerAlive = serverQueue.mixer?.isProcessAlive?.();
   if (mixerAlive) {
     try {
@@ -73,13 +73,13 @@ async function resumeIfPaused(serverQueue, guildId, deckToResume) {
         'resume'
       );
     } catch (e) {
-      console.warn('⚠️  [RESUME] Errore resume del mixer:', e.message);
+      console.warn('⚠️  [RESUME] Mixer resume error:', e.message);
     }
   }
 }
 
 /**
- * Riavvia la canzone corrente dall'inizio (replay)
+ * Restarts the current song from the beginning (replay)
  */
 async function restartCurrentSong(guildId) {
   const serverQueue = queue.get(guildId);
@@ -87,7 +87,7 @@ async function restartCurrentSong(guildId) {
   const currentSong = getCurrentSong(serverQueue);
   if (!currentSong || !isValidSong(currentSong)) return false;
 
-  // Se mixer morto, restart completo
+  // If mixer dead, full restart
   if (!serverQueue.mixer || serverQueue.mixer.needsRestart()) {
     if (serverQueue.mixer) { serverQueue.mixer.kill(); serverQueue.mixer = null; }
     serverQueue.currentDeckLoaded = null;
@@ -96,38 +96,38 @@ async function restartCurrentSong(guildId) {
     return true;
   }
 
-  // Riavvia il deck corrente dall'inizio senza ri-scaricare
+  // Restart current deck from the beginning without reloading
   let currentDeck = serverQueue.currentDeck || 'A';
   if (currentDeck !== 'A' && currentDeck !== 'B') {
-    console.warn(`⚠️ [REPLAY] currentDeck non valido (${currentDeck}), reset ad A`);
+    console.warn(`⚠️ [REPLAY] Invalid currentDeck (${currentDeck}), resetting to A`);
     currentDeck = 'A';
     serverQueue.currentDeck = 'A';
   }
 
-  // Download fallito (nessun buffer_ready): replay deve ri-scaricare, non riprodurre silenzio
+  // Download failed (no buffer_ready): replay must reload, not play silence
   if (!serverQueue.bufferReady?.[currentDeck]) {
-    console.warn(`⚠️ [REPLAY] Deck ${currentDeck} senza audio bufferizzato, ricarico da URL`);
+    console.warn(`⚠️ [REPLAY] Deck ${currentDeck} has no buffered audio, reloading from URL`);
     serverQueue.currentDeckLoaded = null;
     await playSong(guildId);
     return true;
   }
 
-  console.log(`[REPLAY] Restart Deck ${currentDeck} dall'inizio`);
+  console.log(`[REPLAY] Restart Deck ${currentDeck} from the beginning`);
 
   safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.restartDeck(currentDeck));
   serverQueue.songStartTime = Date.now();
 
-  // ── STATS: canzone avviata (replay/restart) ──
+  // ── STATS: song started (replay/restart) ──
   try {
     const stats = (await import('../database/stats.js')).default;
     stats.incrementSongsStarted();
     stats.recordSongPlay(guildId, currentSong, serverQueue.voiceChannel);
   } catch { }
 
-  // Se la canzone era in pausa, riprendila
+  // If the song was paused, resume it
   await resumeIfPaused(serverQueue, guildId, currentDeck);
 
-  // Riavvia timer preload/monitoraggio fine
+  // Restart preload/end-monitor timer
   call('onSongStart', guildId);
 
   call('refreshDashboard', serverQueue, currentSong.requester);
@@ -135,14 +135,14 @@ async function restartCurrentSong(guildId) {
 }
 
 /**
- * Avvia la riproduzione della canzone corrente (songs[playIndex])
- * Crea il mixer se necessario, carica la canzone, e inizia a riprodurre.
+ * Starts playback of the current song (songs[playIndex])
+ * Creates the mixer if necessary, loads the song, and begins playback.
  */
 async function playSong(guildId, interaction = null) {
   const serverQueue = queue.get(guildId);
   if (!serverQueue) return;
 
-  // Assicura connessione vocale
+  // Ensure voice connection
   if (!serverQueue.connection && serverQueue.voiceChannel && !interaction) {
     try {
       serverQueue.connection = joinVoiceChannel({
@@ -168,12 +168,12 @@ async function playSong(guildId, interaction = null) {
     return;
   }
 
-  // Salta canzoni fallite (Opus errors, corrupted stream) senza ricorsione
+  // Skip failed songs (Opus errors, corrupted stream) without recursion
   const isFailedSong = get('isFailedSong');
   if (isFailedSong) {
     let skipped = false;
     while (isFailedSong(guildId, song.url)) {
-      console.warn(`⏭️  [PLAY] Saltando canzone non giocabile: ${song.title}`);
+      console.warn(`⏭️  [PLAY] Skipping unplayable song: ${song.title}`);
       serverQueue.playIndex = (serverQueue.playIndex || 0) + 1;
       skipped = true;
       if (serverQueue.playIndex >= serverQueue.songs.length) {
@@ -193,7 +193,7 @@ async function playSong(guildId, interaction = null) {
   }
 
   if (!serverQueue.currentDeckLoaded) {
-    // Evita avvii concorrenti del mixer
+    // Avoid concurrent mixer startups
     if (serverQueue.mixerStarting) {
       for (let i = 0; i < 30; i++) {
         await new Promise(r => setTimeout(r, 50));
@@ -202,12 +202,12 @@ async function playSong(guildId, interaction = null) {
       }
     }
 
-    // Cooldown: se il mixer è crashato di recente, aspetta
+    // Cooldown: if mixer crashed recently, wait
     const lastCrashTime = lastMixerCrashTime.get(guildId) || 0;
     const timeSinceLastCrash = Date.now() - lastCrashTime;
     if (timeSinceLastCrash < MIXER_CRASH_COOLDOWN_MS) {
       const waitTime = MIXER_CRASH_COOLDOWN_MS - timeSinceLastCrash;
-      console.warn(`⏳ [PLAY] Mixer crashato di recente, aspetto ${waitTime}ms...`);
+      console.warn(`⏳ [PLAY] Mixer crashed recently, waiting ${waitTime}ms...`);
       await new Promise(r => setTimeout(r, waitTime));
     }
 
@@ -225,7 +225,7 @@ async function playSong(guildId, interaction = null) {
         serverQueue.mixer.start();
         serverQueue.mixerGeneration = serverQueue.mixer.generation;
 
-        // Attendi che stdout sia disponibile
+        // Wait for stdout to be available
         let stdout = null;
         for (let i = 0; i < 30; i++) {
           try { stdout = serverQueue.mixer && serverQueue.mixer.getStdout && serverQueue.mixer.getStdout(); } catch { stdout = null; }
@@ -249,13 +249,13 @@ async function playSong(guildId, interaction = null) {
           return;
         }
 
-        // SEMPRE disattivare proactive crossfade nel Rust – Node.js gestisce tutto
+        // ALWAYS disable proactive crossfade in Rust – Node.js handles everything
         safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setProactiveCrossfade(false));
 
-        // Sincronizza loop mode con Rust per auto-gapless
+        // Sync loop mode with Rust for auto-gapless
         safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setLoop(!!serverQueue.loopEnabled));
 
-        // Cleanup vecchio stream per evitare resource leak
+        // Clean up old stream to prevent resource leak
         cleanupLowLatencyStream(serverQueue);
         const llStream = createLowLatencyStream(stdout);
         serverQueue._llStream = llStream; // Salva riferimento per cleanup
@@ -272,14 +272,14 @@ async function playSong(guildId, interaction = null) {
         serverQueue.mixerStarting = false;
       }
     } else {
-      // Mixer esistente e vivo: assicura stdout
+      // Existing and alive mixer: ensure stdout
       try {
         const stdout = serverQueue.mixer.getStdout ? serverQueue.mixer.getStdout() : null;
         if (!stdout) {
           console.error('❌ [PLAY] Existing mixer has no stdout');
           return;
         }
-        // Cleanup vecchio stream per evitare resource leak
+        // Clean up old stream to prevent resource leak
         cleanupLowLatencyStream(serverQueue);
         const llStream = createLowLatencyStream(stdout);
         serverQueue._llStream = llStream;
@@ -298,7 +298,7 @@ async function playSong(guildId, interaction = null) {
       }
     }
 
-    // Carica e avvia la canzone su deck A
+    // Load and start song on deck A
     const deck = 'A';
     serverQueue.songStartTime = null;
     serverQueue.nextDeckLoaded = null;
@@ -306,9 +306,9 @@ async function playSong(guildId, interaction = null) {
     serverQueue.bufferReady[deck] = false;
 
     safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.load(song.url, deck));
-    // IMPORTANTE: Delay per permettere al thread di download di inviare il primo chunk di audio
-    // Senza questo delay, il comando play viene eseguito prima che i dati arrivino, causando silenzio.
-    // Nel replay (restartDeck) non serve perché i dati sono già bufferizzati in full_samples.
+    // IMPORTANT: Delay to allow download thread to send first audio chunk
+    // Without this delay, play command executes before data arrives, causing silence.
+    // In replay (restartDeck) it's not needed because data is already buffered in full_samples.
     await new Promise(resolve => setTimeout(resolve, 150));
     if (!serverQueue.mixer) return;
 
@@ -318,27 +318,27 @@ async function playSong(guildId, interaction = null) {
     serverQueue.nextDeckTarget = null;
     serverQueue.songStartTime = Date.now();
 
-    // ── Binding deck → canzone (fonte di verità per la sincronizzazione) ──
+    // ── Binding deck → song (source of truth for sync) ──
     const { bindDeckSong } = await import('../queue/QueueManager.js');
     bindDeckSong(serverQueue, deck, serverQueue.playIndex || 0, song.url);
     bindDeckSong(serverQueue, deck === 'A' ? 'B' : 'A', null, null);
 
-    // Aggiorna UI
+    // Update UI
     const embed = createCurrentSongEmbed(serverQueue);
     const userId = interaction ? interaction.user.id : (song.requester || null);
     const components = createDashboardComponents(serverQueue, userId);
     await updateDashboard(serverQueue, embed, components);
 
-    // Avvia il ciclo di preload e monitoraggio fine
+    // Start preload and end-monitor cycle
     call('onSongStart', guildId);
 
-    // ── STATS: canzone avviata + timer ascolto + registra play ──
+    // ── STATS: song started + listening timer + record play ──
     try {
       const stats = (await import('../database/stats.js')).default;
       stats.incrementSongsStarted();
       stats.startAllListeners(guildId, serverQueue.voiceChannel);
       stats.recordSongPlay(guildId, song, serverQueue.voiceChannel);
-    } catch (e) { console.warn('⚠️ [STATS] Errore in playSong:', e.message); }
+    } catch (e) { console.warn('⚠️ [STATS] Error in playSong:', e.message); }
   }
 }
 
@@ -358,9 +358,9 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
     const { stateVersionManager } = await import('../state/StateVersion.js');
     const stateVersion = stateVersionManager.get(guildId);
 
-    // STATE MACHINE: Determina lo stato attuale e l'azione corretta
+    // STATE MACHINE: Determines current state and correct action
 
-    // CASO 1: Sessione ripristinata senza mixer → avvia riproduzione
+    // CASE 1: Session restored without mixer → start playback
     if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs?.length > 0) {
       serverQueue.sessionRestored = false;
       serverQueue.isPaused = false;
@@ -376,7 +376,7 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
       return { success: false, action: 'error', error: 'Failed to connect to voice' };
     }
 
-    // CASO 2: Nessun mixer/connessione vocale oppure Queue vuota → avvia da capo
+    // CASE 2: No mixer/voice connection or empty Queue → start fresh
     if ((!serverQueue.mixer || !serverQueue.connection) && serverQueue.songs?.length > 0) {
       serverQueue.isPaused = false;
       stateVersion.incrementVersion('pause_action', { action: 'play_from_dead_mixer' });
@@ -391,24 +391,24 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
       return { success: false, action: 'error', error: 'Failed to connect to voice' };
     }
 
-    // CASO 3: Coda vuota → errore
+    // CASE 3: Empty queue → error
     if (!serverQueue.songs || serverQueue.songs.length === 0) {
       return { success: false, action: 'error', error: 'Queue is empty' };
     }
 
-    // CASO 4: Toggle normale pause/resume
+    // CASE 4: Normal pause/resume toggle
     const previousPauseState = serverQueue.isPaused;
     serverQueue.isPaused = !serverQueue.isPaused;
 
     if (serverQueue.isPaused) {
       // ── PAUSE PATH ──
-      // Record pause start per calcolare il tiempo paused in resume
+      // Record pause start to calculate paused time on resume
       try { serverQueue.pauseStart = Date.now(); } catch { }
 
-      // Pausa il player Discord
+      // Pause Discord player
       try { serverQueue.player?.pause(); } catch { }
 
-      // Pausa il mixer Rust (SOLO se vivo)
+      // Pause Rust mixer (ONLY if alive)
       const mixerAlive = serverQueue.mixer?.isProcessAlive?.();
       if (mixerAlive) {
         try {
@@ -423,14 +423,14 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
             resolve();
           });
         } catch (e) {
-          console.error('❌ [PAUSE] Errore pausa del mixer:', e);
+          console.error('❌ [PAUSE] Mixer pause error:', e);
         }
       } else {
-        console.warn('⚠️  [PAUSE] Mixer non vivo, skip mixer pause');
+        console.warn('⚠️  [PAUSE] Mixer not alive, skipping mixer pause');
         try { call('handleMixerCrash', guildId, 'mixer_dead_during_pause'); } catch { }
       }
 
-      // ── STATS: ferma timer ascolto durante pausa ──
+      // ── STATS: stop listening timer during pause ──
       try { (await import('../database/stats.js')).default.stopAllListeners(guildId); } catch { }
 
       stateVersion.incrementVersion('pause_action', { action: 'pause', previousState: previousPauseState });
@@ -438,10 +438,10 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
 
     } else {
       // ── RESUME PATH ──
-      // Calcola quanto tempo abbiamo passato in pausa per sincronizzare il timer
+      // Calculate how much time we spent paused to sync timer
       const pausedFor = serverQueue.pauseStart ? (Date.now() - serverQueue.pauseStart) : 0;
 
-      // Aggiorna il songStartTime per compensare il tempo in pausa
+      // Update songStartTime to compensate for paused time
       try {
         if (serverQueue.songStartTime) {
           serverQueue.songStartTime += pausedFor;
@@ -451,10 +451,10 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
         serverQueue.pauseStart = null;
       } catch { }
 
-      // Unpausa il player Discord
+      // Unpause Discord player
       try { serverQueue.player?.unpause(); } catch { }
 
-      // Unpausa il mixer Rust (SOLO se vivo)
+      // Unpause Rust mixer (ONLY if alive)
       const mixerAlive = serverQueue.mixer?.isProcessAlive?.();
       if (mixerAlive) {
         try {
@@ -470,17 +470,17 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
             resolve();
           });
         } catch (e) {
-          console.error('❌ [RESUME] Errore resume del mixer:', e);
+          console.error('❌ [RESUME] Mixer resume error:', e);
         }
       } else {
-        console.warn('⚠️  [RESUME] Mixer non vivo, skip mixer play');
+        console.warn('⚠️  [RESUME] Mixer not alive, skipping mixer play');
         try { call('handleMixerCrash', guildId, 'mixer_dead_during_resume'); } catch { }
       }
 
-      // Riavvia il timer di preload/monitoraggio
+      // Restart preload/end-monitor timer
       try { call('updatePreloadAfterQueueChange', guildId); } catch { }
 
-      // ── STATS: riprendi timer ascolto dopo resume ──
+      // ── STATS: resume listening timer after resume ──
       try { (await import('../database/stats.js')).default.startAllListeners(guildId, serverQueue.voiceChannel); } catch { }
 
       stateVersion.incrementVersion('pause_action', { action: 'resume', pausedForMs: pausedFor });
@@ -488,7 +488,7 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
     }
 
   } catch (e) {
-    console.error('❌ [PAUSE-TOGGLE] Errore fatale:', e);
+    console.error('❌ [PAUSE-TOGGLE] Fatal error:', e);
     return { success: false, action: 'error', error: e.message };
   }
 }

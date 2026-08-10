@@ -1,5 +1,5 @@
 /**
- * Controller per il mixer audio Rust (integrazione sidecar)
+ * Controller for Rust audio mixer (sidecar integration)
  */
 
 import { spawn } from 'child_process';
@@ -11,8 +11,8 @@ import { CROSSFADE_DURATION_MS, MIN_CROSSFADE_MS, RESTART_COOLDOWN_MS } from '..
 import { getNextMixerGeneration } from '../state/globals.js';
 
 /**
- * Controller per il processo Rust del mixer audio
- * Gestisce comunicazione bidirezionale via stdin/stdout
+ * Controller for Rust audio mixer process
+ * Manages bidirectional communication via stdin/stdout
  */
 class AudioMixerController {
   constructor(guildId, onLog, onBufferReady, onCrash = null) {
@@ -31,9 +31,9 @@ class AudioMixerController {
   }
 
   start() {
-    // Se il processo esiste ma è morto, puliscilo prima
+    // If process exists but is dead, clean it before restart
     if (this.process && !this.isAlive) {
-      console.log('🧹 [RUST] Pulizia processo morto prima di restart');
+      console.log('🧹 [RUST] Cleaning dead process before restart');
       try { this.process.kill(); } catch { }
       this.process = null;
     }
@@ -49,10 +49,10 @@ class AudioMixerController {
     }
     this.lastRestartTime = now;
 
-    // Log minimale di avvio
-    console.info(`🦀 [RUST] Avvio motore audio per ${this.guildId}`);
+    // Minimal startup logging
+    console.info(`🦀 [RUST] Starting audio engine for ${this.guildId}`);
 
-    // Passa DISCORD_BOT_PATH e config yt-dlp al processo Rust (stessi default di config/paths.js)
+    // Pass DISCORD_BOT_PATH and yt-dlp config to Rust process (same defaults as config/paths.js)
     const proxyUrl = resolveYtDlpProxyUrl();
     const cookieBrowser = resolveYtDlpCookieBrowser();
     const extractorArgs = resolveYtDlpExtractorArgs();
@@ -71,16 +71,16 @@ class AudioMixerController {
         env: env
       });
     } catch (e) {
-      console.error(`❌ [RUST] Impossibile avviare processo: ${e.message}`);
+      console.error(`❌ [RUST] Unable to start process: ${e.message}`);
       this.isAlive = false;
       return;
     }
 
     this.isAlive = true;
     this.stdoutClosed = false;
-    this.hasCrashed = false; // Reset per permettere recovery su futuri crash
+    this.hasCrashed = false; // Reset to allow recovery on future crashes
 
-    // Chiudi risorse precedenti prima di riavviare
+    // Close previous resources before restarting
     if (this.logStream) {
       try { this.logStream.destroy(); } catch { }
       this.logStream = null;
@@ -93,17 +93,17 @@ class AudioMixerController {
     const rl = readline.createInterface({ input: this.process.stderr });
     this.stderrReadline = rl;
 
-    // Apri il log stderr del mixer per guild una sola volta per diagnostica
+    // Open mixer stderr log for guild once for diagnostics
     try {
       const logsDir = path.join(ROOT_DIR, 'temp');
       try { fs.mkdirSync(logsDir, { recursive: true }); } catch { }
       const logPath = path.join(logsDir, `mixer-${this.guildId}.log`);
       this.logStream = fs.createWriteStream(logPath, { flags: 'a' });
       this.logStream.write(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
-    } catch (e) { console.error('Impossibile aprire stream log mixer', e); }
+    } catch (e) { console.error('Unable to open mixer log stream', e); }
 
     rl.on('line', (line) => {
-      // CRITICO: Ignora eventi se il mixer è morto
+      // CRITICAL: Ignore events if mixer is dead
       if (!this.isAlive || this.stdoutClosed) {
         return;
       }
@@ -111,12 +111,12 @@ class AudioMixerController {
       try {
         let log = null;
         try { log = JSON.parse(line); } catch (e) {
-          // ignora le righe non JSON ma conserva un minimo di debug
+          // ignores non-JSON lines but keeps minimal debug
         }
         if (!log) return;
         log._mixerGeneration = this.generation;
 
-        // --- FILTRO SILENZIATORE ---
+        // --- SPAM FILTER ---
         const dataStr = log.data || '';
         const isSpam = dataStr.includes('[FFMPEG]') ||
                     dataStr.includes('Broken pipe') ||
@@ -126,7 +126,7 @@ class AudioMixerController {
                     dataStr.startsWith('Mixer Status');
 
         if (!isSpam) {
-          // Mostra in console solo warning ed errori per evitare log troppo rumorosi
+          // Show in console only warnings and errors to avoid too noisy logs
           if (log.event === 'error' || log.event === 'stream_error' || log.event === 'yt_error') {
             console.error(`⚠️ [RUST-${log.event.toUpperCase()}] ${log.data}`);
           }
@@ -137,39 +137,39 @@ class AudioMixerController {
             console.log(`✂️ [RUST] ${log.data}`);
           }
 
-          // Inoltra tutti gli eventi non-spam a `onLog` per l'elaborazione (NO DUPLICATE CALLS!)
+          // Forward all non-spam events to `onLog` for processing (NO DUPLICATE CALLS!)
           if (this.onLog) this.onLog(log);
         }
 
-        // Intercetta buffer_ready event (edge detection già nel Rust)
+        // Intercept buffer_ready event (edge detection already in Rust)
         if (log.event === 'buffer_ready') {
           const deck = log.data;
-          console.log(`✅ [RUST] Buffer pronto su Deck ${deck}`);
-          try { if (this.onBufferReady) this.onBufferReady(deck); } catch (e) { console.error('Errore handler onBufferReady', e); }
+          console.log(`✅ [RUST] Buffer ready on Deck ${deck}`);
+          try { if (this.onBufferReady) this.onBufferReady(deck); } catch (e) { console.error('Error in onBufferReady handler', e); }
         }
 
       } catch { }
     });
 
-    // Gestisci errori su stdout - CRITICO: marca il mixer come morto
+    // Handle stdout errors - CRITICAL: mark mixer as dead
     this.process.stdout.on('error', (e) => {
-      console.error(`❌ [RUST] Errore stdout (mixer morto): ${err && err.message ? err.message : String(err)}`);
+      console.error(`❌ [RUST] Stdout error (mixer dead): ${err && err.message ? err.message : String(err)}`);
       this.isAlive = false;
       this.stdoutClosed = true;
       if (this.process) {
         try { this.process.kill(); } catch { }
         this.process = null;
       }
-      // Trigger crash callback per recovery automatico
+      // Trigger crash callback for automatic recovery
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
-        console.log('🚨 [RUST] Avvio recovery crash...');
-        try { this.onCrash('stdout_error'); } catch (e) { console.error('Errore handler onCrash', e); }
+        console.log('🚨 [RUST] Starting crash recovery...');
+        try { this.onCrash('stdout_error'); } catch (e) { console.error('Error in onCrash handler', e); }
       }
     });
 
     this.process.stdout.on('close', () => {
-      console.warn('⚠️ [RUST] Stdout chiuso');
+      console.warn('⚠️ [RUST] Stdout closed');
       this.stdoutClosed = true;
       this.isAlive = false;
       if (this.process) {
@@ -180,7 +180,7 @@ class AudioMixerController {
     });
 
     this.process.stdin.on('error', (e) => {
-      console.error(`❌ [RUST] Errore stdin: ${err && err.message ? err.message : err}`);
+      console.error(`❌ [RUST] Stdin error: ${err && err.message ? err.message : err}`);
       this.isAlive = false;
       if (this.process) {
         try { this.process.kill(); } catch { }
@@ -189,7 +189,7 @@ class AudioMixerController {
     });
 
     this.process.on('close', (code) => {
-      console.log(`🛑 [RUST] Terminato (Exit: ${code})`);
+      console.log(`🛑 [RUST] Terminated (Exit: ${code})`);
       this.process = null;
       this.isAlive = false;
       if (this.stderrReadline) {
@@ -205,12 +205,12 @@ class AudioMixerController {
     });
 
     this.process.on('error', (e) => {
-      console.error(`❌ [RUST] Errore processo: ${err.message}`);
+      console.error(`❌ [RUST] Process error: ${err.message}`);
       this.process = null;
       this.isAlive = false;
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
-        console.log('🚨 [RUST] Triggering crash recovery da process error...');
+        console.log('🚨 [RUST] Triggering crash recovery from process error...');
         try { this.onCrash(`process_error_${err.message}`); } catch (e) { console.error('onCrash handler error', e); }
       }
     });
@@ -219,14 +219,14 @@ class AudioMixerController {
 
   send(cmd) {
     if (!this.process || !this.isAlive) {
-      console.warn('⚠️ [MIXER] Processo non attivo, comando ignorato');
+      console.warn('⚠️ [MIXER] Process not active, command ignored');
       return false;
     }
     try {
       this.process.stdin.write(JSON.stringify(cmd) + '\n');
       return true;
     } catch (e) {
-      console.error('❌ [MIXER] Errore invio comando:', e.message);
+      console.error('❌ [MIXER] Error sending command:', e.message);
       this.isAlive = false;
       return false;
     }
@@ -269,14 +269,14 @@ class AudioMixerController {
   }
 
   kill() {
-    // Previeni che il close handler invochi onCrash: kill() è sempre intenzionale
+    // Prevent close handler from invoking onCrash: kill() is always intentional
     this.hasCrashed = true;
-    // Chiudi readline PRIMA di uccidere il processo
+    // Close readline BEFORE killing the process
     if (this.stderrReadline) {
       this.stderrReadline.close();
       this.stderrReadline = null;
     }
-    // Chiudi logStream per evitare file descriptor leak
+    // Close logStream to avoid file descriptor leak
     if (this.logStream) {
       try { this.logStream.end(); } catch { }
       this.logStream = null;

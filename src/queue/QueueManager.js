@@ -1,8 +1,8 @@
 /**
- * Gestione centralizzata della coda musicale
- * Queste funzioni DEVONO essere usate OVUNQUE per evitare bug di sincronizzazione
+ * Centralized management of the music queue
+ * These functions MUST be used EVERYWHERE to avoid synchronization bugs
  *
- * TRANSAZIONI: Le operazioni critiche sono wrappate con state versioning e rollback support
+ * TRANSACTIONS: Critical operations are wrapped with state versioning and rollback support
  */
 
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
@@ -16,9 +16,9 @@ let audioModule, statsModule, playCommandModule, playbackModule, skipManagerModu
 // Funzioni utility per la gestione della coda
 
 /**
- * Verifica se il bot è solo nel canale vocale
- * @param {object} serverQueue - Coda del server
- * @returns {boolean} - true se il bot è solo o non c'è canale
+ * Check if the bot is alone in the voice channel
+ * @param {object} serverQueue - Server queue
+ * @returns {boolean} - true if bot is alone or no channel
  */
 function isBotAloneInChannel(serverQueue) {
   if (!serverQueue || !serverQueue.voiceChannel) return true;
@@ -27,21 +27,21 @@ function isBotAloneInChannel(serverQueue) {
     if (!channel || !channel.members) return true;
     return channel.members.size <= 1;
   } catch (e) {
-    console.warn(`⚠️ [BOT-ALONE-CHECK] Errore: ${e.message}`);
+    console.warn(`⚠️ [BOT-ALONE-CHECK] Error: ${e.message}`);
     return true;
   }
 }
 
 /**
- * Pulisci la coda terminata prima di aggiungere nuova musica
- * @param {object} serverQueue - Coda del server
+ * Clean the finished queue before adding new music
+ * @param {object} serverQueue - Server queue
  */
 function clearFinishedQueue(serverQueue) {
   if (!serverQueue) return;
   if (!serverQueue.currentDeckLoaded) {
     const hadContent = serverQueue.songs.length > 0 || (serverQueue.history && serverQueue.history.length > 0);
     if (hadContent) {
-      console.log('🧹 [QUEUE-CLEAR] Pulizia coda terminata per nuova musica');
+      console.log('🧹 [QUEUE-CLEAR] Cleanup finished queue for new music');
       serverQueue.songs = [];
       serverQueue.history = [];
       serverQueue.playIndex = 0;
@@ -50,21 +50,21 @@ function clearFinishedQueue(serverQueue) {
 }
 
 /**
- * Ottieni la canzone corrente tramite playIndex
- * @param {object} serverQueue - Coda del server
+ * Get current song via playIndex
+ * @param {object} serverQueue - Server queue
  * @returns {object|null}
  */
 /**
- * Ottieni la canzone corrente.
+ * Get the current song.
  *
- * FONTE DI VERITÀ: se il mixer è attivo e il deck corrente ha un binding valido,
- * l'indice "reale" della canzone in riproduzione è quello legato al deck attivo,
- * non il semplice playIndex (che in rarissime finestre di race potrebbe essere
- * temporaneamente disallineato). Il binding è validato per URL: se non è più valido
- * si ricade su playIndex, quindi nel peggiore dei casi il comportamento è identico
- * a prima. Questo garantisce che l'embed mostri SEMPRE ciò che suona sul mixer.
+ * SOURCE OF TRUTH: if the mixer is active and the current deck has a valid binding,
+ * the "real" index of the playing song is the one bound to the active deck,
+ * not the simple playIndex (which in rare race conditions could be
+ * temporarily misaligned). The binding is validated against the URL: if it's no longer valid
+ * it falls back to playIndex, so in the worst case the behavior is identical
+ * to before. This guarantees that the embed will ALWAYS show what's playing on the mixer.
  *
- * @param {object} serverQueue - Coda del server
+ * @param {object} serverQueue - Server queue
  * @returns {object|null}
  */
 function getPlayingIndex(serverQueue) {
@@ -83,8 +83,8 @@ function getCurrentSong(serverQueue) {
 }
 
 /**
- * Ottieni la prossima canzone tramite playIndex + 1
- * @param {object} serverQueue - Coda del server
+ * Get next song via playIndex + 1
+ * @param {object} serverQueue - Server queue
  * @returns {object|null}
  */
 function getNextSong(serverQueue) {
@@ -95,8 +95,8 @@ function getNextSong(serverQueue) {
 }
 
 /**
- * Verifica se esiste una canzone successiva
- * @param {object} serverQueue - Coda del server
+ * Check if there is a next song
+ * @param {object} serverQueue - Server queue
  * @returns {boolean}
  */
 function hasNextSong(serverQueue) {
@@ -104,20 +104,20 @@ function hasNextSong(serverQueue) {
   return (serverQueue.playIndex || 0) + 1 < serverQueue.songs.length;
 }
 
-// ─── Binding deck → canzone (sincronizzazione robusta embed/mixer) ──────────
+// ─── Deck → song binding (robust embed/mixer synchronization) ──────────
 //
-// Il problema storico di desincronizzazione nasceva dal ricostruire l'indice della
-// canzone corrente "indovinando" (playIndex+1) in più punti, mentre il vero stato è
-// nel mixer Rust (quale deck è attivo). Legando esplicitamente ogni deck alla canzone
-// che ci carichiamo sopra, qualunque evento (skip manuale, crossfade, auto-gapless del
-// Rust) può risalire all'indice REALE della canzone in riproduzione.
+// The historical desynchronization problem arose from rebuilding the current
+// song index by "guessing" (playIndex+1) in multiple places, while the real state is
+// in the Rust mixer (which deck is active). By explicitly binding each deck to the song
+// we load on top of it, any event (manual skip, crossfade, Rust auto-gapless)
+// can trace back to the REAL index of the playing song.
 
 /**
- * Registra quale canzone (indice + url) è caricata su un deck.
- * Passare index=null per pulire il binding.
+ * Register which song (index + url) is loaded on a deck.
+ * Pass index=null to clean the binding.
  * @param {object} serverQueue
  * @param {string} deck - 'A' | 'B'
- * @param {number|null} index - indice in songs[]
+ * @param {number|null} index - index in songs[]
  * @param {string|null} url
  */
 function bindDeckSong(serverQueue, deck, index, url) {
@@ -127,9 +127,9 @@ function bindDeckSong(serverQueue, deck, index, url) {
 }
 
 /**
- * Risolve l'indice REALE (in songs[]) della canzone caricata su un deck.
- * Valida contro l'url salvato; se la coda è stata riordinata (insert/remove/shuffle)
- * cerca per url. Restituisce null se il binding non è più valido.
+ * Resolve the REAL index (in songs[]) of the song loaded on a deck.
+ * Validates against the saved URL; if the queue was reordered (insert/remove/shuffle)
+ * searches by URL. Returns null if the binding is no longer valid.
  * @param {object} serverQueue
  * @param {string} deck - 'A' | 'B'
  * @returns {number|null}
@@ -147,9 +147,9 @@ function resolveDeckIndex(serverQueue, deck) {
 }
 
 /**
- * Azzera tutti i binding deck→canzone. Da chiamare nei cleanup (fine coda,
- * disconnessione, crash, svuotamento coda) per evitare binding "fantasma" che
- * potrebbero far risolvere un indice non più valido.
+ * Clear all deck→song bindings. Should be called in cleanup (end queue,
+ * disconnection, crash, queue emptying) to avoid "ghost" bindings that
+ * could resolve a no-longer-valid index.
  * @param {object} serverQueue
  */
 function clearDeckBindings(serverQueue) {
@@ -159,8 +159,8 @@ function clearDeckBindings(serverQueue) {
 
 
 /**
- * Verifica se una canzone è valida
- * @param {object} song - Oggetto canzone
+ * Check if a song is valid
+ * @param {object} song - Song object
  * @returns {boolean}
  */
 function isValidSong(song) {
@@ -172,10 +172,10 @@ function isValidSong(song) {
 }
 
 /**
- * Inserisci canzone in posizione specifica (con transazione e versioning)
- * @param {object} serverQueue - Coda del server
- * @param {object} song - Canzone da inserire
- * @param {number} index - Indice di inserimento
+ * Insert song at specific position (with transaction and versioning)
+ * @param {object} serverQueue - Server queue
+ * @param {object} song - Song to insert
+ * @param {number} index - Insertion index
  * @returns {{success: boolean, error?: string}}
  */
 function insertSongAtIndex(serverQueue, song, index) {
@@ -183,9 +183,9 @@ function insertSongAtIndex(serverQueue, song, index) {
     const guildId = serverQueue.guildId;
     const stateVersion = stateVersionManager.get(guildId);
 
-    // Validazione
+    // Validation
     if (!isValidSong(song) || index < 0) {
-      console.warn('⚠️ [QUEUE-INSERT] Tentativo inserimento canzone non valida');
+      console.warn('⚠️ [QUEUE-INSERT] Attempted to insert invalid song');
       return { success: false, error: 'Invalid song or index' };
     }
     if (!serverQueue || !serverQueue.songs) {
@@ -195,26 +195,26 @@ function insertSongAtIndex(serverQueue, song, index) {
       return { success: false, error: `Index out of range: ${index}` };
     }
 
-    // Snapshot dello stato prima della modifica (per rollback)
+    // Snapshot of state before modification (for rollback)
     const previousSongs = [...serverQueue.songs];
     const previousPlayIndex = serverQueue.playIndex;
 
     try {
-      // Inserisci la canzone
+      // Insert the song
       serverQueue.songs.splice(index, 0, song);
 
-      // Aggiusta playIndex se l'inserimento è prima o al punto corrente
+      // Adjust playIndex if insertion is before or at current point
       const playIndex = serverQueue.playIndex || 0;
       if (index <= playIndex) {
         serverQueue.playIndex = playIndex + 1;
       }
 
-      console.log(`📥 [QUEUE-INSERT] Inserita "${sanitizeTitle(song.title)}" in posizione ${index}`);
+      console.log(`📥 [QUEUE-INSERT] Inserted "${sanitizeTitle(song.title)}" at position ${index}`);
 
-      // Salva lo stato
+      // Save state
       saveQueueState(guildId, serverQueue);
 
-      // Incrementa versione
+      // Increment version
       stateVersion.incrementVersion('queue_insert', {
         index,
         songTitle: sanitizeTitle(song.title)
@@ -223,8 +223,8 @@ function insertSongAtIndex(serverQueue, song, index) {
       return { success: true };
 
     } catch (e) {
-      // ROLLBACK se il salvataggio fallisce
-      console.error('❌ [QUEUE-INSERT] Errore, rollback:', e.message);
+      // ROLLBACK if save fails
+      console.error('❌ [QUEUE-INSERT] Error, rollback:', e.message);
       serverQueue.songs = previousSongs;
       serverQueue.playIndex = previousPlayIndex;
 
@@ -242,9 +242,9 @@ function insertSongAtIndex(serverQueue, song, index) {
 }
 
 /**
- * Rimuovi canzone da indice specifico (con transazione e versioning)
- * @param {object} serverQueue - Coda del server
- * @param {number} index - Indice da rimuovere
+ * Remove song from specific index (with transaction and versioning)
+ * @param {object} serverQueue - Server queue
+ * @param {number} index - Index to remove
  * @returns {{success: boolean, removed?: object, error?: string}}
  */
 async function removeSongAtIndex(serverQueue, index) {
@@ -252,27 +252,27 @@ async function removeSongAtIndex(serverQueue, index) {
     const guildId = serverQueue.guildId;
     const stateVersion = stateVersionManager.get(guildId);
 
-    // Validazione
+    // Validation
     if (!serverQueue || !serverQueue.songs) {
       return { success: false, error: 'Invalid queue' };
     }
     if (index < 0 || index >= serverQueue.songs.length) {
-      console.warn(`⚠️ [QUEUE-REMOVE] Indice fuori range: ${index}`);
+      console.warn(`⚠️ [QUEUE-REMOVE] Index out of range: ${index}`);
       return { success: false, error: `Index out of range: ${index}` };
     }
 
-    // Snapshot dello stato prima della modifica (per rollback)
+    // Snapshot of state before modification (for rollback)
     const previousSongs = [...serverQueue.songs];
     const previousPlayIndex = serverQueue.playIndex;
     const previousNextDeckLoaded = serverQueue.nextDeckLoaded;
     const previousNextDeckTarget = serverQueue.nextDeckTarget;
 
     try {
-      // Rimuovi la canzone
+      // Remove the song
       const removed = serverQueue.songs.splice(index, 1)[0];
 
       if (removed) {
-        // Aggiusta playIndex dopo la rimozione
+        // Adjust playIndex after removal
         const playIndex = serverQueue.playIndex || 0;
         if (index < playIndex) {
           serverQueue.playIndex = Math.max(0, playIndex - 1);
@@ -280,13 +280,13 @@ async function removeSongAtIndex(serverQueue, index) {
           serverQueue.playIndex = serverQueue.songs.length - 1;
         }
 
-        // Invalida preload se la canzone rimossa era quella precaricata
+        // Invalidate preload if the removed song was the preloaded one
         if (serverQueue.nextDeckLoaded && areSameSong(serverQueue.nextDeckLoaded, removed.url)) {
           serverQueue.nextDeckLoaded = null;
           serverQueue.nextDeckTarget = null;
         }
 
-        // Invalida i binding deck→canzone che puntano alla canzone rimossa
+        // Invalidate deck→song bindings that point to the removed song
         if (serverQueue.deckSongs) {
           for (const d of ['A', 'B']) {
             const b = serverQueue.deckSongs[d];
@@ -294,18 +294,18 @@ async function removeSongAtIndex(serverQueue, index) {
           }
         }
 
-        console.log(`🗑️ [QUEUE-REMOVE] Rimossa "${sanitizeTitle(removed.title)}" da posizione ${index}`);
+        console.log(`🗑️ [QUEUE-REMOVE] Removed "${sanitizeTitle(removed.title)}" from position ${index}`);
 
-        // Salva lo stato
+        // Save state
         saveQueueState(guildId, serverQueue);
 
-        // Incrementa versione
+        // Increment version
         stateVersion.incrementVersion('queue_remove', {
           index,
           songTitle: sanitizeTitle(removed.title)
         });
 
-        // Notifica preload update
+        // Notify preload update
         try {
           if (!audioModule) audioModule = await import('../audio/index.js');
           audioModule.updatePreloadAfterQueueChange(guildId);
@@ -317,8 +317,8 @@ async function removeSongAtIndex(serverQueue, index) {
       return { success: false, error: 'Failed to remove song' };
 
     } catch (e) {
-      // ROLLBACK se il salvataggio fallisce
-      console.error('❌ [QUEUE-REMOVE] Errore, rollback:', e.message);
+      // ROLLBACK if save fails
+      console.error('❌ [QUEUE-REMOVE] Error, rollback:', e.message);
       serverQueue.songs = previousSongs;
       serverQueue.playIndex = previousPlayIndex;
       serverQueue.nextDeckLoaded = previousNextDeckLoaded;
@@ -338,8 +338,8 @@ async function removeSongAtIndex(serverQueue, index) {
 }
 
 /**
- * Verifica se il mixer è attivo e funzionante
- * @param {object} serverQueue - Coda del server
+ * Check if the mixer is active and functioning
+ * @param {object} serverQueue - Server queue
  * @returns {boolean}
  */
 function isMixerAlive(serverQueue) {
@@ -349,50 +349,50 @@ function isMixerAlive(serverQueue) {
         serverQueue.mixer.isProcessAlive();
 }
 
-// switchActiveDeck, advanceToNextSong, getCurrentPlayingSong rimossi in v3
-// Tutta la logica di transizione è centralizzata in SkipManager v3
+// switchActiveDeck, advanceToNextSong, getCurrentPlayingSong removed in v3
+// All transition logic is centralized in SkipManager v3
 
 /**
- * Pulizia completa alla disconnessione forzata (bot rimasto solo o disconnect)
+ * Complete cleanup on forced disconnection (bot alone or disconnect)
  * @param {object} serverQueue
  */
 async function performDisconnectCleanup(serverQueue) {
   if (!serverQueue) return;
-  if (serverQueue._cleaningUp) return; // Guard contro re-entry (evita cascade)
-  if (serverQueue._isReconnecting) return; // Non interferire con riconnessione in corso
+  if (serverQueue._cleaningUp) return; // Guard against re-entry (avoids cascade)
+  if (serverQueue._isReconnecting) return; // Don't interfere with ongoing reconnection
   serverQueue._cleaningUp = true;
   try {
-    console.log(`🧹 [CLEANUP] Eseguo cleanup di disconnessione per guild ${serverQueue.guildId}`);
+    console.log(`🧹 [CLEANUP] Performing disconnect cleanup for guild ${serverQueue.guildId}`);
 
-    // Cancella transizione differita pendente
+    // Clear pending deferred transition
     if (serverQueue.pendingTransition) {
       if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
       serverQueue.pendingTransition = null;
     }
 
-    // Cancella dashboard timer pendente
+    // Clear pending dashboard timer
     if (serverQueue.dashboardState && serverQueue.dashboardState.timer) {
       clearTimeout(serverQueue.dashboardState.timer);
       serverQueue.dashboardState.timer = null;
     }
 
-    // ── STATS: ferma timer ascolto e salva su disco ──
+    // ── STATS: stop listening timers and save to disk ──
     try {
       if (!statsModule) statsModule = await import('../database/stats.js');
       statsModule.flushGuildAndSave(serverQueue.guildId);
     } catch { }
 
-    // Ferma il player
+    // Stop the player
     try { if (serverQueue.player) serverQueue.player.stop(true); } catch { }
-    // Kill mixer se presente
+    // Kill mixer if present
     try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch { }
-    // Distruggi la connessione vocale
+    // Destroy voice connection
     try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch { }
 
-    // Cleanup low-latency stream per evitare pipe/fd leak
+    // Cleanup low-latency stream to avoid pipe/fd leak
     try { if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; } } catch { }
 
-    // Cleanup stato audio per-guild
+    // Cleanup per-guild audio state
     try {
       if (!audioModule) audioModule = await import('../audio/index.js');
       audioModule.clearStreamErrors(serverQueue.guildId);
@@ -410,7 +410,7 @@ async function performDisconnectCleanup(serverQueue) {
       playCommandModule.cleanupLastCleanupTime(serverQueue.guildId);
     } catch { }
 
-    // Resetta alcuni campi dello stato della coda
+    // Reset some queue state fields
     serverQueue.connection = null;
     serverQueue.currentDeckLoaded = null;
     serverQueue.nextDeckLoaded = null;
@@ -419,24 +419,24 @@ async function performDisconnectCleanup(serverQueue) {
     serverQueue.nextDeckTarget = null;
     clearDeckBindings(serverQueue);
 
-    // Salva stato su disco
+    // Save state to disk
     try { saveQueueState(serverQueue.guildId, serverQueue); } catch { }
 
-    // Assicurati di rimuovere i riferimenti a mixer e player per evitare duplicati dopo il restart
+    // Make sure to remove references to mixer and player to avoid duplicates after restart
     try { serverQueue.mixer = null; } catch { }
     try { serverQueue.player = null; } catch { }
-    // Cancella eventuale timer schedulato
+    // Clear any scheduled timer
     try { disconnectTimers.delete(serverQueue.guildId); } catch { }
 
   } catch {
-    console.error('❌ [CLEANUP] Errore durante cleanup disconnessione:', e);
+    console.error('❌ [CLEANUP] Error during disconnect cleanup:', e);
   } finally {
     serverQueue._cleaningUp = false;
   }
 }
 
 /**
- * Programma la disconnessione quando il bot è solo nel canale vocale
+ * Schedule disconnection when bot is alone in voice channel
  * @param {object} serverQueue
  * @param {number} timeoutMs
  */
@@ -444,10 +444,10 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
   if (!serverQueue || !serverQueue.guildId) return false;
   const gid = serverQueue.guildId;
 
-  // Immediate cleanup request (e.g. bot disconnesso/espulso)
-  // bypassa i controlli sul canale e chiama direttamente il cleanup.
+  // Immediate cleanup request (e.g. bot disconnected/kicked)
+  // bypasses channel checks and calls cleanup directly.
   if (timeoutMs === 0) {
-    // Se c'è un timer già schedulato, annullalo.
+    // If there's already a scheduled timer, cancel it.
     if (disconnectTimers.has(gid)) {
       try { clearTimeout(disconnectTimers.get(gid)); } catch { }
       disconnectTimers.delete(gid);
@@ -456,7 +456,7 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
     return true;
   }
 
-  // Se non è solo, assicurati di cancellare qualsiasi timer precedente
+  // If not alone, make sure to clear any previous timer
   if (!isBotAloneInChannel(serverQueue)) {
     if (disconnectTimers.has(gid)) {
       clearTimeout(disconnectTimers.get(gid));
@@ -464,26 +464,26 @@ function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_M
     }
     return false;
   }
-  // Se esiste già un timer, non fare nulla
+  // If a timer already exists, do nothing
   if (disconnectTimers.has(gid)) return true;
   const t = setTimeout(() => {
     try {
-      // Ricontrolla prima di eseguire
+      // Recheck before executing
       if (isBotAloneInChannel(serverQueue)) {
         performDisconnectCleanup(serverQueue);
       } else {
-        // Qualcuno è tornato: cancella semplicemente il timer
+        // Someone returned: just delete the timer
         disconnectTimers.delete(gid);
       }
     } catch { disconnectTimers.delete(gid); }
   }, timeoutMs);
   disconnectTimers.set(gid, t);
-  console.log(`⏱️ [SCHEDULE] Timer di disconnect programmato per guild ${gid} (${timeoutMs}ms)`);
+  console.log(`⏱️ [SCHEDULE] Disconnect timer scheduled for guild ${gid} (${timeoutMs}ms)`);
   return true;
 }
 
 /**
- * Cancella un timer di disconnect programmato
+ * Cancel a scheduled disconnect timer
  * @param {object} serverQueue
  */
 function cancelScheduledDisconnect(serverQueue) {
@@ -494,7 +494,7 @@ function cancelScheduledDisconnect(serverQueue) {
     clearTimeout(disconnectTimers.get(gid));
   } catch { }
   disconnectTimers.delete(gid);
-  console.log(`⏱️ [CANCEL] Timer di disconnect cancellato per guild ${gid}`);
+  console.log(`⏱️ [CANCEL] Disconnect timer cancelled for guild ${gid}`);
   return true;
 }
 

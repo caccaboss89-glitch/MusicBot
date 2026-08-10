@@ -1,6 +1,6 @@
 /**
- * Handler per interazioni relative alle playlist (bottoni, select menu, ricerca).
- * Estratti da interaction.js per modularità e crash-independence.
+ * Handler for playlist-related interactions (buttons, select menu, search).
+ * Extracted from interaction.js for modularity and crash-independence.
  */
 
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
@@ -13,21 +13,21 @@ import { safeReply } from '../utils/discord.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
 import * as audio from '../audio/index.js';
 
-// Mappa in-memory per query di ricerca attive (per paginazione risultati)
+// In-memory map for active search queries (for result pagination)
 const activeSearches = new Map();
 
-// Pulizia periodica per prevenire memory leak (ogni 30 minuti)
+// Periodic cleanup to prevent memory leak (every 30 minutes)
 setInterval(() => {
   activeSearches.clear();
 }, 30 * 60 * 1000);
 
 /**
- * Gestisce tutte le interazioni playlist (plist_*, act_*, srch_*, open_plist_*, btn_toggle_*).
- * L'eliminazione di una playlist personale richiede conferma (plist_delete_confirm / cancel).
- * @returns {boolean} true se l'interazione è stata gestita
+ * Handles all playlist interactions (plist_*, act_*, srch_*, open_plist_*, btn_toggle_*).
+ * Deletion of a personal playlist requires confirmation (plist_delete_confirm / cancel).
+ * @returns {boolean} true if the interaction was handled
  */
 async function handlePlaylist(interaction, serverQueue, guildId, customId, deps) {
-  // --- Playlist: selezione canzone ---
+  // --- Playlist: song selection ---
   if (customId === 'plist_select_song') {
     const rawValue = interaction.values[0];
     const parts = rawValue.split('_');
@@ -72,7 +72,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Playlist: cambio playlist attiva ---
+  // --- Playlist: change active playlist ---
   if (customId === 'plist_switch_likes') {
     const selectedName = interaction.values[0];
     const db = loadDatabase();
@@ -115,7 +115,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Playlist: navigazione pagine ---
+  // --- Playlist: page navigation ---
   if (customId && (customId.startsWith('plist_prev_') || customId.startsWith('plist_next_'))) {
     const parts = customId.split('_');
     const dir = parts[1];
@@ -131,7 +131,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Azioni playlist (play/remove/back) ---
+  // --- Playlist actions (play/remove/back) ---
   if (customId && customId.startsWith('act_')) {
     const parts = customId.split('_');
 
@@ -205,7 +205,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Cerca nella playlist (apre modal) ---
+  // --- Search in playlist (opens modal) ---
   if (customId === 'plist_search_server') {
     const modal = new ModalBuilder().setCustomId('modal_search_server').setTitle('Cerca nella Playlist Server');
     modal.addComponents(new ActionRowBuilder().addComponents(
@@ -227,7 +227,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Navigazione risultati ricerca ---
+  // --- Search results navigation ---
   if (customId && (customId.startsWith('srch_prev_') || customId.startsWith('srch_next_'))) {
     const parts = customId.split('_');
     const dir = parts[1];
@@ -259,7 +259,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Crea nuova playlist ---
+  // --- Create new playlist ---
   if (customId === 'plist_create') {
     const modal = new ModalBuilder().setCustomId('modal_create_playlist').setTitle('Crea Nuova Playlist');
     modal.addComponents(new ActionRowBuilder().addComponents(
@@ -272,7 +272,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Elimina playlist: richiesta di conferma ---
+  // --- Delete playlist: confirmation request ---
   if (customId && customId.startsWith('plist_delete_likes_')) {
     const plName = customId.replace('plist_delete_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
@@ -303,7 +303,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Elimina playlist: conferma ---
+  // --- Delete playlist: confirm ---
   if (customId && customId.startsWith('plist_delete_confirm_likes_')) {
     const plName = customId.replace('plist_delete_confirm_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
@@ -320,7 +320,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     const deletedCount = userData.playlists[plName].length;
     delete userData.playlists[plName];
     if (userData.activePlaylist === plName) userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
-    // Pulisci ricerche attive relative a questa playlist
+    // Clean active searches related to this playlist
     activeSearches.delete(`${interaction.user.id}_likes_${plName}`);
     saveDatabase(db);
     await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
@@ -328,7 +328,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Elimina playlist: annulla ---
+  // --- Delete playlist: cancel ---
   if (customId && customId.startsWith('plist_delete_cancel_likes_')) {
     const plName = customId.replace('plist_delete_cancel_likes_', '');
     const db = loadDatabase();
@@ -338,7 +338,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Rinomina playlist (apre modal) ---
+  // --- Rename playlist (opens modal) ---
   if (customId && customId.startsWith('plist_rename_likes_')) {
     const plName = customId.replace('plist_rename_likes_', '');
     if (plName === DEFAULT_PLAYLIST_NAME) {
@@ -356,7 +356,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Apri playlist server/personale ---
+  // --- Open server/personal playlist ---
   if (customId === 'open_plist_server') {
     await safeReply(interaction, generatePlaylistView('server', interaction.user.id, 0));
     return true;
@@ -368,7 +368,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Toggle canzone in playlist server ---
+  // --- Toggle song in server playlist ---
   if (customId === 'btn_toggle_server') {
     const song = getCurrentSong(serverQueue);
     if (!song) return true;
@@ -386,7 +386,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     return true;
   }
 
-  // --- Toggle canzone in playlist personale ---
+  // --- Toggle song in personal playlist ---
   if (customId === 'btn_toggle_like') {
     const song = getCurrentSong(serverQueue);
     if (!song) return true;

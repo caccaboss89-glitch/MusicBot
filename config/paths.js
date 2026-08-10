@@ -1,6 +1,6 @@
 /**
- * Configurazione centralizzata dei percorsi del bot
- * Tutti i percorsi sono relativi alla root del progetto
+ * Centralized bot path configuration
+ * All paths are relative to project root
  */
 
 import path from 'path';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Root del progetto (una directory sopra config/)
+// Project root (one directory above config/)
 export const ROOT_DIR = path.join(__dirname, '..');
 export const IS_WINDOWS = process.platform === 'win32';
 export const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
@@ -36,30 +36,30 @@ export function resolveYtDlpCookieBrowser() {
     const raw = process.env.YTDLP_COOKIE_BROWSER.trim();
     return isEnvDisabled(raw) ? null : raw;
   }
-  // Su VPS Linux i cookie Chromium spesso danno solo immagini / niente bestaudio
+  // On Linux VPS, Chromium cookies often give only images / no bestaudio
   return IS_WINDOWS ? 'chromium' : null;
 }
 
-// --- PERCORSI FILE DATI ---
+// --- DATA FILE PATHS ---
 export const PLAYLIST_FILE = path.join(ROOT_DIR, 'data', 'playlists.json');
 export const QUEUE_FILE = path.join(ROOT_DIR, 'data', 'queue_backup.json');
 export const STATS_FILE = path.join(ROOT_DIR, 'data', 'stats.json');
 
-// --- PERCORSI BINARI ---
-export const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Binario precompilato yt-dlp (ARM64 Linux)
+// --- BINARY PATHS ---
+export const YT_DLP_PATH = '/home/ubuntu/DiscordBots/DiscordMusicBot/bin/yt-dlp';  // Precompiled yt-dlp binary (ARM64 Linux)
 export const RUST_ENGINE_FILENAME = IS_WINDOWS ? 'discord_audio_mixer.exe' : 'discord_audio_mixer';
 export const RUST_ENGINE_PATH = path.join(ROOT_DIR, 'audio_engine', 'target', 'release', RUST_ENGINE_FILENAME);
 
-// --- PERCORSI DIRECTORY ---
+// --- DIRECTORY PATHS ---
 export const LOCAL_TEMP_DIR = path.join(ROOT_DIR, 'temp');
 export const DATA_DIR = path.join(ROOT_DIR, 'data');
 
-// --- UTILITY FUNZIONE PER YT-DLP ---
+// --- YT-DLP UTILITY FUNCTION ---
 /**
- * Restituisce il comando e gli argomenti per lanciare yt-dlp
- * Prova prima 'yt-dlp' direttamente, poi ripiego a 'python -m yt_dlp'
- * @param {string} args - Gli argomenti aggiuntivi da passare a yt-dlp
- * @returns {object} - {cmd: string, args: string[]} - Il comando e gli argomenti
+ * Returns the command and arguments for launching yt-dlp
+ * Tries 'yt-dlp' directly first, then falls back to 'python -m yt_dlp'
+ * @param {string} args - Additional arguments to pass to yt-dlp
+ * @returns {object} - {cmd: string, args: string[]} - The command and arguments
  */
 export function resolveYtDlpExtractorArgs() {
   const rawExtractorArgs = process.env.YTDLP_EXTRACTOR_ARGS;

@@ -1,8 +1,8 @@
 /**
  * src/state/ServerQueue.js
- * Classe che rappresenta lo stato di riproduzione per una singola guild.
- * Sostituisce l'oggetto ad-hoc creato in connection.js, garantendo
- * che tutte le proprietà siano dichiarate esplicitamente.
+ * Class representing playback state for a single guild.
+ * Replaces the ad-hoc object created in connection.js, ensuring
+ * all properties are explicitly declared.
  */
 
 import { createAudioPlayer } from '@discordjs/voice';
@@ -15,23 +15,23 @@ class ServerQueue {
      * @param {import('discord.js').VoiceChannel|null} [opts.voiceChannel]
      */
   constructor({ guildId, textChannel = null, voiceChannel = null }) {
-    // ── Identità ──
+    // ── Identity ──
     this.guildId = guildId;
 
-    // ── Canali Discord ──
+    // ── Discord Channels ──
     this.textChannel = textChannel;
     this.voiceChannel = voiceChannel;
 
-    // ── Connessione e player ──
+    // ── Connection and Player ──
     this.connection = null;
     this.player = createAudioPlayer();
 
-    // ── Coda e navigazione ──
+    // ── Queue and Navigation ──
     this.songs = [];
     this.history = [];
     this.playIndex = 0;
 
-    // ── Stato riproduzione ──
+    // ── Playback State ──
     this.isPaused = false;
     this.isTaskRunning = false;
     this.loopEnabled = false;
@@ -40,7 +40,7 @@ class ServerQueue {
     this.pauseStart = null;
     this.sessionRestored = false;
 
-    // ── Deck e mixer ──
+    // ── Deck and Mixer ──
     this.mixer = null;
     this.currentDeck = null;
     this.currentDeckLoaded = null;
@@ -50,20 +50,20 @@ class ServerQueue {
     this.mixerStarting = false;
     this.mixerGeneration = null;
 
-    // ── Binding deck → canzone (fonte di verità per la sincronizzazione embed) ──
-    // Per ogni deck registra { index, url } della canzone effettivamente caricata.
-    // Quando il Rust commuta deck autonomamente (auto-gapless) sappiamo con certezza
-    // QUALE canzone (indice in songs[]) è ora in riproduzione, senza "indovinare" playIndex+1.
+    // ── Deck → Song Binding (source of truth for embed sync) ──
+    // For each deck registers { index, url } of the actually loaded song.
+    // When Rust switches decks autonomously (auto-gapless) we know for sure
+    // WHICH song (index in songs[]) is now playing, without "guessing" playIndex+1.
     this.deckSongs = { A: null, B: null };
 
     // ── Crossfade ──
     this.isCrossfading = false;
     this.crossfadeStartTime = null;
 
-    // ── Transizione differita ──
+    // ── Deferred Transition ──
     this.pendingTransition = null;
 
-    // ── Crash recovery ──
+    // ── Crash Recovery ──
     this.crashRecoveryAttempts = 0;
     this.intentionalKill = false;
 
@@ -74,7 +74,7 @@ class ServerQueue {
     this.loadingFooter = null;
     this.dashboardState = null;
 
-    // ── Interno (stream a bassa latenza) ──
+    // ── Internal (low-latency stream) ──
     this._llStream = null;
     this._lastTransitionTime = null;
   }

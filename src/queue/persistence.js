@@ -1,12 +1,12 @@
 /**
- * Gestione persistenza della coda (backup/restore)
+ * Queue persistence management (backup/restore)
  */
 
 import fs from 'fs';
 import { QUEUE_FILE } from '../../config/index.js';
 import { safeJSONParse } from '../utils/sanitize.js';
 
-// ─── Cache in-memory per evitare letture da disco ripetute ──
+// ─── In-memory cache to avoid repeated disk reads ──
 let _queueCache = null;
 
 function _getQueueCache() {
@@ -23,14 +23,14 @@ function _flushQueueCache() {
     fs.writeFileSync(tmpFile, JSON.stringify(_queueCache, null, 2));
     fs.renameSync(tmpFile, QUEUE_FILE);
   } catch (e) {
-    console.error('❌ [PERSISTENCE] Errore scrittura cache:', e.message);
+    console.error('❌ [PERSISTENCE] Error writing cache:', e.message);
   }
 }
 
 /**
- * Carica il backup della coda per una guild
- * @param {string} guildId - ID della guild
- * @returns {object|null} - Dati della coda o null se non esiste
+ * Loads the queue backup for a guild
+ * @param {string} guildId - Guild ID
+ * @returns {object|null} - Queue data or null if doesn't exist
  */
 export function loadQueueBackup(guildId) {
   const data = _getQueueCache();
@@ -55,17 +55,17 @@ export function loadQueueBackup(guildId) {
 }
 
 /**
- * Salva il backup della coda per una guild
- * @param {string} guildId - ID della guild
- * @param {Array} songs - Array delle canzoni in coda
- * @param {Array} history - Array della cronologia
- * @param {number} playIndex - Indice corrente di riproduzione
- * @param {boolean} isPaused - Stato pausa
- * @param {boolean} loopEnabled - Stato loop
- * @param {boolean} fadeEnabled - Stato crossfade
- * @param {string|null} currentDeckLoaded - URL canzone caricata nel deck corrente
- * @param {string|null} dashboardMessageId - ID del messaggio embed della dashboard
- * @param {string|null} textChannelId - ID del canale testo dove è il dashboard
+ * Saves the queue backup for a guild
+ * @param {string} guildId - Guild ID
+ * @param {Array} songs - Array of songs in queue
+ * @param {Array} history - Array of history
+ * @param {number} playIndex - Current playback index
+ * @param {boolean} isPaused - Pause state
+ * @param {boolean} loopEnabled - Loop state
+ * @param {boolean} fadeEnabled - Crossfade state
+ * @param {string|null} currentDeckLoaded - URL of song loaded on current deck
+ * @param {string|null} dashboardMessageId - ID of dashboard embed message
+ * @param {string|null} textChannelId - ID of text channel where dashboard is
  */
 export function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = false, loopEnabled = false, fadeEnabled = false, currentDeckLoaded = null, dashboardMessageId = null, textChannelId = null) {
   try {
@@ -97,11 +97,11 @@ export function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused
     };
     _flushQueueCache();
   } catch (e) {
-    console.error('❌ [PERSISTENCE] Errore salvataggio backup:', e.message);
+    console.error('❌ [PERSISTENCE] Error saving backup:', e.message);
   }
 }
 
-// Funzione privata per eliminare il backup (usata internamente da saveQueueBackup)
+// Private function to delete backup (used internally by saveQueueBackup)
 export function deleteQueueBackup(guildId) {
   try {
     const data = _getQueueCache();
@@ -110,11 +110,11 @@ export function deleteQueueBackup(guildId) {
       _flushQueueCache();
     }
   } catch (e) {
-    console.error('❌ [PERSISTENCE] Errore eliminazione backup:', e.message);
+    console.error('❌ [PERSISTENCE] Error deleting backup:', e.message);
   }
 }
 
-// ─── Debounce per saveQueueState ────────────────────────────
+// ─── Debounce for saveQueueState ────────────────────────────
 const _saveTimers = new Map();   // guildId -> timeoutId
 const _savePending = new Map();  // guildId -> serverQueue reference
 const _lastSaveTime = new Map(); // guildId -> timestamp
@@ -136,9 +136,9 @@ function _doSaveQueueState(guildId, serverQueue) {
 }
 
 /**
- * Salva lo stato corrente della coda con debounce (max 1 scrittura ogni 2s per guild).
- * @param {string} guildId - ID della guild
- * @param {object} serverQueue - Oggetto coda del server
+ * Saves the current queue state with debounce (max 1 write every 2s per guild).
+ * @param {string} guildId - Guild ID
+ * @param {object} serverQueue - Server queue object
  */
 export function saveQueueState(guildId, serverQueue) {
   if (!serverQueue) return;
@@ -149,7 +149,7 @@ export function saveQueueState(guildId, serverQueue) {
   const lastSave = _lastSaveTime.get(guildId) || 0;
 
   if (now - lastSave >= SAVE_DEBOUNCE_MS) {
-    // Abbastanza tempo passato, scrivi subito
+    // Enough time passed, write immediately
     if (_saveTimers.has(guildId)) {
       clearTimeout(_saveTimers.get(guildId));
       _saveTimers.delete(guildId);
@@ -158,7 +158,7 @@ export function saveQueueState(guildId, serverQueue) {
     _lastSaveTime.set(guildId, now);
     _doSaveQueueState(guildId, serverQueue);
   } else if (!_saveTimers.has(guildId)) {
-    // Troppo presto, schedula scrittura differita
+    // Too soon, schedule deferred write
     const delay = SAVE_DEBOUNCE_MS - (now - lastSave);
     _saveTimers.set(guildId, setTimeout(() => {
       _saveTimers.delete(guildId);
@@ -170,11 +170,11 @@ export function saveQueueState(guildId, serverQueue) {
       }
     }, delay));
   }
-  // Se timer già pendente, _savePending è già aggiornato con l'ultimo stato
+  // If timer already pending, _savePending already updated with latest state
 }
 
 /**
- * Salva immediatamente bypassando il debounce (per shutdown/crash).
+ * Saves immediately bypassing debounce (for shutdown/crash).
  * @param {string} guildId
  * @param {object} serverQueue
  */
@@ -189,7 +189,7 @@ export function saveQueueStateImmediate(guildId, serverQueue) {
 }
 
 /**
- * Flush di tutti i salvataggi pendenti (chiamare durante shutdown).
+ * Flush all pending saves (call during shutdown).
  */
 export function flushPendingSaves() {
   for (const [, timer] of _saveTimers) clearTimeout(timer);
@@ -201,7 +201,7 @@ export function flushPendingSaves() {
 }
 
 /**
- * Pulisce timer e stato pendente per una guild (da chiamare su guildDelete)
+ * Cleans up timer and pending state for a guild (to call on guildDelete)
  */
 export function cleanupGuild(guildId) {
   if (_saveTimers.has(guildId)) {

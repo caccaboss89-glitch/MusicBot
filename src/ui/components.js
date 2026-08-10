@@ -1,6 +1,6 @@
 /**
  * src/ui/components.js
- * Funzioni per la creazione di componenti Discord (bottoni, menu)
+ * Functions for creating Discord components (buttons, menus)
  */
 
 import {
@@ -18,12 +18,12 @@ import { loadDatabase, getUserData, getUserPlaylistNames } from '../database/pla
 import { PLAYLIST_PAGE_SIZE, DEFAULT_PLAYLIST_NAME } from '../../config/index.js';
 
 /**
- * Genera la vista di una playlist con paginazione
- * @param {string} type - 'server' o 'likes'
- * @param {string} userId - ID utente (per playlist personale)
- * @param {number} page - Numero pagina
- * @param {string|null} playlistName - Nome playlist personale (solo per type !== 'server')
- * @returns {Object} Oggetto con embeds, components e flags
+ * Generates playlist view with pagination
+ * @param {string} type - 'server' or 'likes'
+ * @param {string} userId - User ID (for personal playlist)
+ * @param {number} page - Page number
+ * @param {string|null} playlistName - Personal playlist name (only for type !== 'server')
+ * @returns {Object} Object with embeds, components and flags
  */
 function generatePlaylistView(type, userId, page, playlistName = null) {
   const db = loadDatabase();
@@ -34,7 +34,7 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
   if (type === 'server') {
     items = db.server || [];
   } else {
-    // Playlist personale — ottieni dati utente (con migrazione automatica)
+    // Personal playlist — get user data (with auto migration)
     const userData = getUserData(db, userId);
     currentPlName = playlistName || userData.activePlaylist || DEFAULT_PLAYLIST_NAME;
     items = userData.playlists[currentPlName] || [];
@@ -63,12 +63,12 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
 
   const components = [];
 
-  // Per playlist personali: aggiungi riga di selezione playlist e riga gestione
+  // For personal playlists: add playlist selection row and management row
   if (type !== 'server') {
     const plNames = getUserPlaylistNames(db, userId);
-    const navId = currentPlName; // nome playlist nel customId
+    const navId = currentPlName; // playlist name in customId
 
-    // Row 1: Selezione canzone
+    // Row 1: Song selection
     const rowSelect = new ActionRowBuilder();
     if (currentItems.length > 0) {
       rowSelect.addComponents(
@@ -85,15 +85,15 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     }
     components.push(rowSelect);
 
-    // Row 2: Navigazione e Play All
+    // Row 2: Navigation and Play All
     const rowButtons = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`plist_prev_likes_${navId}_${page}`).setEmoji('⬅️').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`plist_playall_likes_${navId}`).setEmoji('🚀').setLabel('Riproduci').setStyle(ButtonStyle.Success).setDisabled(totalItems === 0),
+      new ButtonBuilder().setCustomId(`plist_playall_likes_${navId}`).setEmoji('🚀').setLabel('Play').setStyle(ButtonStyle.Success).setDisabled(totalItems === 0),
       new ButtonBuilder().setCustomId(`plist_next_likes_${navId}_${page}`).setEmoji('➡️').setStyle(ButtonStyle.Secondary)
     );
     components.push(rowButtons);
 
-    // Row 4: Dropdown selezione playlist (disabilitato se solo 1 playlist)
+    // Row 3: Playlist selection dropdown (disabled if only 1 playlist)
     const playlistSelectRow = new ActionRowBuilder();
     const plOptions = plNames.map(name => ({
       label: `${name} (${(getUserData(db, userId).playlists[name] || []).length})`,
@@ -104,22 +104,22 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     playlistSelectRow.addComponents(
       new StringSelectMenuBuilder()
         .setCustomId('plist_switch_likes')
-        .setPlaceholder('📂 Seleziona playlist...')
-        .addOptions(plOptions.length > 0 ? plOptions : [{ label: 'Vuoto', value: 'empty' }])
+        .setPlaceholder('📂 Select playlist...')
+        .addOptions(plOptions.length > 0 ? plOptions : [{ label: 'Empty', value: 'empty' }])
         .setDisabled(plNames.length <= 1)
     );
     components.push(playlistSelectRow);
 
-    // Row 4: Bottoni gestione playlist + Cerca
+    // Row 4: Playlist management buttons + Search
     const rowManage = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('plist_create').setEmoji('➕').setLabel('Crea').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(`plist_delete_likes_${currentPlName}`).setEmoji('🗑️').setLabel('Elimina').setStyle(ButtonStyle.Danger).setDisabled(currentPlName === DEFAULT_PLAYLIST_NAME),
+      new ButtonBuilder().setCustomId('plist_create').setEmoji('➕').setLabel('Create').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(`plist_delete_likes_${currentPlName}`).setEmoji('🗑️').setLabel('Delete').setStyle(ButtonStyle.Danger).setDisabled(currentPlName === DEFAULT_PLAYLIST_NAME),
       new ButtonBuilder().setCustomId(`plist_rename_likes_${currentPlName}`).setEmoji('✏️').setStyle(ButtonStyle.Primary).setDisabled(currentPlName === DEFAULT_PLAYLIST_NAME),
       new ButtonBuilder().setCustomId(`plist_search_likes_${navId}`).setEmoji('🔍').setStyle(ButtonStyle.Primary).setDisabled(totalItems === 0)
     );
     components.push(rowManage);
   } else {
-    // Server playlist — Row 1: Select menu canzoni
+    // Server playlist — Row 1: Song select menu
     const rowSelect = new ActionRowBuilder();
     if (currentItems.length > 0) {
       rowSelect.addComponents(
@@ -136,10 +136,10 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
     }
     components.push(rowSelect);
 
-    // Row 2: Navigazione, Play All, e Cerca
+    // Row 2: Navigation, Play All, and Search
     const rowButtons = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`plist_prev_${type}_${page}`).setEmoji('⬅️').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId(`plist_playall_${type}`).setEmoji('🚀').setLabel('Riproduci').setStyle(ButtonStyle.Success).setDisabled(totalItems === 0),
+      new ButtonBuilder().setCustomId(`plist_playall_${type}`).setEmoji('🚀').setLabel('Play').setStyle(ButtonStyle.Success).setDisabled(totalItems === 0),
       new ButtonBuilder().setCustomId(`plist_next_${type}_${page}`).setEmoji('➡️').setStyle(ButtonStyle.Secondary),
       new ButtonBuilder().setCustomId('plist_search_server').setEmoji('🔍').setStyle(ButtonStyle.Primary).setDisabled(totalItems === 0)
     );
@@ -150,16 +150,16 @@ function generatePlaylistView(type, userId, page, playlistName = null) {
 }
 
 /**
- * Crea i componenti della dashboard principale
- * @param {Object} serverQueue - La coda del server
- * @returns {ActionRowBuilder[]} Array di righe di componenti
+ * Creates main dashboard components
+ * @param {Object} serverQueue - The server queue
+ * @returns {ActionRowBuilder[]} Array of component rows
  */
 function createDashboardComponents(serverQueue) {
   const song = serverQueue ? getCurrentSong(serverQueue) : null;
   const isSongValid = isValidSong(song);
   const queueList = serverQueue ? (serverQueue.songs || []) : [];
   const canGoPrev = serverQueue && getPlayingIndex(serverQueue) > 0;
-  // Rileva stato terminato: nessun deck corrente ma c'è ancora musica (per replay)
+  // Detects terminated state: no current deck but music still exists (for replay)
   const isTerminated = serverQueue && !serverQueue.currentDeckLoaded;
 
   const db = loadDatabase();
@@ -167,7 +167,7 @@ function createDashboardComponents(serverQueue) {
 
   let rowControls;
   if (isTerminated) {
-    // Solo 'replay' abilitato nello stato terminato
+    // Only 'replay' enabled in terminated state
     rowControls = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('btn_replay').setEmoji('🔁').setStyle(ButtonStyle.Secondary).setDisabled(false),
       new ButtonBuilder().setCustomId('btn_prev').setEmoji('⏮️').setStyle(ButtonStyle.Secondary).setDisabled(true),
@@ -191,12 +191,12 @@ function createDashboardComponents(serverQueue) {
     new ButtonBuilder().setCustomId('btn_loop').setEmoji('🔄').setStyle(loopState ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated || !isSongValid),
     new ButtonBuilder().setCustomId('btn_shuffle').setEmoji('🔀').setStyle(ButtonStyle.Secondary).setDisabled(isTerminated || !queueHasMultiple),
     new ButtonBuilder().setCustomId('btn_fade').setEmoji('🔗').setStyle(fadeState ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated),
-    // 📜 Testo della canzone corrente (messaggio effimero). Affianco al cross-fade.
+    // 📜 Current song text (ephemeral message). Next to cross-fade.
     new ButtonBuilder().setCustomId('btn_lyrics').setEmoji('📜').setStyle(ButtonStyle.Secondary).setDisabled(isTerminated || !isSongValid)
   );
 
   const rowPlaylists = new ActionRowBuilder().addComponents(
-    // I pulsanti per aprire le playlist devono rimanere cliccabili anche quando terminato
+    // Buttons to open playlists must remain clickable even when terminated
     new ButtonBuilder().setCustomId('open_plist_server').setEmoji('📂').setStyle(ButtonStyle.Primary).setDisabled(false),
     new ButtonBuilder().setCustomId('btn_toggle_server').setEmoji(isDuplicateServer ? '🗑️' : '💾').setStyle(isDuplicateServer ? ButtonStyle.Danger : ButtonStyle.Success).setDisabled(isTerminated || !isSongValid),
     new ButtonBuilder().setCustomId('open_plist_likes').setEmoji('👤').setStyle(ButtonStyle.Primary).setDisabled(false),
@@ -205,45 +205,45 @@ function createDashboardComponents(serverQueue) {
 
 
   const rowSelect = new ActionRowBuilder();
-  // Usa l'indice della canzone EFFETTIVAMENTE in riproduzione sul deck attivo
-  // (coerente con l'embed) invece del solo playIndex.
+  // Uses the index of the song ACTUALLY playing on active deck
+  // (consistent with embed) rather than just playIndex.
   const currentIndex = serverQueue ? getPlayingIndex(serverQueue) : 0;
 
   const songsInQueue = queueList ? Math.max(0, queueList.length - (currentIndex + 1)) : 0;
   const nextSongs = queueList ? queueList.slice(currentIndex + 1, currentIndex + 26) : [];
   const menu = new StringSelectMenuBuilder().setCustomId('select_queue');
   if (nextSongs.length > 0) {
-    menu.setPlaceholder(songsInQueue > 25 ? `📜 Prossime (${songsInQueue})...` : `📜 Prossime in coda (${songsInQueue})...`).addOptions(
-      // Mostra solo le canzoni dopo quella corrente. Le etichette sono la posizione relativa nella lista,
-      // i valori sono indici assoluti in `queueList` così gli handler possono usarli direttamente.
+    menu.setPlaceholder(songsInQueue > 25 ? `📜 Next (${songsInQueue})...` : `📜 Next in queue (${songsInQueue})...`).addOptions(
+      // Shows only songs after current. Labels are relative position in list,
+      // values are absolute indices in `queueList` so handlers can use them directly.
       nextSongs.map((s, index) => {
         const absIndex = currentIndex + 1 + index;
-        return { label: `${index + 1}. ${(s.title ? s.title.substring(0, 50) : 'Sconosciuto')}`, value: absIndex.toString() };
+        return { label: `${index + 1}. ${(s.title ? s.title.substring(0, 50) : 'Unknown')}`, value: absIndex.toString() };
       })
     );
   } else {
-    menu.setPlaceholder('🚫 Nessuna canzone in coda').addOptions([{ label: 'Vuoto', value: 'empty' }]).setDisabled(true);
+    menu.setPlaceholder('🚫 No songs in queue').addOptions([{ label: 'Empty', value: 'empty' }]).setDisabled(true);
   }
   rowSelect.addComponents(menu);
 
   const rowActions = new ActionRowBuilder().addComponents(
-    // Il pulsante 'Add' deve essere cliccabile nello stato terminato
-    new ButtonBuilder().setCustomId('btn_add_modal').setEmoji('➕').setLabel('Aggiungi').setStyle(ButtonStyle.Secondary).setDisabled(false),
-    // 'Mix' deve essere premibile SOLO quando la coda è terminata
+    // 'Add' button must be clickable in terminated state
+    new ButtonBuilder().setCustomId('btn_add_modal').setEmoji('➕').setLabel('Add').setStyle(ButtonStyle.Secondary).setDisabled(false),
+    // 'Mix' must only be pressable when queue is ended
     new ButtonBuilder().setCustomId('btn_yt_mix').setEmoji('✨').setLabel('Mix').setStyle(ButtonStyle.Primary).setDisabled(!isTerminated),
-    new ButtonBuilder().setCustomId('btn_clear_queue').setEmoji('🧹').setLabel('Svuota coda').setStyle(ButtonStyle.Danger).setDisabled(isTerminated || !isSongValid)
+    new ButtonBuilder().setCustomId('btn_clear_queue').setEmoji('🧹').setLabel('Clear Queue').setStyle(ButtonStyle.Danger).setDisabled(isTerminated || !isSongValid)
   );
   return [rowControls, rowSecondary, rowPlaylists, rowSelect, rowActions];
 }
 
 /**
- * Genera la vista dei risultati di ricerca in una playlist
- * @param {string} type - 'server' o 'likes'
- * @param {string} userId - ID utente
- * @param {string} query - Stringa di ricerca
- * @param {number} page - Numero pagina dei risultati
- * @param {string|null} playlistName - Nome playlist personale (solo per type !== 'server')
- * @returns {Object} Oggetto con embeds, components e flags
+ * Generates search results view in playlist
+ * @param {string} type - 'server' or 'likes'
+ * @param {string} userId - User ID
+ * @param {string} query - Search string
+ * @param {number} page - Page number of results
+ * @param {string|null} playlistName - Personal playlist name (only for type !== 'server')
+ * @returns {Object} Object with embeds, components and flags
  */
 function generateSearchResultsView(type, userId, query, page, playlistName = null) {
   const db = loadDatabase();
@@ -259,7 +259,7 @@ function generateSearchResultsView(type, userId, query, page, playlistName = nul
     items = userData.playlists[currentPlName] || [];
   }
 
-  // Filtra per query (case-insensitive)
+  // Filter by query (case-insensitive)
   const lowerQuery = query.toLowerCase();
   const matchedItems = [];
   for (let i = 0; i < items.length; i++) {
@@ -294,7 +294,7 @@ function generateSearchResultsView(type, userId, query, page, playlistName = nul
 
   const components = [];
 
-  // Row 1: Select menu canzoni trovate
+  // Row 1: Select menu for found songs
   const rowSelect = new ActionRowBuilder();
   if (currentResults.length > 0) {
     const selectOptions = currentResults.map((r) => {
@@ -309,17 +309,17 @@ function generateSearchResultsView(type, userId, query, page, playlistName = nul
     rowSelect.addComponents(
       new StringSelectMenuBuilder()
         .setCustomId('plist_select_song')
-        .setPlaceholder('⚡ Seleziona una canzone per Azioni...')
+        .setPlaceholder('⚡ Select a song for Actions...')
         .addOptions(selectOptions)
     );
   } else {
     rowSelect.addComponents(
-      new StringSelectMenuBuilder().setCustomId('dummy_search').setPlaceholder('Nessun risultato').addOptions([{ label: 'vuoto', value: 'vuoto' }]).setDisabled(true)
+      new StringSelectMenuBuilder().setCustomId('dummy_search').setPlaceholder('No results').addOptions([{ label: 'empty', value: 'empty' }]).setDisabled(true)
     );
   }
   components.push(rowSelect);
 
-  // Row 2: Navigazione risultati + torna alla playlist
+  // Row 2: Navigation results + back to playlist
   if (type === 'server') {
     const rowNav = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`srch_prev_server_${page}`).setEmoji('⬅️').setStyle(ButtonStyle.Secondary).setDisabled(totalResults <= itemsPerPage),

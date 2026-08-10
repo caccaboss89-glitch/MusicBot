@@ -1,6 +1,6 @@
 /**
- * Handler per i modal submit (ricerca, creazione playlist, aggiunta canzone).
- * Estratti da interaction.js per modularità e crash-independence.
+ * Handler for modal submissions (search, create playlist, add song).
+ * Extracted from interaction.js for modularity and crash-independence.
  */
 
 import { MessageFlags } from 'discord.js';
@@ -14,12 +14,12 @@ import { activeSearches } from './playlistHandlers.js';
 import * as audio from '../audio/index.js';
 
 /**
- * Gestisce tutte le submission dei modal.
+ * Handles all modal submissions.
  */
 async function handleModal(interaction, guildId, deps) {
   const modalCustomId = interaction.customId;
 
-  // --- Cerca nella playlist server ---
+  // --- Search server playlist ---
   if (modalCustomId === 'modal_search_server') {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
@@ -28,12 +28,12 @@ async function handleModal(interaction, guildId, deps) {
       activeSearches.set(`${interaction.user.id}_server_`, query);
       return await interaction.editReply(generateSearchResultsView('server', interaction.user.id, query, 0));
     } catch (e) {
-      console.error('❌ [MODAL_SEARCH_SERVER] Errore:', e);
+      console.error('❌ [MODAL_SEARCH_SERVER] Error:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
   }
 
-  // --- Cerca nella playlist personale ---
+  // --- Search personal playlist ---
   if (modalCustomId.startsWith('modal_search_likes_')) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
@@ -43,12 +43,12 @@ async function handleModal(interaction, guildId, deps) {
       activeSearches.set(`${interaction.user.id}_likes_${plName}`, query);
       return await interaction.editReply(generateSearchResultsView('likes', interaction.user.id, query, 0, plName));
     } catch (e) {
-      console.error('❌ [MODAL_SEARCH_LIKES] Errore:', e);
+      console.error('❌ [MODAL_SEARCH_LIKES] Error:', e);
       return await interaction.editReply('❌ Errore durante la ricerca.');
     }
   }
 
-  // --- Crea playlist ---
+  // --- Create playlist ---
   if (modalCustomId === 'modal_create_playlist') {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
@@ -70,12 +70,12 @@ async function handleModal(interaction, guildId, deps) {
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist **${trimmedName}** creata! Ora è la tua playlist attiva.`);
     } catch (e) {
-      console.error('❌ [MODAL_CREATE_PLAYLIST] Errore:', e);
+      console.error('❌ [MODAL_CREATE_PLAYLIST] Error:', e);
       return await interaction.editReply('❌ Errore durante la creazione della playlist.');
     }
   }
 
-  // --- Rinomina playlist ---
+  // --- Rename playlist ---
   if (modalCustomId.startsWith('modal_rename_playlist_')) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
@@ -99,12 +99,12 @@ async function handleModal(interaction, guildId, deps) {
       saveDatabase(db);
       return await interaction.editReply(`✅ Playlist rinominata: **${oldName}** → **${trimmedName}**`);
     } catch (e) {
-      console.error('❌ [MODAL_RENAME_PLAYLIST] Errore:', e);
+      console.error('❌ [MODAL_RENAME_PLAYLIST] Error:', e);
       return await interaction.editReply('❌ Errore durante la rinomina della playlist.');
     }
   }
 
-  // --- Aggiungi canzone (modal_add_song) ---
+  // --- Add song (modal_add_song) ---
   const serverQueue = await deps.ensureBotConnection(interaction);
   if (!serverQueue) return;
   serverQueue.isTaskRunning = true;

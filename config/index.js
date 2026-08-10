@@ -1,5 +1,5 @@
 /**
- * Export centralizzato delle configurazioni
+ * Centralized configuration exports
  */
 
 export * from './paths.js';

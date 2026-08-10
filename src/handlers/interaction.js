@@ -17,7 +17,7 @@ import handleModal from './modalHandlers.js';
 // ─── Button Handlers ────────────────────────────────────────
 
 async function handleClearQueue(interaction, serverQueue, guildId) {
-  // Cancella transizione differita pendente prima di svuotare la coda
+  // Cancel pending deferred transition before clearing queue
   if (serverQueue.pendingTransition) {
     if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
     serverQueue.pendingTransition = null;
@@ -28,7 +28,7 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
   serverQueue.history = [];
   serverQueue.nextDeckLoaded = null;
   serverQueue.nextDeckTarget = null;
-  // Riallinea i binding: solo la canzone corrente resta in coda (indice 0 sul deck attivo).
+  // Re-align bindings: only current song remains in queue (index 0 on active deck).
   clearDeckBindings(serverQueue);
   if (currentSong && serverQueue.currentDeck) {
     bindDeckSong(serverQueue, serverQueue.currentDeck, 0, currentSong.url);
@@ -42,7 +42,7 @@ async function handlePause(interaction, serverQueue, guildId, deps) {
   const result = await audio.togglePauseResume(guildId, serverQueue, { connectToVoice: deps.connectToVoice });
   if (!result.success) {
     console.error(`❌ [PAUSE-BUTTON] ${result.error}`);
-    await safeReply(interaction, { content: `❌ Errore durante ${result.action === 'pause' ? 'pausa' : 'ripresa'}.`, flags: MessageFlags.Ephemeral }).catch(() => { });
+    await safeReply(interaction, { content: `❌ Error during ${result.action === 'pause' ? 'pause' : 'resume'}.`, flags: MessageFlags.Ephemeral }).catch(() => { });
     return;
   }
   saveQueueState(guildId, serverQueue);
@@ -53,15 +53,15 @@ async function handlePause(interaction, serverQueue, guildId, deps) {
 async function handleYtMix(interaction, serverQueue, guildId, deps) {
   serverQueue.isTaskRunning = true;
   let statusMsg = null;
-  try { statusMsg = await interaction.followUp({ content: '✨ **Generazione Mix YouTube in corso...**', flags: MessageFlags.Ephemeral }); } catch { }
+  try { statusMsg = await interaction.followUp({ content: '✨ **YouTube Mix generation in progress...**', flags: MessageFlags.Ephemeral }); } catch { }
   try {
     const db = loadDatabase();
     const currentSong = getCurrentSong(serverQueue);
     const seedSource = db.server.length > 0 ? db.server : (currentSong ? [currentSong] : serverQueue.history);
-    if (!seedSource || seedSource.length === 0) { if (statusMsg) await statusMsg.edit({ content: '❌ Serve almeno una canzone salvata o in riproduzione per generare un Mix!' }).catch(() => { }); return; }
+    if (!seedSource || seedSource.length === 0) { if (statusMsg) await statusMsg.edit({ content: '❌ At least one saved or playing song is needed to generate a Mix!' }).catch(() => { }); return; }
     const randomSong = seedSource[Math.floor(Math.random() * seedSource.length)];
     const videoId = getYoutubeId(randomSong.url);
-    if (!videoId) throw new Error('ID Video non valido');
+    if (!videoId) throw new Error('Invalid video ID');
     const mixUrl = `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`;
     const songsFound = await getVideoInfo(mixUrl);
     if (songsFound && songsFound.length > 0) {
@@ -78,11 +78,11 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
         if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
         if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
       }
-      if (statusMsg) await statusMsg.edit({ content: `✨ Generato Mix YouTube da: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
-    } else { if (statusMsg) await statusMsg.edit({ content: '❌ Nessuna canzone trovata nel Mix.' }).catch(() => { }); }
+      if (statusMsg) await statusMsg.edit({ content: `✨ Generated YouTube Mix from: **${sanitizeTitle(randomSong.title)}**` }).catch(() => { });
+    } else { if (statusMsg) await statusMsg.edit({ content: '❌ No songs found in Mix.' }).catch(() => { }); }
   } catch (e) {
-    console.error('Errore Mix:', e);
-    if (statusMsg) await statusMsg.edit({ content: '❌ Errore durante la generazione del Mix.' }).catch(() => { });
+    console.error('Mix error:', e);
+    if (statusMsg) await statusMsg.edit({ content: '❌ Error during Mix generation.' }).catch(() => { });
   } finally { serverQueue.isTaskRunning = false; }
 }
 
@@ -105,7 +105,7 @@ async function handleReplay(interaction, serverQueue, guildId, deps) {
   }, { timeout: 10000, minThrottle: 2000 });
 
   if (!result.throttled && !result.success) {
-    console.error('❌ [REPLAY] Errore:', result.error?.message);
+    console.error('❌ [REPLAY] Error:', result.error?.message);
   }
 }
 
@@ -127,8 +127,8 @@ async function handleSkip(interaction, serverQueue, guildId, deps) {
   }, { timeout: 10000, minThrottle: 2000 });
 
   if (!result.throttled && !result.success) {
-    console.error('❌ [SKIP] Errore:', result.error?.message);
-    await safeReply(interaction, { content: '❌ Impossibile eseguire skip. Riprova tra un attimo.', flags: MessageFlags.Ephemeral }).catch(() => { });
+    console.error('❌ [SKIP] Error:', result.error?.message);
+    await safeReply(interaction, { content: '❌ Unable to skip. Try again in a moment.', flags: MessageFlags.Ephemeral }).catch(() => { });
   }
 }
 
@@ -149,7 +149,7 @@ async function handlePrev(interaction, serverQueue, guildId, deps) {
   }, { timeout: 10000, minThrottle: 2000 });
 
   if (!result.throttled && !result.success) {
-    console.error('❌ [PREV] Errore:', result.error?.message);
+    console.error('❌ [PREV] Error:', result.error?.message);
   }
 }
 
@@ -162,7 +162,7 @@ async function handleSelectQueue(interaction, serverQueue, guildId) {
   }, { timeout: 10000, minThrottle: 2000 });
 
   if (!result.throttled && !result.success) {
-    console.error('❌ [SELECT-QUEUE] Errore:', result.error?.message);
+    console.error('❌ [SELECT-QUEUE] Error:', result.error?.message);
   }
 }
 
@@ -178,7 +178,7 @@ async function handleLoop(interaction, serverQueue, guildId) {
 
 async function handleShuffle(interaction, serverQueue, guildId) {
   if (serverQueue.songs.length >= 2) {
-    // Cancella transizione differita pendente prima dello shuffle
+    // Cancel pending deferred transition before shuffle
     if (serverQueue.pendingTransition) {
       if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
       serverQueue.pendingTransition = null;
@@ -205,33 +205,33 @@ async function handleFade(interaction, serverQueue, guildId) {
 }
 
 async function handleLyrics(interaction, serverQueue) {
-  // Risposta effimera editabile: deferReply + editReply (i followUp effimeri non si possono modificare).
+  // Editable ephemeral reply: deferReply + editReply (ephemeral followUps cannot be modified).
   await interaction.deferReply({ flags: MessageFlags.Ephemeral }).catch(() => { });
 
   const song = getCurrentSong(serverQueue);
   if (!song || !song.title) {
-    await interaction.editReply({ content: '❌ Nessuna canzone in riproduzione.' }).catch(() => { });
+    await interaction.editReply({ content: '❌ No song currently playing.' }).catch(() => { });
     return;
   }
 
-  await interaction.editReply({ content: `🔎 Cerco il testo di **${sanitizeTitle(song.title)}**...` }).catch(() => { });
+  await interaction.editReply({ content: `🔎 Searching for lyrics of **${sanitizeTitle(song.title)}**...` }).catch(() => { });
 
   let lyrics = null;
   try {
     const { getLyrics } = await import('../utils/lyrics.js');
     lyrics = await getLyrics(song);
   } catch (e) {
-    console.error('❌ [LYRICS] Errore recupero testo:', e.message);
+    console.error('❌ [LYRICS] Error fetching lyrics:', e.message);
   }
 
   if (!lyrics) {
-    await interaction.editReply({ content: `📜 Testo non trovato per **${sanitizeTitle(song.title)}**.` }).catch(() => { });
+    await interaction.editReply({ content: `📜 Lyrics not found for **${sanitizeTitle(song.title)}**.` }).catch(() => { });
     return;
   }
 
   const { chunkLyrics } = await import('../utils/lyrics.js');
   const header = `📜 **${sanitizeTitle(song.title)}**\n\n`;
-  // Primo chunk include l'header: lascia margine per non superare i 2000 caratteri.
+  // First chunk includes header: leave margin to not exceed 2000 characters.
   const chunks = chunkLyrics(lyrics, 2000 - header.length - 10);
 
   await interaction.editReply({ content: header + chunks[0] }).catch(() => { });
@@ -267,7 +267,7 @@ export default function registerInteractionHandlers(client, deps) {
         try { const commandsModule = await import('../commands/index.js'); commands = commandsModule.default || commandsModule; } catch { }
         const cmd = commands[interaction.commandName];
         if (cmd && typeof cmd.execute === 'function') {
-          try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error', e); }
+          try { await cmd.execute(interaction, deps); } catch (e) { console.error('Command execute error:', e); }
         }
         return;
       }
@@ -276,15 +276,15 @@ export default function registerInteractionHandlers(client, deps) {
         const guildId = interaction.guildId;
         const customId = interaction.customId;
 
-        // Percorso rapido per modal
+        // Quick path for modal
         if (customId === 'btn_add_modal') {
-          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle('Aggiungi Canzone');
-          modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('song_input').setLabel('Link o Nome').setStyle(TextInputStyle.Short)));
+          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle('Add Song');
+          modal.addComponents(new ActionRowBuilder().addComponents(new TextInputBuilder().setCustomId('song_input').setLabel('Link or Name').setStyle(TextInputStyle.Short)));
           await interaction.showModal(modal);
           return;
         }
 
-        // Defer dell'update (salvo bottoni ad aggiornamento immediato o che aprono modal)
+        // Defer update (except buttons with immediate update or modal-opening buttons)
         const immediateUpdateButtons = ['btn_loop', 'btn_shuffle', 'btn_fade'];
         const deferReplyButtons = ['btn_lyrics'];
         const modalButtons = ['plist_create', 'plist_search_server'];
@@ -302,25 +302,25 @@ export default function registerInteractionHandlers(client, deps) {
         if (!serverQueue) return;
         if (!serverQueue.dashboardMessage && interaction.message) serverQueue.dashboardMessage = interaction.message;
 
-        // Prova prima i playlist handlers
+        // Try playlist handlers first
         try {
           if (await handlePlaylist(interaction, serverQueue, guildId, customId, deps)) return;
-        } catch (e) { console.error(`❌ [PLAYLIST-HANDLER] Errore (${customId}):`, e); return; }
+        } catch (e) { console.error(`❌ [PLAYLIST-HANDLER] Error (${customId}):`, e); return; }
 
-        // Poi i button handlers
+        // Then button handlers
         const handler = BUTTON_HANDLERS[customId];
         if (handler) {
           try { await handler(interaction, serverQueue, guildId, deps); }
-          catch (e) { console.error(`❌ [BUTTON-HANDLER] Errore (${customId}):`, e); }
+          catch (e) { console.error(`❌ [BUTTON-HANDLER] Error (${customId}):`, e); }
         }
         return;
       }
 
       if (interaction.isModalSubmit()) {
         try { await handleModal(interaction, interaction.guildId, deps); }
-        catch (e) { console.error(`❌ [MODAL-HANDLER] Errore (${interaction.customId}):`, e); }
+        catch (e) { console.error(`❌ [MODAL-HANDLER] Error (${interaction.customId}):`, e); }
         return;
       }
-    } catch (e) { console.error('Errore Handler:', e); }
+    } catch (e) { console.error('Handler error:', e); }
   });
 }

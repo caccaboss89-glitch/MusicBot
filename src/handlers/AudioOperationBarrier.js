@@ -1,6 +1,6 @@
 /**
- * Barrier globale per serializzare le operazioni audio critiche.
- * Previene race condition quando l'utente spamma skip, pause, ecc.
+ * Global barrier to serialize critical audio operations.
+ * Prevents race condition when user spams skip, pause, etc.
  */
 
 import { queue } from '../state/globals.js';
@@ -12,8 +12,8 @@ class AudioOperationBarrier {
   }
 
   /**
-     * Ottiene la coda per una guild
-     */
+   * Gets the queue for a guild
+   */
   _getQueue(guildId) {
     if (!this.operationQueues.has(guildId)) {
       this.operationQueues.set(guildId, {
@@ -31,17 +31,17 @@ class AudioOperationBarrier {
   }
 
   /**
-     * Richiede l'accesso esclusivo per un'operazione audio
-     * @param {string} guildId
-     * @param {string} operationName - Nome dell'operazione (skip, pause, loop, etc)
-     * @param {function} executeFn - Async function che esegue l'operazione
-     * @param {object} options - { timeout: ms, minThrottle: ms }
-     * @returns {Promise<{success: boolean, result?: any, throttled?: boolean, error?: Error}>}
-     */
+   * Requests exclusive access for an audio operation
+   * @param {string} guildId
+   * @param {string} operationName - Operation name (skip, pause, loop, etc)
+   * @param {function} executeFn - Async function that executes the operation
+   * @param {object} options - { timeout: ms, minThrottle: ms }
+   * @returns {Promise<{success: boolean, result?: any, throttled?: boolean, error?: Error}>}
+   */
   async request(guildId, operationName, executeFn, options = {}) {
     const {
-      timeout = 15000,           // 15s default per operazione audio critica
-      minThrottle = 2000          // Min 2s tra operazioni per prevenire spam
+      timeout = 15000,           // 15s default for critical audio operation
+      minThrottle = 2000          // Min 2s between operations to prevent spam
     } = options;
 
     const sq = queue.get(guildId);
@@ -53,7 +53,7 @@ class AudioOperationBarrier {
     const now = Date.now();
     const timeSinceLastOp = now - operationQueue.lastOperationTime;
 
-    // Controlla throttle globale
+    // Check global throttle
     if (timeSinceLastOp < minThrottle) {
       operationQueue.stats.throttledOps++;
       console.warn(`⏳ [AUDIO-BARRIER] '${operationName}' throttled (${minThrottle - timeSinceLastOp}ms left)`);
@@ -76,30 +76,30 @@ class AudioOperationBarrier {
       promise: null
     };
 
-    // Crea una promise per questa operazione
+    // Create a promise for this operation
     const operationPromise = new Promise((resolve, reject) => {
       operation.promise = { resolve, reject };
     });
 
-    // Metti in coda
+    // Enqueue
     operationQueue.operations.push(operation);
     console.log(`📥 [AUDIO-BARRIER] Enqueued '${operationName}' (queue size: ${operationQueue.operations.length + (operationQueue.executing ? 1 : 0)})`);
 
-    // Avvia il processor
+    // Start processor
     this._processQueue(guildId).catch(e => {
-      console.error(`❌ [AUDIO-BARRIER] Process error: ${err}`);
+      console.error(`❌ [AUDIO-BARRIER] Process error: ${e.message}`);
     });
 
     return operationPromise;
   }
 
   /**
-     * Processa la coda delle operazioni in sequenza
-     */
+   * Processes the operations queue in sequence
+   */
   async _processQueue(guildId) {
     const operationQueue = this._getQueue(guildId);
 
-    // Se già in esecuzione, esci (riprocesserà quando finisce)
+    // If already executing, exit (will re-process when done)
     if (operationQueue.executing) {
       return;
     }
@@ -122,7 +122,7 @@ class AudioOperationBarrier {
         console.log(`▶️  [AUDIO-BARRIER] Executing '${operation.name}'`);
         const startTime = Date.now();
 
-        // Esegui con timeout
+        // Execute with timeout
         const result = await Promise.race([
           operation.executeFn(),
           new Promise((_, reject) =>
@@ -163,16 +163,16 @@ class AudioOperationBarrier {
   }
 
   /**
-     * Verifica se c'è un'operazione in corso
-     */
+   * Checks if an operation is in progress
+   */
   isOperationInProgress(guildId) {
     const operationQueue = this._getQueue(guildId);
     return operationQueue.executing !== null || operationQueue.operations.length > 0;
   }
 
   /**
-     * Ottiene statistiche per una guild
-     */
+   * Gets statistics for a guild
+   */
   getStats(guildId) {
     const operationQueue = this._getQueue(guildId);
     return {
@@ -184,8 +184,8 @@ class AudioOperationBarrier {
   }
 
   /**
-     * Pulisce la coda quando bot lascia una guild
-     */
+   * Clears the queue when bot leaves a guild
+   */
   cleanup(guildId) {
     if (this.operationQueues.has(guildId)) {
       const operationQueue = this.operationQueues.get(guildId);
@@ -197,8 +197,8 @@ class AudioOperationBarrier {
   }
 
   /**
-     * Debug info
-     */
+   * Debug info
+   */
   getDebugInfo() {
     const info = {};
     for (const [guildId, oq] of this.operationQueues) {

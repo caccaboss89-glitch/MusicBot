@@ -1,6 +1,6 @@
 /**
- * Sistema di serializzazione dei comandi verso il mixer Rust.
- * Previene race conditions mandando 1 comando alla volta.
+ * Command serialization system for Rust mixer.
+ * Prevents race conditions by sending 1 command at a time.
  */
 
 import { queue } from '../state/globals.js';
@@ -12,8 +12,8 @@ class CommandQueue {
   }
 
   /**
-     * Ottiene la coda per una guild
-     */
+   * Gets the queue for a guild
+   */
   _getQueue(guildId) {
     if (!this.queues.has(guildId)) {
       this.queues.set(guildId, {
@@ -32,18 +32,18 @@ class CommandQueue {
   }
 
   /**
-     * Enqueues un comando da eseguire in modo seriale
-     * @param {string} guildId
-     * @param {string} commandName - Nome del comando (per logging)
-     * @param {function} executeFn - Funzione asincrona che esegue il comando
-     * @param {object} options - { timeout: ms, retries: number, priority: 'normal'|'high' }
-     * @returns {Promise<{success: boolean, result?: any, error?: Error}>}
-     */
+   * Enqueues a command to execute serially
+   * @param {string} guildId
+   * @param {string} commandName - Command name (for logging)
+   * @param {function} executeFn - Async function that executes the command
+   * @param {object} options - { timeout: ms, retries: number, priority: 'normal'|'high' }
+   * @returns {Promise<{success: boolean, result?: any, error?: Error}>}
+   */
   async enqueue(guildId, commandName, executeFn, options = {}) {
     const {
-      timeout = 10000,           // 10s default timeout per comando
-      retries = 1,               // Default: esegui una volta sola
-      priority = 'normal'         // 'high' va in front della coda
+      timeout = 10000,           // 10s default timeout per command
+      retries = 1,               // Default: execute once only
+      priority = 'normal'         // 'high' goes to front of queue
     } = options;
 
     const sq = queue.get(guildId);
@@ -53,7 +53,7 @@ class CommandQueue {
 
     const commandQueue = this._getQueue(guildId);
 
-    // Limite dimensione coda per evitare OOM con mixer morto/lento
+    // Limit queue size to avoid OOM with dead/slow mixer
     if (commandQueue.pending.length >= 50) {
       return { success: false, error: new Error('Command queue full (50)') };
     }
@@ -74,7 +74,7 @@ class CommandQueue {
       reject: null
     };
 
-    // Crea una promise che sarà risolta quando il comando completa
+    // Create a promise that will be resolved when the command completes
     let resolveFunc, rejectFunc;
     const commandPromise = new Promise((resolve, reject) => {
       resolveFunc = resolve;
@@ -84,7 +84,7 @@ class CommandQueue {
     commandEntry.resolve = resolveFunc;
     commandEntry.reject = rejectFunc;
 
-    // Metti in coda
+    // Enqueue
     if (priority === 'high') {
       commandQueue.pending.unshift(commandEntry);
     } else {
@@ -93,21 +93,21 @@ class CommandQueue {
 
     console.log(`📤 [CMD-QUEUE] Enqueued '${commandName}' (queue size: ${commandQueue.pending.length + (commandQueue.executing ? 1 : 0)})`);
 
-    // Avvia il processor se non è già in esecuzione
+    // Start processor if not already running
     this._processQueue(guildId).catch(e => {
-      console.error(`❌ [CMD-QUEUE] Process queue error: ${err}`);
+      console.error(`❌ [CMD-QUEUE] Process queue error: ${e.message}`);
     });
 
     return commandPromise;
   }
 
   /**
-     * Processa la coda degli comandi in modo seriale
-     */
+   * Processes the command queue serially
+   */
   async _processQueue(guildId) {
     const commandQueue = this._getQueue(guildId);
 
-    // Se già in esecuzione, esci (tornerà in loop quando finisce)
+    // If already executing, exit (will loop back when done)
     if (commandQueue.executing) {
       return;
     }
@@ -131,7 +131,7 @@ class CommandQueue {
         console.log(`▶️  [CMD-QUEUE] Executing '${commandEntry.name}'`);
         const startTime = Date.now();
 
-        // Esegui con timeout
+        // Execute with timeout
         const result = await Promise.race([
           commandEntry.executeFn(),
           new Promise((_, reject) =>
@@ -160,7 +160,7 @@ class CommandQueue {
       } catch (e) {
         console.error(`❌ [CMD-QUEUE] '${commandEntry.name}' failed:`, e.message);
 
-        // Retry logic con backoff esponenziale
+        // Retry logic with exponential backoff
         if (commandEntry.retries > 0) {
           commandEntry.retries--;
           commandEntry._retryCount = (commandEntry._retryCount || 0) + 1;
@@ -171,16 +171,16 @@ class CommandQueue {
 
           stateVersion.incrementVersion('command_retry', {
             commandName: commandEntry.name,
-            error: error.message
+            error: e.message
           });
         } else {
-          commandEntry.error = error;
-          commandEntry.reject(error);
+          commandEntry.error = e;
+          commandEntry.reject(e);
           commandQueue.stats.failureCount++;
 
           stateVersion.incrementVersion('command_failed', {
             commandName: commandEntry.name,
-            error: error.message
+            error: e.message
           });
         }
       } finally {
@@ -190,8 +190,8 @@ class CommandQueue {
   }
 
   /**
-     * Ottiene statistiche della coda per una guild
-     */
+   * Gets queue statistics for a guild
+   */
   getStats(guildId) {
     const commandQueue = this._getQueue(guildId);
     return {
@@ -202,12 +202,12 @@ class CommandQueue {
   }
 
   /**
-     * Cancella la coda e pulisce (quando bot lascia la guild)
-     */
+   * Clears the queue and cleans up (when bot leaves a guild)
+   */
   cleanup(guildId) {
     if (this.queues.has(guildId)) {
       const commandQueue = this.queues.get(guildId);
-      // Reject tutti i comandi in attesa
+      // Reject all pending commands
       commandQueue.pending.forEach(cmd => {
         cmd.reject(new Error('Guild cleanup'));
       });
@@ -216,17 +216,17 @@ class CommandQueue {
   }
 
   /**
-     * Svuota e rigetta tutti i comandi pendenti (es. crash mixer).
-     * A differenza di cleanup(), NON elimina la queue entry —
-     * il mixer potrebbe essere riavviato e nuovi comandi potrebbero arrivare.
-     */
+   * Flushes and rejects all pending commands (e.g. mixer crash).
+   * Unlike cleanup(), does NOT delete the queue entry —
+   * mixer could be restarted and new commands might arrive.
+   */
   flushAndReject(guildId, reason = 'Mixer crashed') {
     const commandQueue = this.queues.get(guildId);
     if (!commandQueue) return;
     const error = new Error(reason);
     const flushedCount = commandQueue.pending.length;
     commandQueue.pending.forEach(cmd => {
-      try { cmd.reject(error); } catch { /* ignora */ }
+      try { cmd.reject(error); } catch { /* ignore */ }
     });
     commandQueue.pending = [];
     if (flushedCount > 0) {
@@ -235,8 +235,8 @@ class CommandQueue {
   }
 
   /**
-     * Debug info
-     */
+   * Debug info
+   */
   getDebugInfo() {
     const info = {};
     for (const [guildId, cq] of this.queues) {

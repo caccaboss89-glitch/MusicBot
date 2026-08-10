@@ -1,12 +1,12 @@
 /**
- * Funzioni di pulizia (file temporanei, messaggi)
+ * Cleanup functions (temporary files, messages)
  */
 
 /**
- * Pulisce i vecchi messaggi del bot in un canale
- * @param {TextChannel} channel - Canale Discord
- * @param {string|null} currentDashId - ID del messaggio dashboard attuale da preservare
- * @param {Client} client - Client Discord (per verificare l'autore)
+ * Cleans up old bot messages in a channel
+ * @param {TextChannel} channel - Discord channel
+ * @param {string|null} currentDashId - Current dashboard message ID to preserve
+ * @param {Client} client - Discord client (to verify author)
  */
 async function cleanupOldMessages(channel, currentDashId = null, client) {
   if (!channel || !client) return;
@@ -17,14 +17,14 @@ async function cleanupOldMessages(channel, currentDashId = null, client) {
 
     if (toDelete.size > 0) {
       const now = Date.now();
-      // Solo messaggi più giovani di 14 giorni (limite Discord per bulkDelete)
+      // Only messages younger than 14 days (Discord bulkDelete limit)
       const young = toDelete.filter(m => now - m.createdTimestamp < 1209600000);
       if (young.size > 0) {
         await channel.bulkDelete(young).catch(() => { });
       }
     }
   } catch (e) {
-    // Ignora errori di permessi o canale non accessibile
+    // Ignore permission errors or inaccessible channel errors
   }
 }
 
