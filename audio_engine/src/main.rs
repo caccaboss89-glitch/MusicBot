@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use byteorder::{ReadBytesExt, WriteBytesExt, LE}; // Fondamentale per leggere l'audio
+use byteorder::{ReadBytesExt, WriteBytesExt, LE}; // Essential for reading audio
 use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError};
 #[cfg(unix)]
 use libc;
@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-// ─── CONFIGURAZIONE PERCORSI ─────────────────────────────
+// ─── PATH CONFIGURATION ─────────────────────────────
 fn get_base_path() -> String {
     env::var("DISCORD_BOT_PATH").unwrap_or_else(|_| {
         if cfg!(windows) {
@@ -25,9 +25,9 @@ fn get_base_path() -> String {
 
 const SAMPLE_RATE: usize = 48000;
 const CHANNELS: usize = 2;
-const CHUNK_SIZE: usize = 960; // 10ms stereo (480 frame × 2 canali)
+const CHUNK_SIZE: usize = 960; // 10ms stereo (480 frames × 2 channels)
 
-// Default per retrocompatibilità: LOAD senza autoplay specifico va in autoplay
+// Default for backward compatibility: LOAD without specific autoplay goes into autoplay
 fn default_autoplay() -> bool {
     true
 }
@@ -53,19 +53,19 @@ enum InputCommand {
     },
     SetProactiveCrossfade {
         enabled: bool,
-    }, // 🔥 Controlla crossfade proattivo
+    }, // 🔥 Controls proactive crossfade
     SetLoop {
         enabled: bool,
-    }, // 🔁 Loop mode: quando il deck finisce, riavvia da full_samples
+    }, // 🔁 Loop mode: when the deck finishes, restart from full_samples
     SkipTo {
         target_deck: String,
-    }, // 🎵 NUOVO: Skip diretto al Rust (commuta al target_deck)
+    }, // 🎵 NEW: Direct skip to Rust (switches to target_deck)
     ApproveProposal {
         new_deck: String,
-    }, // 🤝 NUOVO: Approva una proposta di cambio deck (e fa crossfade)
+    }, // 🤝 NEW: Approves a deck change proposal (and does crossfade)
     RestartDeck {
         deck: String,
-    }, // 🔄 Replay: riavvia deck dall'inizio senza ri-scaricare
+    }, // 🔄 Replay: restart deck from beginning without re-downloading
     PauseAll,
     ResumeAll,
     Stop,
@@ -96,7 +96,7 @@ fn get_download_watchdog_secs() -> u64 {
     60
 }
 
-/// Legge una variabile d'ambiente; valori vuoti o "none"/"off"/"false" → None.
+/// Reads an environment variable; empty values or "none"/"off"/"false" → None.
 fn env_opt(name: &str) -> Option<String> {
     env::var(name).ok().and_then(|v| {
         let t = v.trim();
@@ -128,21 +128,21 @@ fn default_ytdlp_cookie_browser() -> Option<String> {
 struct Deck {
     name: String,
     samples: VecDeque<f32>,
-    full_samples: Vec<f32>, // Tutti i sample ricevuti (per replay senza ri-download)
+    full_samples: Vec<f32>, // All samples received (for replay without re-download)
     is_loading: bool,
     has_ended: bool,
     receiver: Option<Receiver<Vec<f32>>>,
     buffer_level: usize,
     total_samples_read: usize,
     real_samples_received: usize,
-    samples_played: usize, // Campioni effettivamente RIPRODOTTI (non solo ricevuti)
-    cancel_token: Option<Arc<AtomicBool>>, // Segnala al thread di download di fermarsi
-    load_started_at: Option<std::time::Instant>, // Quando load() è stato chiamato
-    // Flags per edge detection (gestiti dal mixer loop)
+    samples_played: usize, // Samples actually PLAYED (not just received)
+    cancel_token: Option<Arc<AtomicBool>>, // Signals the download thread to stop
+    load_started_at: Option<std::time::Instant>, // When load() was called
+    // Flags for edge detection (managed by mixer loop)
     buffer_prev_ready: bool,
     end_sent: bool,
     approaching_end_sent: bool,
-    // Replay: offset per leggere da full_samples senza clone
+    // Replay: offset to read from full_samples without clone
     replay_offset: Option<usize>,
 }
 
@@ -169,8 +169,8 @@ impl Deck {
     }
 
     fn load(&mut self, url: String) {
-        // Cancella il download precedente (se in corso)
-        // Questo segnala al thread di uccidere yt-dlp/ffmpeg e uscire
+        // Cancels the previous download (if in progress)
+        // This signals the thread to kill yt-dlp/ffmpeg and exit
         if let Some(ref token) = self.cancel_token {
             token.store(true, Ordering::Relaxed);
         }
@@ -193,7 +193,7 @@ impl Deck {
         self.cancel_token = Some(cancel.clone());
         let deck_name = self.name.clone();
 
-        // Avvia thread di download
+        // Starts download thread
         thread::spawn(move || {
             if let Err(e) = download_and_decode_advanced(&url, tx, cancel, &deck_name) {
                 send_log(
@@ -205,7 +205,7 @@ impl Deck {
     }
 
     fn get_next_sample(&mut self) -> Option<f32> {
-        // Replay mode: legge direttamente da full_samples senza clone
+        // Replay mode: reads directly from full_samples without clone
         if let Some(offset) = self.replay_offset {
             if offset < self.full_samples.len() {
                 let sample = self.full_samples[offset];
@@ -222,7 +222,7 @@ impl Deck {
             }
         }
 
-        // Streaming mode: legge da VecDeque
+        // Streaming mode: reads from VecDeque
         self.poll_receiver();
 
         if let Some(sample) = self.samples.pop_front() {
@@ -244,10 +244,10 @@ impl Deck {
         }
     }
 
-    // NUOVO: Aggiorna il buffer senza consumare sample (per deck inattivi)
+    // NEW: Updates the buffer without consuming samples (for inactive decks)
     fn poll_receiver(&mut self) {
         if let Some(rx) = &self.receiver {
-            // Leggi TUTTI i chunk disponibili, non solo uno
+            // Read ALL available chunks, not just one
             let mut chunks_received = 0;
             let _samples_before = self.samples.len();
             loop {
@@ -255,13 +255,13 @@ impl Deck {
                     Ok(chunk) => {
                         chunks_received += 1;
                         self.real_samples_received += chunk.len();
-                        // Prima data arrivata → clear load timestamp
+                        // First data arrived → clear load timestamp
                         if self.load_started_at.is_some() {
                             self.load_started_at = None;
                         }
-                        self.full_samples.extend(&chunk); // Salva copia per replay
+                        self.full_samples.extend(&chunk); // Saves copy for replay
                         self.samples.extend(chunk);
-                        self.buffer_level = self.samples.len(); // Aggiorna in base alla coda reale
+                        self.buffer_level = self.samples.len(); // Updates based on real queue
                     }
                     Err(TryRecvError::Disconnected) => {
                         let samples_after = self.samples.len();
@@ -284,7 +284,7 @@ impl Deck {
         self.available_samples() >= SAMPLE_RATE * CHANNELS / 2
     }
 
-    /// Sample disponibili (streaming + replay)
+    /// Available samples (streaming + replay)
     fn available_samples(&self) -> usize {
         self.samples.len()
             + match self.replay_offset {
@@ -300,8 +300,8 @@ impl Deck {
                 .map_or(false, |o| o < self.full_samples.len())
     }
 
-    /// Riavvia il deck dall'inizio senza ri-scaricare.
-    /// Usa replay_offset per leggere da full_samples senza clonare.
+    /// Restarts the deck from the beginning without re-downloading.
+    /// Uses replay_offset to read from full_samples without cloning.
     fn restart(&mut self) {
         self.samples.clear();
         self.replay_offset = Some(0);
@@ -312,7 +312,7 @@ impl Deck {
         self.reset_flags();
     }
 
-    /// Reset dei flag di edge detection (per transizioni)
+    /// Reset of edge detection flags (for transitions)
     fn reset_flags(&mut self) {
         self.buffer_prev_ready = false;
         self.end_sent = false;
@@ -322,8 +322,8 @@ impl Deck {
 
 impl Drop for Deck {
     fn drop(&mut self) {
-        // Quando il Deck viene distrutto (es. deck_a = Deck::new()),
-        // segnala al thread di download di fermarsi e killare yt-dlp/ffmpeg
+        // When the Deck is destroyed (e.g. deck_a = Deck::new()),
+        // signals the download thread to stop and kill yt-dlp/ffmpeg
         if let Some(ref token) = self.cancel_token {
             token.store(true, Ordering::Relaxed);
         }
@@ -336,14 +336,14 @@ fn download_and_decode_advanced(
     cancel: Arc<AtomicBool>,
     deck_name: &str,
 ) -> Result<()> {
-    // Flusso di streaming diretto:
-    // 1. yt-dlp scarica/streamma l'audio su stdout
-    // 2. stdout di yt-dlp e' collegato a stdin di ffmpeg
-    // 3. ffmpeg decodifica e restituisce PCM
+    // Direct streaming flow:
+    // 1. yt-dlp downloads/streams audio to stdout
+    // 2. yt-dlp's stdout is connected to ffmpeg's stdin
+    // 3. ffmpeg decodes and returns PCM
 
     send_log("info", &format!("Streaming: {}", &url[..url.len().min(60)]));
 
-    // Usa il binario yt-dlp dalla directory del bot
+    // Uses yt-dlp binary from bot directory
     let yt_dlp_binary = format!("{}/bin/yt-dlp", get_base_path());
 
     let mut yt_dlp_cmd = ProcessCommand::new(yt_dlp_binary);
@@ -367,7 +367,7 @@ fn download_and_decode_advanced(
 
     yt_dlp_cmd.env("PATH", env::var("PATH").unwrap_or_default());
 
-    // Proxy: default socks5h://127.0.0.1:5040; YTDLP_PROXY_URL=none per disabilitare
+    // Proxy: default socks5h://127.0.0.1:5040; YTDLP_PROXY_URL=none to disable
     let proxy_url = env_opt("YTDLP_PROXY_URL").or_else(|| {
         if env::var("YTDLP_PROXY_URL").is_ok() {
             None
@@ -382,7 +382,7 @@ fn download_and_decode_advanced(
         send_log("info", "yt-dlp proxy disabilitato (YTDLP_PROXY_URL=none)");
     }
 
-    // Cookie browser: default disabilitato su Linux; YTDLP_COOKIE_BROWSER=chromium per forzarli
+    // Cookie browser: disabled by default on Linux; YTDLP_COOKIE_BROWSER=chromium to force them
     let cookie_browser = env_opt("YTDLP_COOKIE_BROWSER").or_else(|| {
         if env::var("YTDLP_COOKIE_BROWSER").is_ok() {
             None
@@ -400,13 +400,13 @@ fn download_and_decode_advanced(
     }
     yt_dlp_cmd.arg("--mark-watched");
 
-    // Fallback al file cookies se esiste
+    // Fallback to cookies file if exists
     let cookies_file = format!("{}/youtube-cookies.txt", get_base_path());
     if std::path::Path::new(&cookies_file).exists() {
         yt_dlp_cmd.arg("--cookies").arg(&cookies_file);
     }
 
-    // Extractor args configurabili via env
+    // Extractor args configurable via env
     let extractor_args = env::var("YTDLP_EXTRACTOR_ARGS").unwrap_or_else(|_| {
         "youtube:player_client=web,android,ios,mweb".to_string()
     });
@@ -467,10 +467,10 @@ fn download_and_decode_advanced(
         }
     });
 
-    // Usa ffmpeg dal PATH di sistema
+    // Uses ffmpeg from system PATH
     let ffmpeg_path = "ffmpeg";
 
-    // Lancia ffmpeg sullo stream grezzo fornito da yt-dlp.
+    // Launches ffmpeg on the raw stream provided by yt-dlp.
     let mut ffmpeg_child = ProcessCommand::new(ffmpeg_path)
         .arg("-loglevel")
         .arg("error")
@@ -506,7 +506,7 @@ fn download_and_decode_advanced(
         .take()
         .ok_or(anyhow!("Failed to open ffmpeg stderr"))?;
 
-    // Thread gestione log errori - cancel-aware
+    // Error log handling thread - cancel-aware
     let cancel_stderr_ff = cancel.clone();
     thread::spawn(move || {
         let reader = BufReader::new(stderr);
@@ -533,8 +533,8 @@ fn download_and_decode_advanced(
     );
 
     // ── Download watchdog ──────────────────────────────────────
-    // Se yt-dlp/ffmpeg non producono dati entro 30 secondi, sono bloccati.
-    // Il watchdog li uccide per PID, sbloccando il read_i16 (che otterrà EOF).
+    // If yt-dlp/ffmpeg don't produce data within 30 seconds, they're stuck.
+    // The watchdog kills them by PID, unblocking the read_i16 (which will get EOF).
     let yt_dlp_pid = yt_dlp_child.id();
     let ffmpeg_pid = ffmpeg_child.id();
     let cancel_wd = cancel.clone();
@@ -545,22 +545,22 @@ fn download_and_decode_advanced(
         let watchdog_secs = get_download_watchdog_secs();
         send_log(
             "info",
-            &format!("Download watchdog attivo: {}s", watchdog_secs),
+            &format!("Download watchdog active: {}s", watchdog_secs),
         );
-        // Controlla ogni 500ms fino al timeout configurato.
+        // Checks every 500ms until configured timeout.
         let checks = watchdog_secs.saturating_mul(2);
         for _ in 0..checks {
             std::thread::sleep(std::time::Duration::from_millis(500));
             if first_data_wd.load(Ordering::Relaxed) || cancel_wd.load(Ordering::Relaxed) {
-                return; // Dati arrivati o download cancellato: watchdog non serve
+                return; // Data arrived or download canceled: watchdog not needed
             }
         }
-        // Timeout senza dati → kill processi bloccati
+        // Timeout without data → kill stuck processes
         send_log("error", &format!("⏰ [Deck {}] Download watchdog: {}s senza dati, killing yt-dlp (PID {}) + ffmpeg (PID {})",
             deck_name_wd, watchdog_secs, yt_dlp_pid, ffmpeg_pid));
         #[cfg(windows)]
         {
-            // /F = force, /T = tree (uccide anche sotto-processi)
+            // /F = force, /T = tree (kills sub-processes too)
             let _ = ProcessCommand::new("taskkill")
                 .args(["/F", "/T", "/PID", &yt_dlp_pid.to_string()])
                 .stdout(Stdio::null())
@@ -579,7 +579,7 @@ fn download_and_decode_advanced(
         }
     });
 
-    // LETTORE DATI GREZZI (RAW) - VERSIONE AVANZATA
+    // RAW DATA READER - ADVANCED VERSION
     let mut reader = BufReader::new(stdout);
     let mut buffer: Vec<f32> = Vec::with_capacity(8192);
     let mut _samples_read = 0;
@@ -589,12 +589,12 @@ fn download_and_decode_advanced(
     let mut cancelled = false;
 
     loop {
-        // Controlla se il download è stato cancellato (deck rimpiazzato)
+        // Checks if download was canceled (deck replaced)
         if cancel.load(Ordering::Relaxed) {
             send_log(
                 "info",
                 &format!(
-                    "🛑 [Deck {}] Download cancellato, killing processi",
+                    "🛑 [Deck {}] Download cancelled, killing processes",
                     deck_name
                 ),
             );
@@ -602,7 +602,7 @@ fn download_and_decode_advanced(
             break;
         }
 
-        // Leggi 2 bytes (16 bit)
+        // Read 2 bytes (16 bit)
         match reader.read_i16::<LE>() {
             Ok(sample_i16) => {
                 let sample_f32 = sample_i16 as f32 / 32768.0;
@@ -610,20 +610,20 @@ fn download_and_decode_advanced(
                 _samples_read += 1;
                 total_samples += 1;
 
-                // Segnala al watchdog che i dati stanno arrivando
+                // Signals watchdog that data is arriving
                 if !first_data_arrived.load(Ordering::Relaxed) {
                     first_data_arrived.store(true, Ordering::Relaxed);
                     send_log(
                         "info",
                         &format!(
-                            "📦 [Deck {}] Primi dati audio ricevuti dopo {}ms",
+                            "📦 [Deck {}] First audio data received after {}ms",
                             deck_name,
                             stream_start.elapsed().as_millis()
                         ),
                     );
                 }
 
-                // Invia a blocchi di ~20ms per reattività buffer_ready
+                // Sends in ~20ms chunks for buffer_ready reactivity
                 if buffer.len() >= 1920 {
                     if tx.send(std::mem::take(&mut buffer)).is_err() {
                         send_log(
@@ -646,7 +646,7 @@ fn download_and_decode_advanced(
                 let audio_seconds = total_samples / (SAMPLE_RATE * CHANNELS);
 
                 if e.kind() == io::ErrorKind::UnexpectedEof {
-                    // Fine canzone normale - invia buffer residuo
+                    // Normal song end - send remaining buffer
                     if !buffer.is_empty() {
                         let _ = tx.send(std::mem::take(&mut buffer));
                     }
@@ -681,9 +681,9 @@ fn download_and_decode_advanced(
                             }
                         }
                     } else if audio_seconds < 10 {
-                        // PREMATURA TERMINAZIONE - importante loggare
-                        send_log("error", &format!("⚠️ FINE STREAM PREMATURA: solo {} secondi di audio dopo {}ms di streaming!", audio_seconds, stream_duration_ms));
-                        send_log("error", &format!("Questo probabilmente indica che yt-dlp o ffmpeg sono falliti a metà stream (possibile problema codec Opus)"));
+                        // PREMATURE TERMINATION - important to log
+                        send_log("error", &format!("⚠️ PREMATURE STREAM END: only {} seconds of audio after {}ms of streaming!", audio_seconds, stream_duration_ms));
+                        send_log("error", &format!("This likely indicates that yt-dlp or ffmpeg failed mid-stream (possible Opus codec issue)"));
                     } else {
                         send_log(
                             "debug",
@@ -694,19 +694,19 @@ fn download_and_decode_advanced(
                         );
                     }
                 } else {
-                    // Vero errore di lettura (es. yt-dlp crashato o pipe rotta)
+                    // Actual read error (e.g. yt-dlp crashed or pipe broken)
                     send_log(
                         "error",
                         &format!(
-                            "❌ ERRORE CRITICO Lettura: {} (letti {} campioni / {} sec totali)",
+                            "❌ CRITICAL READ ERROR: {} (read {} samples / {} sec total)",
                             e, total_samples, audio_seconds
                         ),
                     );
                     send_log(
                         "error",
-                        &format!("Ciò significa che la pipe di yt-dlp/ffmpeg è rotta o è crashata"),
+                        &format!("This means the yt-dlp/ffmpeg pipe is broken or crashed"),
                     );
-                    // Se è un broken pipe error, potrebbe essere dovuto a problemi con i processi
+                    // If it's a broken pipe error, it could be due to process issues
                     if total_samples > 0 {
                         send_log(
                             "debug",
@@ -719,19 +719,19 @@ fn download_and_decode_advanced(
         }
     }
 
-    // Se cancellato, killa immediatamente i processi per liberare risorse e
-    // evitare che download concorrenti dello stesso URL si blocchino a vicenda
+    // If canceled, kill processes immediately to free resources and
+    // prevent concurrent downloads of the same URL from blocking each other
     if cancelled {
         let _ = yt_dlp_child.kill();
         let _ = ffmpeg_child.kill();
     } else {
-        // Invia ultimi dati rimasti solo se NON cancellato
+        // Sends remaining data only if NOT canceled
         if !buffer.is_empty() {
             let _ = tx.send(std::mem::take(&mut buffer));
         }
     }
 
-    // Attendi che i processi terminino (dopo kill e' immediato)
+    // Wait for processes to terminate (after kill it's immediate)
     let _ = yt_dlp_child.wait();
     let _ = ffmpeg_child.wait();
 
@@ -747,26 +747,26 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
     let mut crossfade_left = 0;
     let mut target_deck = String::new();
     let mut proactive_crossfade_triggered = false;
-    let mut proactive_crossfade_enabled = true; // 🔥 Controlla se il crossfade proattivo è abilitato
-    let mut loop_mode = false; // 🔁 Loop mode: fine canzone → riavvia stesso deck da full_samples
+    let mut proactive_crossfade_enabled = true; // 🔥 Controls if proactive crossfade is enabled
+    let mut loop_mode = false; // 🔁 Loop mode: end of song → restart same deck from full_samples
     let mut buffer_monitor_counter = 0;
-    let mut is_playing = false; // NUOVO: traccia se stiamo effettivamente riproducendo
+    let mut is_playing = false; // NEW: tracks if we're actually playing
 
-    // Pending transition: quando il deck target non è ancora pronto,
-    // continua a riprodurre il deck corrente e switcha quando i dati arrivano
+    // Pending transition: when target deck is not yet ready,
+    // continues to play current deck and switches when data arrives
     // (target_deck_name, since, is_crossfade, crossfade_duration_ms)
     let mut pending_transition: Option<(String, std::time::Instant, bool, u64)> = None;
     const PENDING_TIMEOUT_SECS: u64 = 8;
 
-    // Auto-gapless stall: quando il deck attivo finisce e l'altro deck ha un download
-    // in corso ma nessun sample ancora, stiamo in stallo (silenzio) finché non arrivano.
+    // Auto-gapless stall: when active deck ends and other deck has a download
+    // in progress but no sample yet, we're in stall (silence) until they arrive.
     // (target_deck_name, stall_start_instant)
     let mut auto_gapless_stall: Option<(String, std::time::Instant)> = None;
     const AUTO_GAPLESS_STALL_TIMEOUT_SECS: u64 = 10;
 
-    // Mid-chunk auto-switch: traccia se uno switch auto-gapless è avvenuto DENTRO il chunk loop
-    // Se Some(deck_name), significa che abbiamo switchato a quel deck dentro il chunk
-    // Dopo il chunk, invieremo gli eventi appropriati
+    // Mid-chunk auto-switch: tracks if an auto-gapless switch happened INSIDE the chunk loop
+    // If Some(deck_name), means we switched to that deck inside the chunk
+    // After the chunk, we'll send appropriate events
     #[allow(unused_assignments)]
     let mut mid_chunk_auto_switch: Option<String> = None;
     #[allow(unused_assignments)]
@@ -780,7 +780,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
     let mut last_status_log = std::time::Instant::now();
 
     'main: loop {
-        // Gestione Comandi Node -> Rust
+        // Node -> Rust Command Handling
         while let Ok(cmd) = cmd_rx.try_recv() {
             match cmd {
                 InputCommand::Load {
@@ -788,8 +788,8 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     deck,
                     autoplay,
                 } => {
-                    // Se stiamo caricando sul deck SORGENTE di un crossfade attivo,
-                    // completa il crossfade istantaneamente prima di sovrascrivere
+                    // If we're loading on the SOURCE deck of an active crossfade,
+                    // complete the crossfade instantly before overwriting
                     if crossfading && deck == active_deck {
                         send_log(
                             "info",
@@ -867,7 +867,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 } => {
                     auto_gapless_stall = None;
                     if to_deck != active_deck && !crossfading {
-                        // Aggiorna il buffer del deck target
+                        // Updates target deck buffer
                         if to_deck == "A" {
                             deck_a.poll_receiver();
                         } else if to_deck == "B" {
@@ -933,7 +933,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     if target_deck != active_deck && target_deck != "C" {
                         send_log("info", &format!("Skip: {} -> {}", active_deck, target_deck));
 
-                        // Aggiorna il buffer del deck target
+                        // Updates target deck buffer
                         let target_is_ready = if target_deck == "A" {
                             deck_a.poll_receiver();
                             deck_a.is_ready_for_crossfade()
@@ -944,7 +944,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                             false
                         };
 
-                        // Download completato (anche se pochi sample)?
+                        // Download completed (even if few samples)?
                         let download_done = if target_deck == "A" {
                             deck_a.receiver.is_none() && deck_a.has_samples()
                         } else {
@@ -989,7 +989,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     }
                 }
                 InputCommand::ApproveProposal { new_deck } => {
-                    // 🤝 NUOVO: Approva la proposta di cambio deck e fa il crossfade
+                    // 🤝 NEW: Approves the deck change proposal and does crossfade
                     if new_deck != active_deck && new_deck != "C" && proactive_crossfade_triggered {
                         send_log(
                             "info",
@@ -1041,15 +1041,15 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             }
         }
 
-        // Aggiorna i buffer di TUTTI i deck, anche quelli inattivi
+        // Updates buffers of ALL decks, even inactive ones
         deck_a.poll_receiver();
         deck_b.poll_receiver();
 
         // ── Auto-gapless stall check ─────────────────────────────
-        // Se siamo in stallo aspettando che l'altro deck riceva i primi dati,
-        // controlla se ora ha audio. Se sì, fai lo switch.
+        // If we're stalled waiting for the other deck to receive first data,
+        // check if it now has audio. If yes, do the switch.
         if let Some((ref stall_target, stall_since)) = auto_gapless_stall.clone() {
-            // Poll il deck target per ricevere dati freschi
+            // Poll the target deck to receive fresh data
             if stall_target == "A" {
                 deck_a.poll_receiver();
             } else {
@@ -1065,17 +1065,17 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 >= std::time::Duration::from_secs(AUTO_GAPLESS_STALL_TIMEOUT_SECS);
 
             if target_has_audio {
-                // Dati arrivati! Auto-switch gapless
+                // Data arrived! Auto-switch gapless
                 send_log(
                     "info",
                     &format!(
-                        "⚡ Auto-gapless stall risolto dopo {}ms → deck {}",
+                        "⚡ Auto-gapless stall resolved after {}ms → deck {}",
                         stall_since.elapsed().as_millis(),
                         stall_target
                     ),
                 );
 
-                // Pulisci il deck vecchio
+                // Clean up old deck
                 if active_deck == "A" {
                     deck_a = Deck::new("A");
                 } else {
@@ -1112,8 +1112,8 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         }
 
         // ── Pending transition check ──────────────────────────────
-        // Se c'è una transizione in attesa (skip o crossfade), controlla se il deck
-        // target è ora pronto. Se sì, esegui la transizione. Se timeout, esegui comunque.
+        // If there's a pending transition (skip or crossfade), check if the deck
+        // target is now ready. If yes, execute the transition. If timeout, execute anyway.
         {
             let mut execute_target: Option<(String, bool, u64)> = None; // (deck, is_crossfade, duration_ms)
             if let Some((ref ptarget, since, is_cf, cf_dur)) = pending_transition {
@@ -1148,8 +1148,8 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 
             if let Some((ref etarget, is_cf, cf_dur_ms)) = execute_target {
                 if is_cf {
-                    // Crossfade: NON pulire il deck vecchio — serve per il mix!
-                    // Il crossfade completion nel mixing loop pulirà il deck sorgente.
+                    // Crossfade: DON'T clean up the old deck — it's needed for the mix!
+                    // Crossfade completion in mixing loop will clean up the source deck.
                     crossfading = true;
                     target_deck = etarget.clone();
                     crossfade_total = (cf_dur_ms as usize * SAMPLE_RATE / 1000) * CHANNELS;
@@ -1160,7 +1160,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         &format!("from={}, to={}", active_deck, etarget),
                     );
                 } else {
-                    // Skip istantaneo: pulisci il deck vecchio
+                    // Instant skip: clean up old deck
                     if active_deck == "A" {
                         deck_a = Deck::new("A");
                     } else if active_deck == "B" {
@@ -1192,7 +1192,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             }
         }
 
-        // Monitoraggio buffer (edge detection per buffer_ready)
+        // Buffer monitoring (edge detection for buffer_ready)
         buffer_monitor_counter += 1;
         if buffer_monitor_counter >= 5 {
             buffer_monitor_counter = 0;
@@ -1211,14 +1211,14 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             deck_a.buffer_prev_ready = a_ready;
         }
 
-        // MODIFICA CRITICA: Non generare output se non stiamo riproducendo
+        // CRITICAL CHANGE: Don't generate output if we're not playing
         if !is_playing {
-            // Sleep per non consumare CPU inutilmente
+            // Sleep to avoid wasting CPU
             std::thread::sleep(std::time::Duration::from_millis(20));
             continue;
         }
 
-        // Se siamo in stallo per auto-gapless, output silenzio senza consumare sample
+        // If we're stalled for auto-gapless, output silence without consuming samples
         if auto_gapless_stall.is_some() {
             for _ in 0..CHUNK_SIZE {
                 let _ = handle.write_i16::<LE>(0i16);
@@ -1227,9 +1227,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             continue;
         }
 
-        // 🔥 CROSSFADE AUTOMATICO: 3 secondi prima della fine della canzone
-        // Se il fade è attivo e il deck target è pronto, avvia il crossfade DIRETTAMENTE
-        // Se il fade è disattivato, non fare nulla (il deck finirà e manderà end event)
+        // 🔥 AUTOMATIC CROSSFADE: 3 seconds before end of song
+        // If the fade is active and target deck is ready, start crossfade DIRECTLY
+        // If fade is disabled, do nothing (deck will end and send end event)
         if !crossfading
             && !proactive_crossfade_triggered
             && is_playing
@@ -1243,12 +1243,12 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             let target_deck_obj = if active_deck == "A" { &deck_b } else { &deck_a };
             let target_deck_name = if active_deck == "A" { "B" } else { "A" };
             let target_ready = target_deck_obj.is_ready_for_crossfade();
-            // 3 secondi prima della fine = 288000 samples stereo a 48kHz
+            // 3 seconds before end = 288000 stereo samples at 48kHz
             let threshold = SAMPLE_RATE * CHANNELS * 3;
 
             if current_buffer_len < threshold && target_ready {
-                // Invia proposta a Node.js invece di crossfade diretto
-                // Node.js deciderà se approvare il crossfade (via approaching_end handler)
+                // Send proposal to Node.js instead of direct crossfade
+                // Node.js will decide whether to approve crossfade (via approaching_end handler)
                 send_log(
                     "proactive_crossfade_proposal",
                     &format!(
@@ -1261,18 +1261,18 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // COSTANTI PER AUTO-GAPLESS E MID-CHUNK
+        // CONSTANTS FOR AUTO-GAPLESS AND MID-CHUNK
         // ═══════════════════════════════════════════════════════════════════
-        const MIN_SAMPLES_PLAYED_FOR_END: usize = SAMPLE_RATE * CHANNELS * 25; // 25 secondi
+        const MIN_SAMPLES_PLAYED_FOR_END: usize = SAMPLE_RATE * CHANNELS * 25; // 25 seconds
 
         // Mixing Loop
         let mut has_audio = false;
-        mid_chunk_auto_switch = None; // Reset per questo chunk
+        mid_chunk_auto_switch = None; // Reset for this chunk
         mid_chunk_loop_restart = false;
 
         for _ in 0..CHUNK_SIZE {
             let out = if crossfading {
-                // PRIMA controlla se il deck target ha audio PRIMA di consumare sample
+                // FIRST check if target deck has audio BEFORE consuming samples
                 let target_has_audio = if target_deck == "A" {
                     deck_a.has_samples()
                 } else {
@@ -1280,9 +1280,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 };
 
                 if !target_has_audio {
-                    // Il deck target non ha ancora audio: NON avanzare il crossfade.
-                    // Riproduci solo il deck sorgente a volume pieno per evitare silenzi.
-                    // Consuma SOLO dal deck sorgente (non dal target che è vuoto)
+                    // Target deck doesn't have audio yet: DON'T advance the crossfade.
+                    // Play only source deck at full volume to avoid silences.
+                    // Consume ONLY from source deck (not from target which is empty)
                     let source = if active_deck == "A" {
                         deck_a.get_next_sample().unwrap_or(0.0)
                     } else {
@@ -1290,7 +1290,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     };
                     source
                 } else {
-                    // Entrambi i deck hanno audio → consuma da entrambi per il crossfade
+                    // Both decks have audio → consume from both for crossfade
                     let s_a = deck_a.get_next_sample().unwrap_or(0.0);
                     let s_b = deck_b.get_next_sample().unwrap_or(0.0);
 
@@ -1304,7 +1304,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         crossfading = false;
                         proactive_crossfade_triggered = false;
 
-                        // Reset solo i flag di edge-detection.
+                        // Reset only edge-detection flags.
                         if active_deck == "A" {
                             deck_a.reset_flags();
                         } else if active_deck == "B" {
@@ -1331,15 +1331,15 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     let source_sample = if active_deck == "A" { s_a } else { s_b };
                     let target_sample = if target_deck == "A" { s_a } else { s_b };
 
-                    // Equal-power crossfade: mantiene volume percepito costante
-                    // (crossfade lineare causa un calo di ~3 dB al punto medio)
+                    // Equal-power crossfade: keeps perceived volume constant
+                    // (linear crossfade causes ~3 dB drop at midpoint)
                     source_sample * (1.0 - final_ratio).sqrt() + target_sample * final_ratio.sqrt()
                 }
             } else {
-                // Nessun crossfade - output diretto dal deck attivo
-                // 🔥 CRITICO: Implementa mid-chunk auto-gapless per eliminare silenzi
-                // Se il deck attivo è esaurito (samples.len() == 0 e has_ended),
-                // prova a switchare all'altro deck o reiniziare il loop MID-CHUNK
+                // No crossfade - direct output from active deck
+                // 🔥 CRITICAL: Implement mid-chunk auto-gapless to eliminate silences
+                // If active deck is exhausted (samples.len() == 0 and has_ended),
+                // try to switch to other deck or restart loop MID-CHUNK
                 let sample = if active_deck == "A" {
                     deck_a.get_next_sample()
                 } else {
@@ -1400,15 +1400,15 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 };
 
                                 if other_has_audio {
-                                    // L'altro deck ha audio → switchare MID-CHUNK
-                                    // Pulisci il vecchio deck
+                                    // Other deck has audio → switch MID-CHUNK
+                                    // Clean up old deck
                                     if active_deck == "A" {
                                         deck_a = Deck::new("A");
                                     } else {
                                         deck_b = Deck::new("B");
                                     }
 
-                                    // Aggiorna active deck
+                                    // Update active deck
                                     active_deck = other.to_string();
                                     if other == "A" {
                                         deck_a.samples_played = 0;
@@ -1418,38 +1418,38 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 
                                     mid_chunk_auto_switch = Some(other.to_string());
 
-                                    // Prendi il primo sample dal nuovo deck
+                                    // Get first sample from new deck
                                     if active_deck == "A" {
                                         deck_a.get_next_sample().unwrap_or(0.0)
                                     } else {
                                         deck_b.get_next_sample().unwrap_or(0.0)
                                     }
                                 } else {
-                                    // Nessun audio disponibile
+                                    // No audio available
                                     0.0
                                 }
                             }
                         } else {
-                            // Non possiamo switchare - output silenzio
+                            // Can't switch - output silence
                             0.0
                         }
                     }
                 }
             };
 
-            // Traccia se c'è effettivamente audio
+            // Track if there's actually audio
             if out.abs() > 0.0001 {
                 has_audio = true;
             }
 
-            // Clipping e Output PCM i16
+            // Clipping and PCM i16 Output
             let _ = handle.write_i16::<LE>((out.max(-1.0).min(1.0) * 32767.0) as i16);
         }
         handle.flush().ok();
 
-        // Evento approaching_end: 3 secondi prima della fine
-        // Inviato quando il decoder ha finito (has_ended=true) e rimangono <3 sec di sample
-        const APPROACHING_END_THRESHOLD: usize = SAMPLE_RATE * CHANNELS * 3; // 3 secondi
+        // approaching_end event: 3 seconds before end
+        // Sent when decoder has finished (has_ended=true) and <3 sec of samples remain
+        const APPROACHING_END_THRESHOLD: usize = SAMPLE_RATE * CHANNELS * 3; // 3 seconds
 
         if is_playing && !crossfading {
             // Deck A
@@ -1473,17 +1473,17 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // MID-CHUNK EVENTS: Se uno switch auto-gapless è avvenuto MID-CHUNK,
-        // invia gli eventi appropriati e salta il post-chunk auto-gapless check
+        // MID-CHUNK EVENTS: If an auto-gapless switch happened MID-CHUNK,
+        // send appropriate events and skip post-chunk auto-gapless check
         // ═══════════════════════════════════════════════════════════════
         if mid_chunk_auto_switch.is_some() || mid_chunk_loop_restart {
             if mid_chunk_loop_restart {
-                // Restart del loop mid-chunk
+                // Loop restart mid-chunk
                 send_log("auto_loop_restart", &active_deck);
                 send_log(
                     "info",
                     &format!(
-                        "🔁 Mid-chunk auto-loop: deck {} riavviato da cache",
+                        "🔁 Mid-chunk auto-loop: deck {} restarted from cache",
                         active_deck
                     ),
                 );
@@ -1497,22 +1497,22 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 send_log(
                     "info",
                     &format!(
-                        "⚡ Mid-chunk auto-gapless: switch istantaneo → deck {}",
+                        "⚡ Mid-chunk auto-gapless: instant switch → deck {}",
                         new_deck
                     ),
                 );
             }
-            // Reset per il prossimo chunk (assegnamenti consapevolmente morti per chiarezza)
+            // Reset for next chunk (assignments deliberately dead for clarity)
             let _ = std::mem::take(&mut mid_chunk_auto_switch);
             let _ = std::mem::take(&mut mid_chunk_loop_restart);
-            // ⚠️ SKIP post-chunk auto-gapless - la transizione è stata già gestita mid-chunk
+            // ⚠️ SKIP post-chunk auto-gapless - the transition was already handled mid-chunk
         } else {
             // ═══════════════════════════════════════════════════════════════
-            // AUTO-GAPLESS POST-CHUNK: Gestione fine canzone se non è stata
-            // Tre casi:
-            //  1. Loop ON  → riavvia deck corrente da full_samples (zero gap)
-            //  2. Altro deck pronto → switch istantaneo (zero gap)
-            //  3. Nessuno dei due → invia 'end' a Node.js (fallback)
+            // AUTO-GAPLESS POST-CHUNK: Handle song end if it hasn't been
+            // Three cases:
+            //  1. Loop ON  → restart current deck from full_samples (zero gap)
+            //  2. Other deck ready → instant switch (zero gap)
+            //  3. Neither → send 'end' to Node.js (fallback)
             // ═══════════════════════════════════════════════════════════════
 
             if !has_audio
@@ -1536,7 +1536,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 };
 
                 if should_handle_end {
-                    // Segna come gestito per evitare ri-trigger
+                    // Mark as handled to avoid re-trigger
                     if active_deck == "A" {
                         deck_a.end_sent = true;
                     } else {
@@ -1544,7 +1544,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     }
 
                     if loop_mode {
-                        // ── CASO 1: LOOP → riavvia deck corrente da cache ──
+                        // ── CASE 1: LOOP → restart current deck from cache ──
                         if active_deck == "A" {
                             deck_a.restart();
                         } else {
@@ -1553,10 +1553,10 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         send_log("auto_loop_restart", &active_deck);
                         send_log(
                             "info",
-                            &format!("🔁 Auto-loop: deck {} riavviato da cache", active_deck),
+                            &format!("🔁 Auto-loop: deck {} restarted from cache", active_deck),
                         );
                     } else {
-                        // Controlla se l'altro deck ha audio pronto
+                        // Check if other deck has audio ready
                         let other = if active_deck == "A" { "B" } else { "A" };
                         let other_samples = if other == "A" {
                             deck_a.available_samples()
@@ -1585,15 +1585,15 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         let other_has_audio = other_samples > 0;
 
                         if other_has_audio {
-                            // ── CASO 2: AUTO-SWITCH → transizione gapless istantanea ──
-                            // Pulisci il deck vecchio (i dati sono consumati)
+                            // ── CASE 2: AUTO-SWITCH → instant gapless transition ──
+                            // Clean up old deck (data is consumed)
                             if active_deck == "A" {
                                 deck_a = Deck::new("A");
                             } else {
                                 deck_b = Deck::new("B");
                             }
 
-                            // Switcha al nuovo deck
+                            // Switch to new deck
                             active_deck = other.to_string();
                             if other == "A" {
                                 deck_a.samples_played = 0;
@@ -1611,13 +1611,13 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 &format!("⚡ Auto-gapless: switch istantaneo → deck {}", other),
                             );
                         } else {
-                            // L'altro deck non ha audio. Verifica se ha un download in corso.
+                            // Other deck has no audio. Check if it has a download in progress.
                             let other_has_receiver = if other == "A" {
                                 deck_a.receiver.is_some()
                             } else {
                                 deck_b.receiver.is_some()
                             };
-                            // Verifica se è stato caricato (ha full_samples o un receiver)
+                            // Check if it was loaded (has full_samples or a receiver)
                             let other_was_loaded = other_has_receiver
                                 || (if other == "A" {
                                     deck_a.full_samples.len() > 0
@@ -1626,7 +1626,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 });
 
                             if other_has_receiver {
-                                // Verifica se il download è bloccato (>30s senza dati)
+                                // Check if download is stuck (>30s without data)
                                 let load_age = if other == "A" {
                                     deck_a.load_started_at
                                 } else {
@@ -1634,29 +1634,29 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 };
                                 let download_stuck = match load_age {
                                     Some(t) => t.elapsed() >= std::time::Duration::from_secs(30),
-                                    None => false, // load_started_at è None solo se i dati sono già arrivati
+                                    None => false, // load_started_at is None only if data already arrived
                                 };
 
                                 if download_stuck {
-                                    // ── CASO 3a-stuck: Download bloccato, non stallare ──
+                                    // ── CASE 3a-stuck: Download stuck, don't stall ──
                                     send_log("error", &format!("⏰ Auto-gapless: deck {} in download da >30s senza dati → fallback end", other));
                                     send_log("end", &active_deck);
                                 } else {
-                                    // ── CASO 3a: STALL → download in corso, aspetta dati ──
+                                    // ── CASE 3a: STALL → download in progress, wait for data ──
                                     send_log("info", &format!("⏸️  Auto-gapless stall: deck {} in download ({}ms), aspetto primi dati...",
                                     other, load_age.map(|t| t.elapsed().as_millis()).unwrap_or(0)));
                                     auto_gapless_stall =
                                         Some((other.to_string(), std::time::Instant::now()));
                                 }
                             } else if other_was_loaded {
-                                // ── CASO 3b: Deck caricato ma vuoto (ha full_samples ma samples esaurito?) ──
-                                // Questo non dovrebbe succedere, ma gestiscilo come fallback
+                                // ── CASE 3b: Deck loaded but empty (has full_samples but samples exhausted?) ──
+                                // This shouldn't happen, but handle it as fallback
                                 send_log("end", &active_deck);
                                 send_log("debug", &format!("Deck {} ended (other deck {} loaded but empty, full_samples={})",
                                 active_deck, other,
                                 if other == "A" { deck_a.full_samples.len() } else { deck_b.full_samples.len() }));
                             } else {
-                                // ── CASO 3c: FALLBACK → nessun deck caricato, fine coda ──
+                                // ── CASE 3c: FALLBACK → no deck loaded, end of queue ──
                                 send_log("end", &active_deck);
                                 send_log(
                                     "debug",
@@ -1667,9 +1667,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     }
                 }
             }
-        } // Fine else block (post-chunk auto-gapless skip)
+        } // End else block (post-chunk auto-gapless skip)
 
-        // Log di stato ogni 30 secondi
+        // Status log every 30 seconds
         if last_status_log.elapsed().as_secs() >= 30 {
             send_log(
                 "debug",
@@ -1687,29 +1687,29 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 }
 
 fn main() {
-    // Evita che il processo Rust termini su SIGPIPE quando Node chiude la pipe
-    // (solo Unix - Windows non ha SIGPIPE)
+    // Prevents Rust process from terminating on SIGPIPE when Node closes pipe
+    // (Unix only - Windows doesn't have SIGPIPE)
     #[cfg(unix)]
     unsafe {
         libc::signal(libc::SIGPIPE, libc::SIG_IGN);
     }
 
-    // Installa un panic hook globale: se mixer_loop va in panic (es. divisione per zero,
-    // unwrap su None, OOM), il hook scrive un evento di errore su stderr e termina il
-    // processo con codice 1. Questo garantisce che Node.js riceva l'exit code e avvii
-    // il crash recovery, invece di lasciare il processo vivo-ma-silenzioso.
+    // Installs global panic hook: if mixer_loop panics (e.g. division by zero,
+    // unwrap on None, OOM), the hook writes an error event to stderr and terminates
+    // process with code 1. This ensures Node.js receives exit code and starts
+    // crash recovery, instead of leaving the process alive-but-silent.
     std::panic::set_hook(Box::new(|info| {
         let msg = info.to_string();
-        send_log("error", &format!("PANIC nel mixer thread: {}", msg));
+        send_log("error", &format!("PANIC in mixer thread: {}", msg));
         std::process::exit(1);
     }));
 
     let (tx, rx) = bounded::<InputCommand>(10);
 
-    // Thread audio (Priority)
+    // Audio thread (Priority)
     thread::spawn(move || mixer_loop(rx));
 
-    // Thread input JSON (Node -> Rust)
+    // Input JSON thread (Node -> Rust)
     let stdin = io::stdin();
     let iterator = serde_json::Deserializer::from_reader(stdin).into_iter::<InputCommand>();
     for item in iterator {

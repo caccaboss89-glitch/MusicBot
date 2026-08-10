@@ -1,6 +1,6 @@
 /**
- * Punto di ingresso centralizzato del sistema audio.
- * Esporta le funzioni pubbliche e gestisce il routing degli eventi Rust.
+ * Central entry point for the audio system.
+ * Exports public functions and manages Rust event routing.
  */
 
 import AudioMixerController from './AudioMixerController.js';
@@ -18,10 +18,10 @@ import * as ui from '../ui/index.js';
 
 const failedSongs = new Map();       // guildId -> Map<url, timestamp>
 const streamErrorCounts = new Map(); // guildId -> { url: count }
-const FAILED_SONG_TTL_MS = 60 * 60 * 1000; // 1 ora: errori transitori vengono dimenticati
+const FAILED_SONG_TTL_MS = 60 * 60 * 1000; // 1 hour: transient errors are forgotten
 
 /**
- * Controlla se una canzone è nella blacklist e se è ancora entro il TTL.
+ * Checks if a song is in the blacklist and if it is still within the TTL.
  */
 function isFailedSong(guildId, url) {
   const guildFailed = failedSongs.get(guildId);
@@ -43,7 +43,7 @@ function recordStreamError(guildId, url) {
   if (counts[url] >= 3) {
     if (!failedSongs.has(guildId)) failedSongs.set(guildId, new Map());
     failedSongs.get(guildId).set(url, Date.now());
-    console.error(`❌ [STREAM] Canzone marcata non riproducibile (${counts[url]} errori): ${url.substring(0, 60)}`);
+    console.error(`❌ [STREAM] Song marked as unplayable (${counts[url]} errors): ${url.substring(0, 60)}`);
     return true;
   }
   return false;
@@ -54,11 +54,11 @@ function clearStreamErrors(guildId) {
   failedSongs.delete(guildId);
 }
 
-// Pulizia periodica per prevenire memory leak (ogni 30 minuti)
+// Periodic cleanup to prevent memory leaks (every 30 minutes)
 setInterval(() => {
   const now = Date.now();
   streamErrorCounts.clear();
-  // Evict entry nella blacklist scadute (TTL 1 ora)
+  // Evict expired blacklist entries (TTL 1 hour)
   for (const [guildId, urlMap] of failedSongs) {
     for (const [url, ts] of urlMap) {
       if (now - ts > FAILED_SONG_TTL_MS) urlMap.delete(url);
@@ -70,15 +70,15 @@ setInterval(() => {
 // ─── Rust event routing ─────────────────────────────────────
 
 /**
- * Callback invocata dal mixer quando un deck diventa pronto (versioning-aware)
- * Verifica che il buffer sia per il contenuto corretto (previene stale buffers)
+ * Callback invoked by mixer when a deck becomes ready (versioning-aware)
+ * Verifies that the buffer is for the correct content (prevents stale buffers)
  */
 async function handleBufferReady(guildId, deck) {
   try {
     const sq = queue.get(guildId);
     if (!sq) return;
 
-    // Incrementa versione quando buffer diventa pronto
+    // Increment version when buffer becomes ready
     const { stateVersionManager } = await import('../state/StateVersion.js');
     const stateVersion = stateVersionManager.get(guildId);
 
@@ -90,27 +90,27 @@ async function handleBufferReady(guildId, deck) {
       loadedUrl: (deck === 'A' ? sq.currentDeckLoaded : sq.nextDeckLoaded)?.substring(0, 60) || 'N/A'
     });
 
-    console.log(`✅ [BUFFER-READY] Deck ${deck} pronto per riproduzione`);
+    console.log(`✅ [BUFFER-READY] Deck ${deck} ready for playback`);
 
-    // Se c'è una transizione differita in attesa di questo deck, eseguila ora
+    // If there is a pending transition waiting for this deck, execute it now
     if (sq.pendingTransition && sq.pendingTransition.targetDeck === deck) {
       SkipManager.completePendingTransition(guildId).catch(e => {
-        console.error('❌ [BUFFER-READY] Errore completePendingTransition:', e);
+        console.error('❌ [BUFFER-READY] Error completePendingTransition:', e);
       });
     }
   } catch (e) {
-    console.error('❌ [BUFFER-READY] Errore:', e);
+    console.error('❌ [BUFFER-READY] Error:', e);
   }
 }
 
 /**
- * Riceve log/eventi dal processo Rust
+ * Receives logs/events from the Rust process
  */
 async function handleRustEvent(guildId, log) {
   try {
     if (!log || !log.event) return;
 
-    // Ignora eventi da mixer obsoleti (generazione non più corrente)
+    // Ignore events from obsolete mixer (generation no longer current)
     if (log._mixerGeneration) {
       const sq_gen = queue.get(guildId);
       if (sq_gen && sq_gen.mixerGeneration && log._mixerGeneration !== sq_gen.mixerGeneration) {
@@ -126,7 +126,7 @@ async function handleRustEvent(guildId, log) {
         if (sq && sq.currentDeckLoaded) {
           const marked = recordStreamError(guildId, sq.currentDeckLoaded);
           if (marked) {
-            console.error('🛑 [STREAM] Auto-skip canzone corrotta');
+            console.error('🛑 [STREAM] Auto-skip corrupted song');
             SkipManager.autoSkip(guildId);
           }
         }
@@ -134,13 +134,13 @@ async function handleRustEvent(guildId, log) {
       return;
     }
 
-    // Crossfade avviato dal Rust (conferma)
+    // Crossfade started by Rust (confirmation)
     if (log.event === 'crossfade_started') {
-      console.log('🎚️  [RUST] Crossfade avviato');
+      console.log('🎚️  [RUST] Crossfade started');
       return;
     }
 
-    // 3 secondi prima della fine della canzone
+    // 3 seconds before the end of the song
     if (log.event === 'approaching_end') {
       const sq = queue.get(guildId);
       if (sq) {
@@ -148,55 +148,55 @@ async function handleRustEvent(guildId, log) {
         const { getNextSong } = await import('../queue/QueueManager.js');
         const nextSong = getNextSong(sq);
 
-        // Se c'è già una pending transition, non avviare un altro auto-skip:
-        // completePendingTransition() gestirà il cambio quando il buffer è pronto.
-        // Tollera solo se scaduta (> 25s), in quel caso procedi normalmente.
+        // If there is already a pending transition, do not start another auto-skip:
+        // completePendingTransition() will handle the change when the buffer is ready.
+        // Tolerate only if expired (> 25s), then proceed normally.
         const ptAge = sq.pendingTransition ? (Date.now() - sq.pendingTransition.startTime) : Infinity;
         if (sq.pendingTransition && ptAge < 25000) {
-          console.log(`⏳ [APPROACHING-END] Transizione differita in corso (${Math.round(ptAge / 1000)}s) – skip auto-crossfade`);
+          console.log(`⏳ [APPROACHING-END] Pending transition in progress (${Math.round(ptAge / 1000)}s) – skip auto-crossfade`);
           return;
         }
 
         if (fadeEnabled && nextSong) {
-          // Fade attivo + c'è una canzone successiva: avvia crossfade automatico
-          console.log('🎚️  [APPROACHING-END] 3s prima della fine – crossfade automatico');
+          // Fade active + there is a next song: start automatic crossfade
+          console.log('🎚️  [APPROACHING-END] 3s before the end – automatic crossfade');
           SkipManager.autoSkip(guildId).catch(e => {
-            console.error('❌ [APPROACHING-END] Errore autoSkip:', e);
+            console.error('❌ [APPROACHING-END] autoSkip error:', e);
           });
         } else if (!nextSong) {
-          // Nessuna canzone successiva: il Rust riprodurrà fino alla fine naturale
-          console.log('⏭️  [APPROACHING-END] Nessuna next track – attendo fine naturale');
+          // No next song: Rust will play until natural end
+          console.log('⏭️  [APPROACHING-END] No next track – waiting for natural end');
         } else {
-          // Fade disattivo + c'è una canzone successiva: non fare nulla, skip istantaneo a fine naturale
-          console.log('⏭️  [APPROACHING-END] 3s prima della fine – fade OFF, attendo fine naturale');
+          // Fade inactive + there is a next song: do nothing, instant skip at natural end
+          console.log('⏭️  [APPROACHING-END] 3s before the end – fade OFF, waiting for natural end');
         }
       }
       return;
     }
 
-    // Fine traccia
+    // Track end
     if (log.event === 'end') {
       PlaybackEngine.handleTrackEnd(guildId).catch(e => {
-        console.error('❌ [TRACK-END] Errore in handleTrackEnd:', e);
+        console.error('❌ [TRACK-END] Error in handleTrackEnd:', e);
       });
       return;
     }
 
-    // ── AUTO-GAPLESS: Rust ha switchato deck autonomamente (zero round-trip) ──
+    // ── AUTO-GAPLESS: Rust switched deck autonomously (zero round-trip) ──
     if (log.event === 'auto_end_switch') {
       handleAutoEndSwitch(guildId, log.data).catch(e => {
-        console.error('❌ [AUTO-GAPLESS] Errore in handleAutoEndSwitch:', e);
+        console.error('❌ [AUTO-GAPLESS] Error in handleAutoEndSwitch:', e);
       });
       return;
     }
 
-    // ── AUTO-LOOP: Rust ha riavviato il deck corrente per loop mode ──
+    // ── AUTO-LOOP: Rust restarted the current deck for loop mode ──
     if (log.event === 'auto_loop_restart') {
       handleAutoLoopRestart(guildId, log.data);
       return;
     }
 
-    // Cambio deck (conferma – stato già aggiornato da SkipManager)
+    // Deck change (confirmation – state already updated by SkipManager)
     if (log.event === 'deck_changed') {
       const deckStr = log.data || '';
       const match = deckStr.match(/deck=([A-C])/);
@@ -205,10 +205,10 @@ async function handleRustEvent(guildId, log) {
       return;
     }
 
-    // deck_proposal legacy – ignorato
+    // deck_proposal legacy – ignored
     if (log.event === 'deck_proposal') return;
 
-    // ── Proactive crossfade proposal da Rust ──
+    // ── Proactive crossfade proposal from Rust ──
     if (log.event === 'proactive_crossfade_proposal') {
       const sq = queue.get(guildId);
       if (sq && !sq.isCrossfading) {
@@ -216,20 +216,20 @@ async function handleRustEvent(guildId, log) {
         const qmModule = await import('../queue/QueueManager.js');
         const nextSong = qmModule.getNextSong(sq);
         if (fadeEnabled && nextSong) {
-          console.log('🎚️  [PROACTIVE-CROSSFADE] Rust propone crossfade – avvio autoSkip');
+          console.log('🎚️  [PROACTIVE-CROSSFADE] Rust proposes crossfade – starting autoSkip');
           SkipManager.autoSkip(guildId).catch(e => {
-            console.error('❌ [PROACTIVE-CROSSFADE] Errore autoSkip:', e);
+            console.error('❌ [PROACTIVE-CROSSFADE] autoSkip error:', e);
           });
         } else {
-          console.log('⏭️  [PROACTIVE-CROSSFADE] Proposta ignorata (fade off o nessuna next track)');
+          console.log('⏭️  [PROACTIVE-CROSSFADE] Proposal ignored (fade off or no next track)');
         }
       }
       return;
     }
 
-    // Errori
+    // Errors
     if (log.event === 'error' || log.event === 'yt_error') {
-      console.error(`🦀 [RUST-${guildId}] ERRORE`, log.data || '');
+      console.error(`🦀 [RUST-${guildId}] ERROR`, log.data || '');
     }
   } catch { /* ignora */ }
 }
@@ -237,55 +237,55 @@ async function handleRustEvent(guildId, log) {
 // ─── Auto-gapless handlers ──────────────────────────────────
 
 /**
- * Rust ha switchato automaticamente al deck precaricato quando il deck attivo è finito.
- * Aggiorna lo stato Node.js senza inviare comandi al Rust (la transizione è già avvenuta).
+ * Rust switched automatically to the preloaded deck when the active deck finished.
+ * Updates Node.js state without sending commands to Rust (the transition has already occurred).
  */
 async function handleAutoEndSwitch(guildId, newDeck) {
   try {
     const sq = queue.get(guildId);
     if (!sq) return;
 
-    // Se c'è una transizione differita per questo deck (utente aveva già premuto skip
-    // mentre il deck era in download), lascia che completePendingTransition gestisca
-    // il tutto: conosce l'indice corretto (potrebbe essere ≠ nextIndex).
+    // If there is a pending transition for this deck (user had already pressed skip
+    // while the deck was downloading), let completePendingTransition handle
+    // everything: it knows the correct index (may be ≠ nextIndex).
     if (sq.pendingTransition && sq.pendingTransition.targetDeck === newDeck) {
       try { (await import('../database/stats.js')).default.incrementSongsCompleted(); } catch { }
-      console.log(`⚡ [AUTO-GAPLESS] Deck ${newDeck} ha pending transition – delego completePendingTransition`);
-      sq.currentDeck = newDeck; // aggiorna currentDeck per riflettere realtà Rust
+      console.log(`⚡ [AUTO-GAPLESS] Deck ${newDeck} has pending transition – delegating completePendingTransition`);
+      sq.currentDeck = newDeck; // update currentDeck to reflect Rust reality
       await SkipManager.completePendingTransition(guildId, true /* alreadySwitched */);
       return;
     }
 
-    // ── Idempotenza ──
-    // Se siamo GIÀ sul deck a cui il Rust dice di aver switchato, un altro percorso
-    // (es. completePendingTransition via buffer_ready) ha già gestito la transizione.
-    // Questo evento è un duplicato: NON avanzare di nuovo (causerebbe il salto di una
-    // canzone e la desincronizzazione embed/menu). Riallinea solo il preload.
+    // ── Idempotency ──
+    // If we are ALREADY on the deck that Rust says it switched to, another path
+    // (e.g., completePendingTransition via buffer_ready) has already handled the transition.
+    // This event is a duplicate: do NOT advance again (would cause song skipping and
+    // embed/menu desynchronization). Only re-align the preload.
     if (sq.currentDeck === newDeck) {
-      console.log(`↩️  [AUTO-GAPLESS] Evento duplicato per deck ${newDeck} già attivo – ignoro (no doppio avanzamento)`);
+      console.log(`↩️  [AUTO-GAPLESS] Duplicate event for deck ${newDeck} already active – ignoring (no double advancement)`);
       PlaybackEngine.onSongStart(guildId);
       return;
     }
 
-    // ── STATS: canzone completata (gapless auto-switch) ──
+    // ── STATS: song completed (gapless auto-switch) ──
     try { (await import('../database/stats.js')).default.incrementSongsCompleted(); } catch { }
 
-    // FONTE DI VERITÀ: il Rust ha switchato al deck `newDeck`; l'indice REALE della
-    // canzone ora in riproduzione è quello legato a quel deck (binding), non un
-    // generico playIndex+1. Fallback a playIndex+1 solo se il binding è assente.
+    // SOURCE OF TRUTH: Rust switched to deck `newDeck`; the REAL index of the
+    // song now playing is the one linked to that deck (binding), not a
+    // generic playIndex+1. Fallback to playIndex+1 only if binding is absent.
     let nextIndex = resolveDeckIndex(sq, newDeck);
     if (nextIndex === null || nextIndex === undefined) nextIndex = (sq.playIndex || 0) + 1;
 
-    // Se non ci sono più canzoni, termina la coda
+    // If there are no more songs, end the queue
     if (nextIndex >= sq.songs.length) {
-      console.log('🏁 [AUTO-GAPLESS] Fine coda raggiunta dopo auto-switch');
+      console.log('🏁 [AUTO-GAPLESS] Queue end reached after auto-switch');
       await SkipManager.endQueue(guildId);
       return;
     }
 
     const nextSong = sq.songs[nextIndex];
 
-    // Aggiorna stato (nessun comando a Rust — la transizione è già fatta)
+    // Update state (no command to Rust — the transition is already done)
     sq.playIndex = nextIndex;
     sq.currentDeck = newDeck;
     sq.currentDeckLoaded = nextSong ? nextSong.url : null;
@@ -294,11 +294,11 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     sq.songStartTime = Date.now();
     sq.loadingFooter = null;
     sq._lastTransitionTime = Date.now();
-    // Riallinea i binding: il deck attivo ha la canzone corrente, l'altro è libero
+    // Realign the bindings: the active deck has the current song, the other is free
     bindDeckSong(sq, newDeck, nextIndex, nextSong ? nextSong.url : null);
     bindDeckSong(sq, (newDeck === 'A' ? 'B' : 'A'), null, null);
 
-    // ── STATS: nuova canzone avviata (auto-gapless) ──
+    // ── STATS: new song started (auto-gapless) ──
     try {
       const stats = (await import('../database/stats.js')).default;
       stats.incrementSongsStarted();
@@ -310,7 +310,7 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     saveQueueState(guildId, sq);
     ui.refreshDashboard(sq, nextSong ? nextSong.requester : null);
 
-    // Precarica la prossima canzone sull'altro deck
+    // Preload the next song on the other deck
     PlaybackEngine.onSongStart(guildId);
 
     console.log(`⚡ [AUTO-GAPLESS] → "${nextSong ? sanitizeTitle(nextSong.title) : '?'}" (idx=${nextIndex}, deck=${newDeck})`);
@@ -319,8 +319,8 @@ async function handleAutoEndSwitch(guildId, newDeck) {
   }
 }
 /**
- * Rust ha riavviato automaticamente il deck corrente (loop mode).
- * Aggiorna solo i timestamp e avvia un nuovo ciclo di preload.
+ * Rust automatically restarted the current deck (loop mode).
+ * Updates only the timestamps and starts a new preload cycle.
  */
 async function handleAutoLoopRestart(guildId, deck) {
   try {
@@ -331,7 +331,7 @@ async function handleAutoLoopRestart(guildId, deck) {
 
     const currentSong = sq.songs[sq.playIndex || 0];
 
-    // ── STATS: canzone completata + riniziata (loop) ──
+    // ── STATS: song completed + restarted (loop) ──
     try {
       const stats = (await import('../database/stats.js')).default;
       stats.incrementSongsCompleted();
@@ -341,26 +341,26 @@ async function handleAutoLoopRestart(guildId, deck) {
       }
     } catch { }
 
-    // Riavvia il timer di preload per la prossima canzone
+    // Restart the preload timer for the next song
     PlaybackEngine.onSongStart(guildId);
 
-    console.log(`🔁 [AUTO-LOOP] "${currentSong ? sanitizeTitle(currentSong.title) : '?'}" riavviata (deck ${deck})`);
+    console.log(`🔁 [AUTO-LOOP] "${currentSong ? sanitizeTitle(currentSong.title) : '?'}" restarted (deck ${deck})`);
   } catch (e) {
-    console.error('❌ [AUTO-LOOP] Errore handleAutoLoopRestart:', e);
+    console.error('❌ [AUTO-LOOP] Error handleAutoLoopRestart:', e);
   }
 }
 
-// ─── Mixer crash recovery con structured logging ───────────────────
+// ─── Mixer crash recovery with structured logging ───────────────────
 
 async function handleMixerCrash(guildId, reason) {
   try {
     const sq = queue.get(guildId);
     if (!sq) {
-      console.error(`🚨 [MIXER-CRASH] guild=${guildId} reason=${reason} - Queue non trovata`);
+      console.error(`🚨 [MIXER-CRASH] guild=${guildId} reason=${reason} - Queue not found`);
       return;
     }
 
-    // ── CONTEXT DI DEBUG STRUTTURATO ──
+    // ── STRUCTURED DEBUG CONTEXT ──
     const currentSongData = getCurrentSong(sq);
     const crashContext = {
       timestamp: new Date().toISOString(),
@@ -382,10 +382,10 @@ async function handleMixerCrash(guildId, reason) {
 
     console.error(`🚨 [MIXER-CRASH] ${JSON.stringify(crashContext)}`);
 
-    // ── STATS: ferma tutti i timer ascolto (il recovery li riavvierà in playSong) ──
+    // ── STATS: stop all listener timers (recovery will restart them in playSong) ──
     try { (await import('../database/stats.js')).default.stopAllListeners(guildId); } catch { }
 
-    // Log su file per post-mortem analysis
+    // Log to file for post-mortem analysis
     try {
       const fs = await import('fs');
       const path = await import('path');
@@ -394,42 +394,42 @@ async function handleMixerCrash(guildId, reason) {
       fs.default.appendFileSync(logPath, logEntry);
     } catch { /* ignore */ }
 
-    // Se il mixer è stato intenzionalmente terminato (da endQueue), non riavviare
+    // If mixer was intentionally terminated (by endQueue), do not restart
     if (sq.intentionalKill) {
-      sq.intentionalKill = false;  // Pulisci il flag
-      console.log('ℹ️  [CRASH-RECOVERY] Terminazione intenzionale rilevata, skip recovery');
+      sq.intentionalKill = false;  // Clean the flag
+      console.log('ℹ️  [CRASH-RECOVERY] Intentional termination detected, skip recovery');
       return;
     }
 
     try { playback.recordMixerCrashTime(guildId); } catch { /* ignora */ }
 
     sq.crashRecoveryAttempts = (sq.crashRecoveryAttempts || 0) + 1;
-    console.warn(`⚠️  [CRASH-RECOVERY] Tentativo #${sq.crashRecoveryAttempts} per guild=${guildId}`);
+    console.warn(`⚠️  [CRASH-RECOVERY] Attempt #${sq.crashRecoveryAttempts} for guild=${guildId}`);
 
     if (sq.crashRecoveryAttempts > 2) {
-      console.error(`❌ [CRASH-RECOVERY] Troppi tentativi di recovery (${sq.crashRecoveryAttempts}), disconnessione...`);
+      console.error(`❌ [CRASH-RECOVERY] Too many recovery attempts (${sq.crashRecoveryAttempts}), disconnecting...`);
       scheduleDisconnectIfAlone(sq, 0);
       return;
     }
 
     if (isBotAloneInChannel(sq)) {
-      console.log('ℹ️  [CRASH-RECOVERY] Bot solo nel canale, skip recovery');
+      console.log('ℹ️  [CRASH-RECOVERY] Bot alone in channel, skip recovery');
       scheduleDisconnectIfAlone(sq, 0);
       return;
     }
 
-    // Kill mixer e resetta stato deck
-    try { if (sq.mixer) sq.mixer.kill(); sq.mixer = null; } catch { /* ignora */ }
+    // Kill mixer and reset deck state
+    try { if (sq.mixer) sq.mixer.kill(); sq.mixer = null; } catch { /* ignore */ }
     sq.currentDeck = null;
     sq.currentDeckLoaded = null;
     sq.nextDeckLoaded = null;
     sq.nextDeckTarget = null;
     clearDeckBindings(sq);
 
-    // Svuota comandi pendenti che aspetterebbero un mixer ormai morto
-    try { (await import('./CommandQueue.js')).commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch { /* ignora */ }
+    // Flush pending commands that would wait for a now-dead mixer
+    try { (await import('./CommandQueue.js')).commandQueue.flushAndReject(guildId, `Mixer crash: ${reason}`); } catch { /* ignore */ }
 
-    // Tenta restart se la connessione vocale è pronta
+    // Attempt restart if voice connection is ready
     try {
       const voiceModule = await import('@discordjs/voice');
       const VCS = voiceModule.VoiceConnectionStatus;
@@ -441,7 +441,7 @@ async function handleMixerCrash(guildId, reason) {
           try { playback.playSong(guildId); } catch (e) { console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e); }
         }, delayMs);
       } else {
-        console.log(`ℹ️  [CRASH-RECOVERY] Connessione vocale non pronta (status=${connReady ? 'ready' : 'not ready'}), skip recovery`);
+        console.log(`ℹ️  [CRASH-RECOVERY] Voice connection not ready (status=${connReady ? 'ready' : 'not ready'}), skip recovery`);
         scheduleDisconnectIfAlone(sq, 0);
       }
     } catch (e) { console.error('❌ [CRASH-RECOVERY] Error during recovery attempt:', e); }
@@ -454,23 +454,23 @@ async function updatePreloadAfterQueueChange(guildId) {
   try {
     const sq = queue.get(guildId);
     if (!sq || !sq.mixer || !sq.mixer.isProcessAlive()) return;
-    // Invalida preload corrente e ri-precarica
+    // Invalidate current preload and reload
     sq.nextDeckLoaded = null;
     sq.nextDeckTarget = null;
-    // Invalida anche il binding del deck NON attivo (era il deck di preload):
-    // verrà riscritto dal nuovo preload con la canzone corretta.
+    // Also invalidate the binding of the inactive deck (was the preload deck):
+    // it will be rewritten by the new preload with the correct song.
     if (sq.currentDeck) {
       const otherDeck = sq.currentDeck === 'A' ? 'B' : 'A';
       bindDeckSong(sq, otherDeck, null, null);
     }
     PlaybackEngine.preloadNextSong(guildId);
   } catch (e) {
-    console.error('❌ [PRELOAD-UPDATE] Errore:', e);
+    console.error('❌ [PRELOAD-UPDATE] Error:', e);
   }
 }
 
 
-// ─── Bridge registrations (rompe dipendenze circolari) ──────
+// ─── Bridge registrations (breaks circular dependencies) ──────
 
 import { register } from './audio-bridge.js';
 register('handleMixerCrash', handleMixerCrash);

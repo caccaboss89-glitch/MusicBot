@@ -16,18 +16,18 @@ export function safeParseInt(value, defaultValue = 0) {
 }
 
 /**
- * Sanitizza il titolo per i contesti MASKED LINK `[titolo](url)` (es. liste playlist),
- * dove Discord interpreta il markdown DENTRO l'etichetta del link.
+ * Sanitizes the title for MASKED LINK contexts `[title](url)` (e.g., playlist lists),
+ * where Discord interprets markdown INSIDE the link label.
  *
- * Il problema reale visto in produzione: un titolo come "I'M DAT N**" contiene `**`
- * che, dentro `**[...]**` o `[...]`, collide con il markdown bold e ROMPE il link
- * (non più cliccabile, sintassi raw che fuoriesce). In passato si usava l'escape `\*`
- * che però compariva LETTERALMENTE. Soluzione: niente backslash, sostituiamo l'asterisco
- * con un carattere quasi identico (U+2217 ASTERISK OPERATOR) che NON è markdown. Risultato:
- * link sempre cliccabile, titolo visivamente fedele, zero backslash.
+ * The real problem seen in production: a title like "I'M DAT N**" contains `**`
+ * which, inside `**[...]**` or `[...]`, collides with bold markdown and BREAKS the link
+ * (no longer clickable, raw syntax leaks out). In the past we used the escape `\*`
+ * but it appeared LITERALLY. Solution: no backslash, replace the asterisk
+ * with an almost identical character (U+2217 ASTERISK OPERATOR) that is NOT markdown. Result:
+ * link always clickable, title visually faithful, zero backslash.
  *
- * @param {string} title - Titolo originale
- * @returns {string} - Titolo sicuro per masked link
+ * @param {string} title - Original title
+ * @returns {string} - Safe title for masked link
  */
 export function sanitizeTitle(title) {
   if (!title) return 'Unknown Title';
@@ -152,7 +152,7 @@ export function normalizeYoutubeUrl(url) {
   // Regex-based fallback (for malformed URLs or edge cases)
   const idMatch = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|playlist\?list=))([a-zA-Z0-9_-]{11,})/);
   if (idMatch && idMatch[1] && idMatch[1].length === 11) {
-    // Se c'è list= nel query originale, prova a preservarlo
+    // If there is list= in the original query, try to preserve it
     const listMatch = u.match(/[?&]list=([A-Za-z0-9_-]+)/);
     if (listMatch) {
       return `https://www.youtube.com/watch?v=${idMatch[1]}&list=${listMatch[1]}`;
