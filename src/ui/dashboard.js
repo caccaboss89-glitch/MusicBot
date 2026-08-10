@@ -86,7 +86,7 @@ async function updateDashboard(serverQueue, embed, components) {
           try {
             serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });
             serverQueue.dashboardMessageId = serverQueue.dashboardMessage.id;
-          } catch { throw err; }
+          } catch { throw e; }
         }
       } else {
         serverQueue.dashboardMessage = await channel.send({ embeds: [dataToUse.embed], components: dataToUse.components });

@@ -72,7 +72,33 @@ function createFinishedEmbed(lastSong) {
   return embed;
 }
 
+/**
+ * Creates the embed warning that a song could not be played
+ * @param {Object|null} song - Song that failed to stream
+ * @param {boolean} willSkip - true if the next song is being started
+ * @returns {EmbedBuilder} Playback error embed
+ */
+function createPlaybackErrorEmbed(song, willSkip = true) {
+  const embed = new EmbedBuilder()
+    .setColor(0xE74C3C)
+    .setAuthor({ name: '⚠️ Playback Error' })
+    .setDescription(willSkip
+      ? 'No audio could be received for this song. Skipping to the next one.'
+      : 'No audio could be received. Too many failures in a row, playback stopped.')
+    .setThumbnail(song ? song.thumbnail : null);
+
+  if (song) {
+    // Raw and clickable title (see note in createCurrentSongEmbed): no masked link.
+    embed.setTitle(displayTitle(song.title)).setURL(song.url);
+  } else {
+    embed.setTitle('Unknown song');
+  }
+
+  return embed;
+}
+
 export {
   createCurrentSongEmbed,
-  createFinishedEmbed
+  createFinishedEmbed,
+  createPlaybackErrorEmbed
 };

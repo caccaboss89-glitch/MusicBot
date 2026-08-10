@@ -241,13 +241,6 @@ async function performTransition(guildId, targetIndex, reason) {
     bindDeckSong(sq, targetDeck, targetIndex, targetSong.url);
     bindDeckSong(sq, oldDeck, null, null);
 
-    // ── STATS: new song started (transition) ──
-    try {
-      const stats = (await import('../database/stats.js')).default;
-      stats.incrementSongsStarted();
-      stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-    } catch { }
-
     // Increment version after all mutations
     stateVersion.incrementVersion('skip_complete', {
       targetIndex,
@@ -426,7 +419,7 @@ async function endQueue(guildId) {
 
   saveQueueState(guildId, sq);
   const uiModule = await import('../ui/index.js');
-  await uiModule.default.updateDashboardToFinished(sq, lastSong);
+  await uiModule.updateDashboardToFinished(sq, lastSong);
 
   console.log(`🏁 [QUEUE-END] Queue ended${lastSong ? ' (replay: ' + sanitizeTitle(lastSong.title) + ')' : ''}`);
 }
@@ -510,12 +503,6 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
   // Confirm binding: target deck now plays song at target index
   bindDeckSong(sq, pt.targetDeck, pt.targetIndex, pt.targetUrl);
   bindDeckSong(sq, (pt.targetDeck === 'A' ? 'B' : 'A'), null, null);
-
-  try {
-    const stats = (await import('../database/stats.js')).default;
-    stats.incrementSongsStarted();
-    stats.recordSongPlay(guildId, targetSong, sq.voiceChannel);
-  } catch { }
 
   stateVersionManager.get(guildId).incrementVersion('skip_deferred_complete', {
     targetIndex: pt.targetIndex,

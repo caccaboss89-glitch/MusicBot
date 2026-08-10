@@ -111,12 +111,24 @@ function gitPushDataFiles(commitMsg) {
       execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
       console.log('✅ Push successful after rebase');
     } catch (e) {
-      console.error('❌ [STATS-PUSH] Push failed:', rebaseErr.message);
+      console.error('❌ [STATS-PUSH] Push failed:', e.message);
       return false;
     }
   }
 
   return true;
+}
+
+/**
+ * True when the closed month has already been archived.
+ * The rollover is allowed for the whole 1st of the month, so without this check
+ * a second run of the day would archive the freshly reset stats.json over the
+ * real snapshot and reset the new month's data again.
+ */
+function isClosedMonthAlreadyArchived(now = new Date()) {
+  const { yearMonth, backupFileName } = getClosedMonthArchivePaths(now);
+  const backupFilePath = path.join(MONTHLY_STATS_DIR, yearMonth, backupFileName);
+  return fs.existsSync(backupFilePath);
 }
 
 /** Copies stats.json to monthly-stats/ (local; GitHub push happens before rollover). */
@@ -178,7 +190,14 @@ async function pushStats(forceArchive = false) {
       return false;
     }
 
-    const shouldArchive = forceArchive || shouldArchiveMonthlyStats();
+    // The closed month is archived (and stats.json reset) exactly once: any later
+    // run of the same day only syncs the new month's data to GitHub.
+    const alreadyArchived = isClosedMonthAlreadyArchived();
+    const shouldArchive = (forceArchive || shouldArchiveMonthlyStats()) && !alreadyArchived;
+    if (alreadyArchived && (forceArchive || shouldArchiveMonthlyStats())) {
+      const { yearMonth } = getClosedMonthArchivePaths();
+      console.log(`ℹ️ Closed month ${yearMonth} already archived, skipping archiving and reset`);
+    }
 
     try {
       execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
@@ -234,7 +253,7 @@ async function pushStats(forceArchive = false) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const forceArchive = process.argv.includes('--force') || process.argv.includes('--archive');
   if (forceArchive) {
-    console.log('📦 Force archive mode enabled');
+    console.log('📦 Force archive mode enabled (skipped if the closed month is already archived)');
   }
   const success = await pushStats(forceArchive);
   process.exit(success ? 0 : 1);

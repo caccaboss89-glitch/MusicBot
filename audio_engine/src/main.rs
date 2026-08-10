@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use byteorder::{ReadBytesExt, WriteBytesExt, LE}; // Essential for reading audio
+use byteorder::{ReadBytesExt, LE}; // Essential for reading audio
 use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError};
 #[cfg(unix)]
 use libc;
@@ -142,6 +142,11 @@ struct Deck {
     buffer_prev_ready: bool,
     end_sent: bool,
     approaching_end_sent: bool,
+    // Download finished without ever producing a sample: the track is unplayable
+    download_failed: bool,
+    fail_sent: bool,
+    // Real audio actually reached the output for this playback (stats gating)
+    play_confirmed_sent: bool,
     // Replay: offset to read from full_samples without clone
     replay_offset: Option<usize>,
 }
@@ -164,6 +169,9 @@ impl Deck {
             buffer_prev_ready: false,
             end_sent: false,
             approaching_end_sent: false,
+            download_failed: false,
+            fail_sent: false,
+            play_confirmed_sent: false,
             replay_offset: None,
         }
     }
@@ -266,6 +274,10 @@ impl Deck {
                     Err(TryRecvError::Disconnected) => {
                         let samples_after = self.samples.len();
                         send_log("info", &format!("✅ [RX-DONE] Deck {} → {} chunks ricevuti, buffer finale: {} samples", self.name, chunks_received, samples_after));
+                        // Download over without a single sample: yt-dlp/ffmpeg failed
+                        if self.real_samples_received == 0 {
+                            self.download_failed = true;
+                        }
                         if !self.has_ended {
                             self.has_ended = true;
                         }
@@ -317,6 +329,9 @@ impl Deck {
         self.buffer_prev_ready = false;
         self.end_sent = false;
         self.approaching_end_sent = false;
+        self.download_failed = false;
+        self.fail_sent = false;
+        self.play_confirmed_sent = false;
     }
 }
 
@@ -738,6 +753,15 @@ fn download_and_decode_advanced(
     Ok(())
 }
 
+/// Writes one PCM chunk to stdout and flushes it.
+/// Errors are propagated on purpose: a partial write would shift the 16-bit
+/// sample alignment of the whole stream and every following sample would be
+/// decoded as noise, so the caller stops the mixer instead of carrying on.
+fn write_pcm_chunk<W: Write>(handle: &mut W, bytes: &[u8]) -> io::Result<()> {
+    handle.write_all(bytes)?;
+    handle.flush()
+}
+
 fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
     let mut deck_a = Deck::new("A");
     let mut deck_b = Deck::new("B");
@@ -774,6 +798,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 
     let stdout = io::stdout();
     let mut handle = stdout.lock();
+    // Chunk assembled in memory and written in one go: never leaves stdout
+    // holding half a sample.
+    let mut out_bytes: Vec<u8> = Vec::with_capacity(CHUNK_SIZE * 2);
 
     send_log("info", "Rust Mixer Ready");
 
@@ -888,6 +915,9 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                         if target_ready || download_done {
                             // Target pronto → crossfade immediato
                             crossfading = true;
+                            // A crossfade always means playback, even if output was
+                            // halted because the previous deck turned out unplayable
+                            is_playing = true;
                             target_deck = to_deck;
                             crossfade_total =
                                 (duration_ms as usize * SAMPLE_RATE / 1000) * CHANNELS;
@@ -1045,6 +1075,55 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         deck_a.poll_receiver();
         deck_b.poll_receiver();
 
+        // ── Unplayable deck detection ────────────────────────────
+        // A download that ended without producing a single sample can never play.
+        // Report it once so Node.js can warn the users and move on; `blocking`
+        // tells Node.js whether playback is actually stuck waiting for this deck.
+        for name in ["A", "B"] {
+            let just_failed = if name == "A" {
+                deck_a.download_failed && !deck_a.fail_sent
+            } else {
+                deck_b.download_failed && !deck_b.fail_sent
+            };
+            if !just_failed {
+                continue;
+            }
+            if name == "A" {
+                deck_a.fail_sent = true;
+            } else {
+                deck_b.fail_sent = true;
+            }
+
+            let is_stall_target = auto_gapless_stall
+                .as_ref()
+                .map_or(false, |(t, _)| t.as_str() == name);
+            let is_pending_target = pending_transition
+                .as_ref()
+                .map_or(false, |(t, _, _, _)| t.as_str() == name);
+            let blocking = active_deck == name || is_stall_target || is_pending_target;
+
+            send_log(
+                "deck_failed",
+                &format!("deck={}, blocking={}", name, blocking),
+            );
+
+            if blocking {
+                if is_stall_target {
+                    auto_gapless_stall = None;
+                }
+                if is_pending_target {
+                    pending_transition = None;
+                }
+                // Stop emitting audio only when nothing is left to play: the
+                // failed deck is the active one, or the active one already ran
+                // out and was waiting for it. A deck that was merely the target
+                // of a skip must not silence the track still playing.
+                if !crossfading && (active_deck == name || is_stall_target) {
+                    is_playing = false;
+                }
+            }
+        }
+
         // ── Auto-gapless stall check ─────────────────────────────
         // If we're stalled waiting for the other deck to receive first data,
         // check if it now has audio. If yes, do the switch.
@@ -1097,16 +1176,20 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 );
                 auto_gapless_stall = None;
             } else if timed_out {
-                // Timeout: il deck target non ha mai ricevuto dati
+                // Timeout: the target deck never received any data → unplayable
                 send_log(
                     "info",
                     &format!(
-                        "⏰ Auto-gapless stall timeout ({}s) → fallback end",
-                        AUTO_GAPLESS_STALL_TIMEOUT_SECS
+                        "⏰ Auto-gapless stall timeout ({}s) → deck {} unplayable",
+                        AUTO_GAPLESS_STALL_TIMEOUT_SECS, stall_target
                     ),
                 );
-                send_log("end", &active_deck);
+                send_log(
+                    "deck_failed",
+                    &format!("deck={}, blocking=true", stall_target),
+                );
                 auto_gapless_stall = None;
+                is_playing = false;
             }
             // Se né dati né timeout, continua in stallo (output silenzio)
         }
@@ -1151,6 +1234,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                     // Crossfade: DON'T clean up the old deck — it's needed for the mix!
                     // Crossfade completion in mixing loop will clean up the source deck.
                     crossfading = true;
+                    is_playing = true;
                     target_deck = etarget.clone();
                     crossfade_total = (cf_dur_ms as usize * SAMPLE_RATE / 1000) * CHANNELS;
                     crossfade_left = crossfade_total;
@@ -1220,10 +1304,12 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 
         // If we're stalled for auto-gapless, output silence without consuming samples
         if auto_gapless_stall.is_some() {
-            for _ in 0..CHUNK_SIZE {
-                let _ = handle.write_i16::<LE>(0i16);
+            out_bytes.clear();
+            out_bytes.resize(CHUNK_SIZE * 2, 0u8);
+            if let Err(e) = write_pcm_chunk(&mut handle, &out_bytes) {
+                send_log("error", &format!("Fatal stdout write error: {}", e));
+                break 'main;
             }
-            handle.flush().ok();
             continue;
         }
 
@@ -1260,15 +1346,11 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // CONSTANTS FOR AUTO-GAPLESS AND MID-CHUNK
-        // ═══════════════════════════════════════════════════════════════════
-        const MIN_SAMPLES_PLAYED_FOR_END: usize = SAMPLE_RATE * CHANNELS * 25; // 25 seconds
-
         // Mixing Loop
         let mut has_audio = false;
         mid_chunk_auto_switch = None; // Reset for this chunk
         mid_chunk_loop_restart = false;
+        out_bytes.clear();
 
         for _ in 0..CHUNK_SIZE {
             let out = if crossfading {
@@ -1355,24 +1437,26 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                             && auto_gapless_stall.is_none()
                             && is_playing;
 
-                        let (is_exhausted, played_enough) = if active_deck == "A" {
+                        // `has_played` guards against ending a deck that never produced
+                        // audio: that case is an unplayable track, reported as deck_failed.
+                        let (is_exhausted, has_played) = if active_deck == "A" {
                             (
                                 deck_a.has_ended && deck_a.receiver.is_none(),
-                                deck_a.samples_played >= MIN_SAMPLES_PLAYED_FOR_END,
+                                deck_a.samples_played > 0,
                             )
                         } else {
                             (
                                 deck_b.has_ended && deck_b.receiver.is_none(),
-                                deck_b.samples_played >= MIN_SAMPLES_PLAYED_FOR_END,
+                                deck_b.samples_played > 0,
                             )
                         };
 
                         if should_try_switch
                             && is_exhausted
-                            && played_enough
+                            && has_played
                             && mid_chunk_auto_switch.is_none()
                         {
-                            // Deck attivo è finito e ha riprodotto abbastanza
+                            // Active deck played its audio and is now exhausted
                             if loop_mode {
                                 // ── MID-CHUNK LOOP RESTART ──
                                 // Riavvia lo stesso deck da full_samples
@@ -1443,9 +1527,35 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             }
 
             // Clipping and PCM i16 Output
-            let _ = handle.write_i16::<LE>((out.max(-1.0).min(1.0) * 32767.0) as i16);
+            let pcm = (out.max(-1.0).min(1.0) * 32767.0) as i16;
+            out_bytes.extend_from_slice(&pcm.to_le_bytes());
         }
-        handle.flush().ok();
+        if let Err(e) = write_pcm_chunk(&mut handle, &out_bytes) {
+            send_log("error", &format!("Fatal stdout write error: {}", e));
+            break 'main;
+        }
+
+        // playback_confirmed event: the active deck really pushed audio out.
+        // Node.js counts a track as listened only on this event, so tracks that
+        // never manage to stream are never credited to the statistics.
+        const PLAYBACK_CONFIRM_THRESHOLD: usize = SAMPLE_RATE * CHANNELS; // 1 second
+        if is_playing && !crossfading {
+            let confirmed = if active_deck == "A" {
+                !deck_a.play_confirmed_sent && deck_a.samples_played >= PLAYBACK_CONFIRM_THRESHOLD
+            } else if active_deck == "B" {
+                !deck_b.play_confirmed_sent && deck_b.samples_played >= PLAYBACK_CONFIRM_THRESHOLD
+            } else {
+                false
+            };
+            if confirmed {
+                if active_deck == "A" {
+                    deck_a.play_confirmed_sent = true;
+                } else {
+                    deck_b.play_confirmed_sent = true;
+                }
+                send_log("playback_confirmed", &active_deck);
+            }
+        }
 
         // approaching_end event: 3 seconds before end
         // Sent when decoder has finished (has_ended=true) and <3 sec of samples remain
@@ -1524,13 +1634,13 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                 let should_handle_end = if active_deck == "A" {
                     deck_a.has_ended
                         && deck_a.receiver.is_none()
-                        && deck_a.samples_played >= MIN_SAMPLES_PLAYED_FOR_END
+                        && deck_a.samples_played > 0
                         && !deck_a.end_sent
                         && !deck_a.has_samples()
                 } else {
                     deck_b.has_ended
                         && deck_b.receiver.is_none()
-                        && deck_b.samples_played >= MIN_SAMPLES_PLAYED_FOR_END
+                        && deck_b.samples_played > 0
                         && !deck_b.end_sent
                         && !deck_b.has_samples()
                 };
@@ -1639,8 +1749,19 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
 
                                 if download_stuck {
                                     // ── CASE 3a-stuck: Download stuck, don't stall ──
-                                    send_log("error", &format!("⏰ Auto-gapless: deck {} in download da >30s senza dati → fallback end", other));
-                                    send_log("end", &active_deck);
+                                    send_log("error", &format!("⏰ Auto-gapless: deck {} in download da >30s senza dati → track unplayable", other));
+                                    send_log(
+                                        "deck_failed",
+                                        &format!("deck={}, blocking=true", other),
+                                    );
+                                    // Already reported: don't report it again when the
+                                    // stuck download finally gives up with no samples
+                                    if other == "A" {
+                                        deck_a.fail_sent = true;
+                                    } else {
+                                        deck_b.fail_sent = true;
+                                    }
+                                    is_playing = false;
                                 } else {
                                     // ── CASE 3a: STALL → download in progress, wait for data ──
                                     send_log("info", &format!("⏸️  Auto-gapless stall: deck {} in download ({}ms), aspetto primi dati...",
@@ -1655,6 +1776,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                 send_log("debug", &format!("Deck {} ended (other deck {} loaded but empty, full_samples={})",
                                 active_deck, other,
                                 if other == "A" { deck_a.full_samples.len() } else { deck_b.full_samples.len() }));
+                                is_playing = false;
                             } else {
                                 // ── CASE 3c: FALLBACK → no deck loaded, end of queue ──
                                 send_log("end", &active_deck);
@@ -1662,6 +1784,7 @@ fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
                                     "debug",
                                     &format!("Deck {} ended (no next song preloaded)", active_deck),
                                 );
+                                is_playing = false;
                             }
                         }
                     }

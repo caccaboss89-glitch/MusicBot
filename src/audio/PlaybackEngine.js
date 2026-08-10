@@ -15,14 +15,19 @@ import { queue } from '../state/globals.js';
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
 import { CROSSFADE_DURATION_MS } from '../../config/index.js';
 import { isMixerAlive } from '../queue/QueueManager.js';
-import { call, register } from './audio-bridge.js';
+import { call, register, get } from './audio-bridge.js';
 
 const PRELOAD_DELAY_MS = 5000; // Preload 5 seconds after the start of the song (to allow time for initial audio chunks)
 const PRELOAD_RETRY_MIN_DELAY_MS = 250;
+// Safety net for the statistics: the audio engine confirms real playback after
+// ~1 second, so this only fires with an engine build that never sends the event.
+// It is longer than the download watchdog so an unplayable song is reported and
+// skipped before it could be wrongly credited as listened.
+const PLAYBACK_CONFIRM_FALLBACK_MS = 90000;
 
 // ─── State ──────────────────────────────────────────────────
 
-const timers = new Map(); // guildId -> { preloadTimer }
+const timers = new Map(); // guildId -> { preloadTimer, confirmTimer }
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -47,8 +52,9 @@ function hasNextSong(sq) {
 
 function clearAllTimers(guildId) {
   const state = timers.get(guildId);
-  if (state && state.preloadTimer) {
-    clearTimeout(state.preloadTimer);
+  if (state) {
+    if (state.preloadTimer) clearTimeout(state.preloadTimer);
+    if (state.confirmTimer) clearTimeout(state.confirmTimer);
   }
   timers.delete(guildId);
 }
@@ -70,8 +76,9 @@ function schedulePreloadRetry(guildId, delayMs) {
 
 /**
  * Called when a new song starts playing.
- * Schedules only:
+ * Schedules:
  *  - preload after 5 seconds on the other deck
+ *  - the statistics fallback, in case the engine never confirms playback
  *
  * Does not use timers to monitor the end. Waits for the 'end' event from Rust.
  * If you want automatic crossfade 3s before the end, Rust must send
@@ -98,8 +105,18 @@ function onSongStart(guildId) {
     preloadNextSong(guildId);
   }, PRELOAD_DELAY_MS);
 
-  // Save the timer
-  timers.set(guildId, { preloadTimer });
+  // ── Timer: statistics fallback ──
+  // Normally cancelled long before it fires, because the engine confirms real
+  // playback after ~1s and confirmPlayback() ignores duplicates.
+  const confirmTimer = setTimeout(() => {
+    const sqNow = queue.get(guildId);
+    if (!sqNow || sqNow.isPaused || !isMixerAlive(sqNow)) return;
+    console.warn('⚠️  [PLAYBACK] No playback confirmation from the engine, crediting the play from the fallback');
+    call('confirmPlayback', guildId, sqNow.currentDeck || 'A', 'fallback');
+  }, PLAYBACK_CONFIRM_FALLBACK_MS);
+
+  // Save the timers
+  timers.set(guildId, { preloadTimer, confirmTimer });
 
   console.log(`🎵 [PLAYBACK] Started: "${sanitizeTitle(currentSong.title)}"`);
   if (currentSong.duration && currentSong.duration > 0) {
@@ -238,7 +255,7 @@ async function handleTrackEnd(guildId) {
   clearAllTimers(guildId);
 
   // Check if a skip is in progress (avoid race condition)
-  const SkipManager_hasSkipInProgress = bridge.get('hasSkipInProgress');
+  const SkipManager_hasSkipInProgress = get('hasSkipInProgress');
   if (SkipManager_hasSkipInProgress && SkipManager_hasSkipInProgress(guildId)) {
     console.log('⏳ [TRACK-END] Skip already in progress, ignoring');
     return;

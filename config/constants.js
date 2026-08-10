@@ -21,6 +21,7 @@ export const DISCONNECT_TIMEOUT_MS = 60000;      // Bot disconnect from empty ch
 export const RECONCILE_WINDOW_MS = 5000;         // Reconciliation window for moves/reconnections (5s)
 export const RESTART_COOLDOWN_MS = 5000;         // Cooldown between consecutive restarts
 export const MIN_SONG_PLAY_TIME_MS = 30000;      // Minimum playback time before accepting 'end' (30 sec)
+export const MAX_CONSECUTIVE_PLAYBACK_FAILURES = 3; // Unplayable songs in a row before stopping the queue
 
 // --- TIMING CONSTANTS (TIMEOUT) ---
 export const VOICE_CONNECTION_TIMEOUT_MS = 20000; // Voice connection timeout (20 sec) - allows Rust engine to start

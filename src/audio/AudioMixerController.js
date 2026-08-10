@@ -153,7 +153,7 @@ class AudioMixerController {
 
     // Handle stdout errors - CRITICAL: mark mixer as dead
     this.process.stdout.on('error', (e) => {
-      console.error(`❌ [RUST] Stdout error (mixer dead): ${err && err.message ? err.message : String(err)}`);
+      console.error(`❌ [RUST] Stdout error (mixer dead): ${e && e.message ? e.message : String(e)}`);
       this.isAlive = false;
       this.stdoutClosed = true;
       if (this.process) {
@@ -180,7 +180,7 @@ class AudioMixerController {
     });
 
     this.process.stdin.on('error', (e) => {
-      console.error(`❌ [RUST] Stdin error: ${err && err.message ? err.message : err}`);
+      console.error(`❌ [RUST] Stdin error: ${e && e.message ? e.message : e}`);
       this.isAlive = false;
       if (this.process) {
         try { this.process.kill(); } catch { }
@@ -205,13 +205,13 @@ class AudioMixerController {
     });
 
     this.process.on('error', (e) => {
-      console.error(`❌ [RUST] Process error: ${err.message}`);
+      console.error(`❌ [RUST] Process error: ${e.message}`);
       this.process = null;
       this.isAlive = false;
       if (this.onCrash && !this.hasCrashed) {
         this.hasCrashed = true;
         console.log('🚨 [RUST] Triggering crash recovery from process error...');
-        try { this.onCrash(`process_error_${err.message}`); } catch (e) { console.error('onCrash handler error', e); }
+        try { this.onCrash(`process_error_${e.message}`); } catch (e2) { console.error('onCrash handler error', e2); }
       }
     });
   }

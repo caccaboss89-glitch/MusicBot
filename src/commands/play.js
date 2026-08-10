@@ -77,7 +77,7 @@ async function execute(interaction, deps) {
           // the dashboard so the player message appears in the text channel.
           try {
             if (!serverQueue.dashboardMessage) {
-              try { const uiModule = await import('../ui/index.js'); await uiModule.default.refreshDashboard(serverQueue); } catch { }
+              try { const uiModule = await import('../ui/index.js'); await uiModule.refreshDashboard(serverQueue); } catch { }
             }
           } catch { }
           serverQueue.isTaskRunning = false;

@@ -208,7 +208,7 @@ client.once('clientReady', async () => {
           const playlistsModule = await import('./src/database/playlists.js');
           playlistsModule.flushDatabaseSync();
         } catch (e) {
-          console.warn('⚠️ [STATS-PUSH] Flush before push failed:', flushErr.message);
+          console.warn('⚠️ [STATS-PUSH] Flush before push failed:', e.message);
         }
 
         console.log('📤 [STATS-PUSH] Pushing monthly stats at', `${String(romaParts.hour).padStart(2, '0')}:00`);

@@ -24,6 +24,6 @@ const rest = new REST({ version: '10' }).setToken(token);
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
     console.log('✅ Command /play registered.');
   } catch (e) {
-    console.error(error);
+    console.error(e);
   }
 })();

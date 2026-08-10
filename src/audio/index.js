@@ -10,6 +10,7 @@ import * as SkipManager from './SkipManager.js';
 import { queue } from '../state/globals.js';
 import { isBotAloneInChannel, scheduleDisconnectIfAlone, getCurrentSong, resolveDeckIndex, bindDeckSong, clearDeckBindings } from '../queue/QueueManager.js';
 import { sanitizeTitle } from '../utils/sanitize.js';
+import { MAX_CONSECUTIVE_PLAYBACK_FAILURES } from '../../config/index.js';
 import * as ui from '../ui/index.js';
 
 // Lazy imports for circular dependency prevention (using dynamic imports)
@@ -196,6 +197,22 @@ async function handleRustEvent(guildId, log) {
       return;
     }
 
+    // ── A deck is really pushing audio out: credit the statistics ──
+    if (log.event === 'playback_confirmed') {
+      confirmPlayback(guildId, log.data).catch(e => {
+        console.error('❌ [PLAY-CONFIRM] Error in confirmPlayback:', e);
+      });
+      return;
+    }
+
+    // ── A deck can never play (no audio received): warn and move on ──
+    if (log.event === 'deck_failed') {
+      handleDeckFailed(guildId, log.data).catch(e => {
+        console.error('❌ [DECK-FAILED] Error in handleDeckFailed:', e);
+      });
+      return;
+    }
+
     // Deck change (confirmation – state already updated by SkipManager)
     if (log.event === 'deck_changed') {
       const deckStr = log.data || '';
@@ -232,6 +249,141 @@ async function handleRustEvent(guildId, log) {
       console.error(`🦀 [RUST-${guildId}] ERROR`, log.data || '');
     }
   } catch { /* ignore */ }
+}
+
+// ─── Playback confirmation (statistics) ─────────────────────
+
+/**
+ * A deck confirmed it is really pushing audio out (or the fallback expired).
+ * This is the ONLY place where a song is credited to the statistics: counting
+ * here means every transition type is covered (skip, crossfade, gapless, loop)
+ * while a song that never manages to stream is never counted.
+ * @param {string} guildId
+ * @param {string} deck - Deck that confirmed playback ('A' | 'B')
+ * @param {string} source - 'engine' (Rust event) or 'fallback' (timer)
+ */
+async function confirmPlayback(guildId, deck, source = 'engine') {
+  try {
+    const sq = queue.get(guildId);
+    if (!sq || sq.isPaused || !deck) return;
+
+    let index = resolveDeckIndex(sq, deck);
+    if (index === null || index === undefined) {
+      // No binding for this deck: only the active deck can be trusted
+      if (deck !== sq.currentDeck) return;
+      index = sq.playIndex || 0;
+    }
+    const song = sq.songs && sq.songs[index];
+    if (!song || !song.url) return;
+
+    // songStartTime changes on every real (re)start, so replays and loops are
+    // counted again while duplicate events for the same playback are not.
+    const playToken = `${deck}:${index}:${sq.songStartTime}`;
+    if (sq._countedPlayToken === playToken) return;
+    sq._countedPlayToken = playToken;
+
+    // Real audio is flowing: the streaming chain works again
+    sq._consecutiveFailures = 0;
+
+    const stats = (await import('../database/stats.js')).default;
+    stats.recordSongStart(guildId, song, sq.voiceChannel);
+    console.log(`📊 [STATS] Play counted (${source}): "${sanitizeTitle(song.title)}"`);
+  } catch (e) {
+    console.warn('⚠️ [PLAY-CONFIRM] Unable to credit the play:', e.message);
+  }
+}
+
+// ─── Unplayable song handling ───────────────────────────────
+
+/**
+ * Sends the playback error warning to the guild text channel.
+ * @param {object} sq - Server queue
+ * @param {object|null} song - Song that failed to stream
+ * @param {boolean} willSkip - true if the next song is being started
+ */
+async function notifyPlaybackError(sq, song, willSkip) {
+  try {
+    const channel = sq.textChannel;
+    if (!channel || !channel.send) return;
+    await channel.send({ embeds: [ui.createPlaybackErrorEmbed(song, willSkip)] });
+  } catch (e) {
+    console.warn('⚠️ [DECK-FAILED] Unable to notify the text channel:', e.message);
+  }
+}
+
+/**
+ * Rust reported a deck whose download produced no audio at all.
+ * Blocking means playback is stuck on that deck: warn the users and move past
+ * the song. Otherwise it is only a stale preload, silently discarded.
+ * @param {string} guildId
+ * @param {string} data - Event payload, "deck=<A|B>, blocking=<bool>"
+ */
+async function handleDeckFailed(guildId, data) {
+  const sq = queue.get(guildId);
+  if (!sq) return;
+
+  const payload = String(data || '');
+  const deck = (payload.match(/deck=([AB])/) || [])[1];
+  if (!deck) return;
+
+  // A deferred transition waiting on this deck is invisible to Rust, but it
+  // means playback is stuck here too — including a replacement song that fails
+  // right after the one it was meant to replace.
+  const awaitingDeck = !!(sq.pendingTransition && sq.pendingTransition.targetDeck === deck);
+  const blocking = payload.includes('blocking=true') || awaitingDeck;
+
+  const failedIndex = resolveDeckIndex(sq, deck);
+  const song = (failedIndex !== null && failedIndex !== undefined) ? sq.songs[failedIndex] : null;
+  const title = song ? sanitizeTitle(song.title) : 'unknown song';
+
+  if (!blocking) {
+    // Failed preload: drop it, the song is retried when its turn actually comes
+    console.warn(`⚠️  [DECK-FAILED] Preload on deck ${deck} received no audio ("${title}"), discarded`);
+    if (sq.nextDeckTarget === deck) {
+      sq.nextDeckLoaded = null;
+      sq.nextDeckTarget = null;
+    }
+    bindDeckSong(sq, deck, null, null);
+    return;
+  }
+
+  console.error(`❌ [DECK-FAILED] Deck ${deck} received no audio: "${title}"`);
+
+  // A transition waiting on this deck will never complete: drop it
+  if (sq.pendingTransition && sq.pendingTransition.targetDeck === deck) {
+    if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
+    sq.pendingTransition = null;
+  }
+  sq.loadingFooter = null;
+  bindDeckSong(sq, deck, null, null);
+
+  // Move past the unplayable song, or close the queue if it was the last one.
+  // Failing songs in a row means streaming itself is broken (yt-dlp, proxy,
+  // network): stop instead of grinding through the queue one error at a time.
+  const nextIndex = ((failedIndex !== null && failedIndex !== undefined) ? failedIndex : (sq.playIndex || 0)) + 1;
+  sq._consecutiveFailures = (sq._consecutiveFailures || 0) + 1;
+  const giveUp = sq._consecutiveFailures >= MAX_CONSECUTIVE_PLAYBACK_FAILURES || nextIndex >= sq.songs.length;
+
+  if (song) {
+    recordStreamError(guildId, song.url);
+    await notifyPlaybackError(sq, song, !giveUp);
+  }
+
+  if (giveUp) {
+    console.log(`🏁 [DECK-FAILED] Ending queue (failures=${sq._consecutiveFailures}, next=${nextIndex}/${sq.songs.length})`);
+    sq._consecutiveFailures = 0;
+    await SkipManager.endQueue(guildId);
+    return;
+  }
+
+  // The engine stopped the output: if the skip cannot go through we would be
+  // left silent with a dashboard still showing a song, so close the queue.
+  const skipped = await SkipManager.skipToIndex(guildId, nextIndex);
+  if (!skipped) {
+    console.warn('⚠️  [DECK-FAILED] Skip refused, ending queue to avoid a stuck playback');
+    sq._consecutiveFailures = 0;
+    await SkipManager.endQueue(guildId);
+  }
 }
 
 // ─── Auto-gapless handlers ──────────────────────────────────
@@ -298,13 +450,6 @@ async function handleAutoEndSwitch(guildId, newDeck) {
     bindDeckSong(sq, newDeck, nextIndex, nextSong ? nextSong.url : null);
     bindDeckSong(sq, (newDeck === 'A' ? 'B' : 'A'), null, null);
 
-    // ── STATS: new song started (auto-gapless) ──
-    try {
-      const stats = (await import('../database/stats.js')).default;
-      stats.incrementSongsStarted();
-      stats.recordSongPlay(guildId, nextSong, sq.voiceChannel);
-    } catch { }
-
     // Save state and update UI
     const { saveQueueState } = await import('../queue/persistence.js');
     saveQueueState(guildId, sq);
@@ -331,15 +476,8 @@ async function handleAutoLoopRestart(guildId, deck) {
 
     const currentSong = sq.songs[sq.playIndex || 0];
 
-    // ── STATS: song completed + restarted (loop) ──
-    try {
-      const stats = (await import('../database/stats.js')).default;
-      stats.incrementSongsCompleted();
-      stats.incrementSongsStarted();
-      if (currentSong) {
-        stats.recordSongPlay(guildId, currentSong, sq.voiceChannel);
-      }
-    } catch { }
+    // ── STATS: song completed (loop) – the new play is credited by confirmPlayback ──
+    try { (await import('../database/stats.js')).default.incrementSongsCompleted(); } catch { }
 
     // Restart the preload timer for the next song
     PlaybackEngine.onSongStart(guildId);
@@ -479,6 +617,7 @@ register('handleRustEvent', handleRustEvent);
 register('refreshDashboard', (sq, userId) => ui.refreshDashboard(sq, userId));
 register('isFailedSong', isFailedSong);
 register('updatePreloadAfterQueueChange', updatePreloadAfterQueueChange);
+register('confirmPlayback', confirmPlayback);
 
 // ─── Exports ────────────────────────────────────────────────
 
@@ -519,6 +658,8 @@ export {
   handleBufferReady,
   handleRustEvent,
   handleMixerCrash,
+  handleDeckFailed,
+  confirmPlayback,
   recordStreamError,
   clearStreamErrors,
   isFailedSong,

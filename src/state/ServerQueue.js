@@ -77,6 +77,10 @@ class ServerQueue {
     // ── Internal (low-latency stream) ──
     this._llStream = null;
     this._lastTransitionTime = null;
+    // Token of the last playback credited to the statistics (dedup)
+    this._countedPlayToken = null;
+    // Unplayable songs in a row (reset as soon as audio really flows)
+    this._consecutiveFailures = 0;
   }
 }
 

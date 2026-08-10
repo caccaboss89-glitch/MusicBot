@@ -8,7 +8,7 @@
 import { queue } from '../state/globals.js';
 import { getCurrentSong, isValidSong } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { createCurrentSongEmbed, createDashboardComponents, updateDashboard } from '../ui/index.js';
+import { createCurrentSongEmbed, createDashboardComponents, updateDashboard, updateDashboardToFinished } from '../ui/index.js';
 import { joinVoiceChannel, createAudioResource, StreamType, entersState, VoiceConnectionStatus } from '@discordjs/voice';
 import { safeMixerInvoke } from './mixer-utils.js';
 import { PassThrough } from 'stream';
@@ -117,13 +117,6 @@ async function restartCurrentSong(guildId) {
   safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.restartDeck(currentDeck));
   serverQueue.songStartTime = Date.now();
 
-  // ── STATS: song started (replay/restart) ──
-  try {
-    const stats = (await import('../database/stats.js')).default;
-    stats.incrementSongsStarted();
-    stats.recordSongPlay(guildId, currentSong, serverQueue.voiceChannel);
-  } catch { }
-
   // If the song was paused, resume it
   await resumeIfPaused(serverQueue, guildId, currentDeck);
 
@@ -161,7 +154,7 @@ async function playSong(guildId, interaction = null) {
     const lastSong = (serverQueue.history && serverQueue.history.length > 0)
       ? serverQueue.history[serverQueue.history.length - 1]
       : null;
-    (await import('../ui/index.js')).default.updateDashboardToFinished(serverQueue, lastSong);
+    await updateDashboardToFinished(serverQueue, lastSong);
     serverQueue.currentDeckLoaded = null;
     serverQueue.nextDeckLoaded = null;
     cleanupLowLatencyStream(serverQueue);
@@ -179,7 +172,7 @@ async function playSong(guildId, interaction = null) {
       if (serverQueue.playIndex >= serverQueue.songs.length) {
         serverQueue.currentDeckLoaded = null;
         cleanupLowLatencyStream(serverQueue);
-        (await import('../ui/index.js')).default.updateDashboardToFinished(serverQueue, song);
+        await updateDashboardToFinished(serverQueue, song);
         return;
       }
       song = getCurrentSong(serverQueue);
@@ -330,15 +323,8 @@ async function playSong(guildId, interaction = null) {
     await updateDashboard(serverQueue, embed, components);
 
     // Start preload and end-monitor cycle
+    // (the play is credited to the statistics once the engine confirms real audio)
     call('onSongStart', guildId);
-
-    // ── STATS: song started + listening timer + record play ──
-    try {
-      const stats = (await import('../database/stats.js')).default;
-      stats.incrementSongsStarted();
-      stats.startAllListeners(guildId, serverQueue.voiceChannel);
-      stats.recordSongPlay(guildId, song, serverQueue.voiceChannel);
-    } catch (e) { console.warn('⚠️ [STATS] Error in playSong:', e.message); }
   }
 }
 

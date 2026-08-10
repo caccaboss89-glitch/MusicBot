@@ -4,6 +4,11 @@
  * - Listening time per user (only when bot plays, not paused)
  * - "Add to playlist" interactions per user (server and personal)
  * - Global counters: songs started and completed
+ *
+ * A song is counted as listened when the audio engine confirms it is really
+ * producing audio (see recordSongStart), never when it merely finishes: that
+ * way crossfades, skips and gapless transitions all count, while tracks that
+ * fail to stream never do.
  */
 
 import fs from 'fs';
@@ -50,7 +55,17 @@ function loadStats() {
       return data;
     }
   } catch (e) {
+    // Never fall back to empty stats on top of a readable-but-broken file:
+    // the next save would wipe a whole month of data. Quarantine it instead,
+    // so the content stays recoverable by hand.
     console.error('⚠️ [STATS] Error loading stats:', e.message);
+    try {
+      const quarantineFile = `${STATS_FILE}.corrupt-${Date.now()}`;
+      fs.renameSync(STATS_FILE, quarantineFile);
+      console.error(`🚑 [STATS] Unreadable stats file moved to ${quarantineFile}`);
+    } catch (e2) {
+      console.error('❌ [STATS] Unable to quarantine the corrupt stats file:', e2.message);
+    }
   }
   return getDefaultStats();
 }
@@ -248,13 +263,6 @@ function flushAllGuildsAndSave() {
 // ─── Song playback tracking ────────────────────────
 
 /**
- * Record song playback globally and for each listener
- * in the voice channel (used to calculate top 5 songs of the month).
- * @param {string} guildId
- * @param {{ url: string, title: string, thumbnail?: string }} songInfo
- * @param {object|null} voiceChannel - Discord voice channel (with .members)
- */
-/**
  * Normalize a YouTube URL (including music.youtube.com links) to canonical form
  * video ID only. Used for stats keying (dedup independent of playlist/mix).
  */
@@ -266,7 +274,16 @@ function normalizeYoutubeUrl(url) {
   return url;
 }
 
-function recordSongPlay(guildId, songInfo, voiceChannel = null) {
+/**
+ * Record a confirmed playback start: the song is really producing audio.
+ * Single entry point for "a song was listened to": bumps the global counter,
+ * the play count (global and for every listener in the voice channel) and
+ * (re)starts the listening timers, all within one write to disk.
+ * @param {string} guildId
+ * @param {{ url: string, title: string, thumbnail?: string }} songInfo
+ * @param {object|null} voiceChannel - Discord voice channel (with .members)
+ */
+function recordSongStart(guildId, songInfo, voiceChannel = null) {
   try {
     if (!songInfo || !songInfo.url) return;
     const url = normalizeYoutubeUrl(songInfo.url);
@@ -277,6 +294,7 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
     };
 
     const data = loadStats();
+    data.global.songsStarted = (data.global.songsStarted || 0) + 1;
 
     // ── Global ──
     if (!data.global.songPlays[url]) {
@@ -302,8 +320,11 @@ function recordSongPlay(guildId, songInfo, voiceChannel = null) {
     }
 
     saveStats(data);
+
+    // Listening timers: also picks up users who joined the channel mid-session
+    startAllListeners(guildId, voiceChannel);
   } catch (e) {
-    console.error('⚠️ [STATS] Error in recordSongPlay:', e.message);
+    console.error('⚠️ [STATS] Error in recordSongStart:', e.message);
   }
 }
 
@@ -331,16 +352,6 @@ function computeTopSongs(data, limit = 5) {
 }
 
 // ─── Global song counters ──────────────────────────────
-
-function incrementSongsStarted() {
-  try {
-    const data = loadStats();
-    data.global.songsStarted = (data.global.songsStarted || 0) + 1;
-    saveStats(data);
-  } catch (e) {
-    console.error('⚠️ [STATS] Error in incrementSongsStarted:', e.message);
-  }
-}
 
 function incrementSongsCompleted() {
   try {
@@ -412,11 +423,11 @@ function getActiveListenersDebug() {
 }
 
 export {
-  // Caricamento
+  // Loading
   loadStats,
   saveStats,
 
-  // Timer ascolto
+  // Listening timers
   startListening,
   stopListening,
   startAllListeners,
@@ -425,18 +436,17 @@ export {
   flushAllGuildsAndSave,
   flushPendingAndSave,
 
-  // Contatori canzoni
-  incrementSongsStarted,
+  // Song counters
   incrementSongsCompleted,
 
-  // Contatori playlist
+  // Playlist counters
   recordPlaylistAdd,
 
-  // Info Discord
+  // Discord info
   updateUserDiscordInfo,
 
-  // Tracciamento canzoni
-  recordSongPlay,
+  // Song tracking
+  recordSongStart,
   computeTopSongs,
 
   // Debug
@@ -453,11 +463,10 @@ export default {
   flushGuildAndSave,
   flushAllGuildsAndSave,
   flushPendingAndSave,
-  incrementSongsStarted,
   incrementSongsCompleted,
   recordPlaylistAdd,
   updateUserDiscordInfo,
-  recordSongPlay,
+  recordSongStart,
   computeTopSongs,
   getActiveListenersDebug
 };

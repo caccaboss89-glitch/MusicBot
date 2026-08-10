@@ -428,7 +428,7 @@ async function performDisconnectCleanup(serverQueue) {
     // Clear any scheduled timer
     try { disconnectTimers.delete(serverQueue.guildId); } catch { }
 
-  } catch {
+  } catch (e) {
     console.error('❌ [CLEANUP] Error during disconnect cleanup:', e);
   } finally {
     serverQueue._cleaningUp = false;

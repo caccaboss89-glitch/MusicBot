@@ -3,13 +3,14 @@
  * Barrel module per le funzioni UI
  */
 
-import { createCurrentSongEmbed, createFinishedEmbed } from './embeds.js';
+import { createCurrentSongEmbed, createFinishedEmbed, createPlaybackErrorEmbed } from './embeds.js';
 import { generatePlaylistView, generateSearchResultsView, createDashboardComponents } from './components.js';
 import { updateDashboard, updateDashboardToFinished, refreshDashboard } from './dashboard.js';
 
 export {
   createCurrentSongEmbed,
   createFinishedEmbed,
+  createPlaybackErrorEmbed,
   generatePlaylistView,
   generateSearchResultsView,
   createDashboardComponents,
