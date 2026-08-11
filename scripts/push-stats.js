@@ -219,13 +219,28 @@ async function pushStats(forceArchive = false) {
       ? `Monthly data snapshot - ${closedMonthLabel}`
       : `Data update - ${monthYear}`;
 
-    // 1. GitHub Push: stats.json + playlists.json + monthly-stats/ (before local archiving)
+    // 1. GitHub push comes BEFORE local archiving/reset — deliberately.
+    //
+    // On rollover day, stats.json still holds the just-closed month's final
+    // numbers (nothing has reset it yet). Pushing now commits that data to
+    // GitHub as-is, so the repo's stats.json always reflects "the latest
+    // available stats" the moment the new month starts.
+    //
+    // Archiving and resetting happen locally right after this push, so the
+    // freshly written monthly-stats/<month> file is NOT part of this commit.
+    // That is intentional too: if it were archived (and reset) first and then
+    // pushed, this single commit would contain the same month's data twice —
+    // once in stats.json (not yet reset) and once in the new archive file.
+    // Instead, the archive file sits on disk uncommitted until the FOLLOWING
+    // month's push commits it — by then stats.json holds a different month's
+    // data, so the two files never overlap in the same commit.
     console.log('📤 Pushing stats.json, playlists.json and monthly-stats to GitHub...');
     if (!gitPushDataFiles(commitMsg)) {
       return false;
     }
 
-    // 2. Local archiving + 3. reset (only monthly rollover)
+    // 2. Local archiving + 3. reset (only monthly rollover) — see note above:
+    // this order means the file written here reaches GitHub on the NEXT push.
     if (shouldArchive) {
       const closed = getClosedMonthArchivePaths();
       console.log(`📦 Local archiving of closed month (Rome): ${closed.yearMonth}`);
