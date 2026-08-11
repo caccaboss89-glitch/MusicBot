@@ -151,9 +151,14 @@ const RUST_EVENT_HANDLERS = {
     console.error('❌ [AUTO-GAPLESS] Error in handleAutoEndSwitch:', e);
   }),
   auto_loop_restart: (guildId, data) => handleAutoLoopRestart(guildId, data),
-  playback_confirmed: (guildId, data) => confirmPlayback(guildId, data).catch(e => {
-    console.error('❌ [PLAY-CONFIRM] Error in confirmPlayback:', e);
-  }),
+  playback_confirmed: (guildId, data) => {
+    // The engine reported real audio: the statistics fallback it guards against
+    // can no longer happen for this song, so it must not fire (and warn) later.
+    PlaybackEngine.cancelPlaybackFallback(guildId);
+    return confirmPlayback(guildId, data).catch(e => {
+      console.error('❌ [PLAY-CONFIRM] Error in confirmPlayback:', e);
+    });
+  },
   deck_failed: (guildId, data) => handleDeckFailed(guildId, data).catch(e => {
     console.error('❌ [DECK-FAILED] Error in handleDeckFailed:', e);
   }),

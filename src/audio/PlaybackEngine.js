@@ -20,6 +20,9 @@ import { confirmPlayback } from './rust-events.js';
 
 const PRELOAD_DELAY_MS = 5000; // Preload 5 seconds after the start of the song (to allow time for initial audio chunks)
 const PRELOAD_RETRY_MIN_DELAY_MS = 250;
+// Waited on top of a crossfade before preloading: the fade runs on the engine's
+// own sample clock, so it never ends exactly when our timestamp says it should.
+const PRELOAD_CROSSFADE_MARGIN_MS = 150;
 // Safety net for the statistics: the audio engine confirms real playback after
 // ~1 second, so this only fires with an engine build that never sends the event.
 // It is longer than the download watchdog so an unplayable song is reported and
@@ -54,6 +57,33 @@ function schedulePreloadRetry(guildId, delayMs) {
   console.log(`⏳ [PRELOAD] Retry scheduled in ${safeDelay}ms`);
 }
 
+/**
+ * Cancels the statistics fallback of a guild, leaving the preload timer alone.
+ * Called as soon as the engine confirms playback: the fallback exists only for
+ * the case where that confirmation never arrives.
+ * @param {string} guildId
+ */
+function cancelPlaybackFallback(guildId) {
+  const state = timers.get(guildId);
+  if (!state || !state.confirmTimer) return;
+  clearTimeout(state.confirmTimer);
+  state.confirmTimer = null;
+}
+
+/**
+ * Delay before preloading the next song: the usual 5 seconds, pushed back so it
+ * never lands inside a crossfade that is still running. Preloading during a fade
+ * is refused by preloadNextSong() anyway, so scheduling it there would only cost
+ * a wasted attempt and a misleading warning on every faded transition.
+ * @param {object} sq - Server queue
+ * @returns {number}
+ */
+function preloadDelayFor(sq) {
+  const sinceCrossfade = sq.crossfadeStartTime ? Date.now() - sq.crossfadeStartTime : Infinity;
+  if (sinceCrossfade >= CROSSFADE_DURATION_MS) return PRELOAD_DELAY_MS;
+  return Math.max(PRELOAD_DELAY_MS, CROSSFADE_DURATION_MS - sinceCrossfade + PRELOAD_CROSSFADE_MARGIN_MS);
+}
+
 // ─── Core ───────────────────────────────────────────────────
 
 /**
@@ -84,11 +114,11 @@ function onSongStart(guildId) {
   // ── Timer: Preload the next song after 5 seconds ──
   const preloadTimer = setTimeout(() => {
     preloadNextSong(guildId);
-  }, PRELOAD_DELAY_MS);
+  }, preloadDelayFor(sq));
 
   // ── Timer: statistics fallback ──
-  // Normally cancelled long before it fires, because the engine confirms real
-  // playback after ~1s and confirmPlayback() ignores duplicates.
+  // Cancelled by cancelPlaybackFallback() as soon as the engine confirms real
+  // playback (~1s in), so it only ever fires when that event never arrives.
   const confirmTimer = setTimeout(() => {
     const sqNow = queue.get(guildId);
     if (!sqNow || sqNow.isPaused || !isMixerAlive(sqNow)) return;
@@ -156,7 +186,7 @@ async function preloadNextSong(guildId) {
         schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS);
       } else {
         console.warn(`⚠️  [PRELOAD] Skip: crossfade started only ${sinceCrossfade}ms ago (< ${CROSSFADE_DURATION_MS}ms), waiting more`);
-        schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS - sinceCrossfade + 150);
+        schedulePreloadRetry(guildId, CROSSFADE_DURATION_MS - sinceCrossfade + PRELOAD_CROSSFADE_MARGIN_MS);
       }
       return;
     }
@@ -295,5 +325,6 @@ export {
   updatePreloadAfterQueueChange,
   handleTrackEnd,
   handleDeckChanged,
-  clearAllTimers
+  clearAllTimers,
+  cancelPlaybackFallback
 };
