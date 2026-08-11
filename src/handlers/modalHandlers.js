@@ -121,9 +121,13 @@ async function handleModal(interaction, guildId, deps) {
   // --- Add song (modal_add_song) ---
   const serverQueue = await deps.ensureBotConnection(interaction);
   if (!serverQueue) return;
+
+  // The flag is raised inside the try: deferReply rejects on an expired
+  // interaction, and leaving it set would block /play for the whole session.
   serverQueue.isTaskRunning = true;
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   try {
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
     let found = [];
     try {
       found = await getVideoInfo(interaction.fields.getTextInputValue('song_input'));

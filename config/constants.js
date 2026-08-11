@@ -16,7 +16,6 @@ export const CROSSFADE_DURATION_MS = 6000;       // Standard crossfade duration 
 // --- TIMING CONSTANTS (SYSTEM) ---
 export const DISCONNECT_TIMEOUT_MS = 60000;      // Bot disconnect from empty channel timeout (1 minute)
 export const RECONCILE_WINDOW_MS = 5000;         // Reconciliation window for moves/reconnections (5s)
-export const RESTART_COOLDOWN_MS = 5000;         // Cooldown between consecutive restarts
 export const MAX_CONSECUTIVE_PLAYBACK_FAILURES = 3; // Unplayable songs in a row before stopping the queue
 
 // --- TIMING CONSTANTS (TIMEOUT) ---

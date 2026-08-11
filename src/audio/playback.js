@@ -16,8 +16,9 @@ import { createCurrentSongEmbed, createDashboardComponents, updateDashboard, upd
 import { safeMixerInvoke } from './mixer-utils.js';
 import AudioMixerController from './AudioMixerController.js';
 import { onSongStart, updatePreloadAfterQueueChange } from './PlaybackEngine.js';
-import { handleRustEvent, handleBufferReady, isFailedSong } from './rust-events.js';
-import { handleMixerCrash, getMixerCrashCooldownMs } from './recovery.js';
+import { handleRustEvent, isFailedSong } from './rust-events.js';
+import { handleMixerCrash } from './recovery.js';
+import { getMixerCrashCooldownMs } from './crash-cooldown.js';
 import { stopAllListeners, startAllListeners } from '../database/stats.js';
 
 // Key factor for pipeline latency:
@@ -27,6 +28,11 @@ const LOW_LATENCY_HWM = 3840 * 2; // 2 frames = 40ms of buffer
 
 // Wait for the first audio chunk to reach the deck before hitting play
 const FIRST_CHUNK_DELAY_MS = 150;
+
+// Startup polling for the mixer's stdout
+const MIXER_STDOUT_POLL_MS = 100;
+const MIXER_STDOUT_POLL_ATTEMPTS = 30;
+const MIXER_SETTLE_MS = 200;
 
 /**
  * Creates a low-latency wrapper around the mixer's stdout.
@@ -78,9 +84,8 @@ function attachMixerOutput(serverQueue, stdout) {
  * Used for both replay and skip when music was stopped
  * @param {object} serverQueue
  * @param {string} guildId
- * @param {string} deckToResume - Deck to resume (usually the current deck)
  */
-function resumeIfPaused(serverQueue, guildId, deckToResume) {
+function resumeIfPaused(serverQueue, guildId) {
   if (!serverQueue.isPaused) return; // Nothing to do if not paused
 
   serverQueue.isPaused = false;
@@ -91,7 +96,7 @@ function resumeIfPaused(serverQueue, guildId, deckToResume) {
 
   // Resume Rust mixer
   if (serverQueue.mixer?.isProcessAlive?.()) {
-    safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.play(deckToResume), 'resume');
+    safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.resume(), 'resume');
   }
 }
 
@@ -137,7 +142,7 @@ async function restartCurrentSong(guildId) {
   serverQueue.songStartTime = Date.now();
 
   // If the song was paused, resume it
-  resumeIfPaused(serverQueue, guildId, currentDeck);
+  resumeIfPaused(serverQueue, guildId);
 
   // Restart preload / statistics fallback timers
   onSongStart(guildId);
@@ -179,7 +184,6 @@ async function startMixer(serverQueue, guildId) {
     serverQueue.mixer = new AudioMixerController(
       guildId,
       (log) => handleRustEvent(guildId, log),
-      (deck) => handleBufferReady(guildId, deck),
       (reason) => handleMixerCrash(guildId, reason)
     );
     serverQueue.mixer.start();
@@ -187,11 +191,11 @@ async function startMixer(serverQueue, guildId) {
 
     // Wait for stdout to become available
     let stdout = null;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < MIXER_STDOUT_POLL_ATTEMPTS; i++) {
       stdout = serverQueue.mixer.getStdout();
       if (stdout) break;
       if (serverQueue.mixer.needsRestart()) break;
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, MIXER_STDOUT_POLL_MS));
     }
 
     if (!stdout) {
@@ -201,15 +205,13 @@ async function startMixer(serverQueue, guildId) {
       return null;
     }
 
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, MIXER_SETTLE_MS));
     if (!serverQueue.mixer || !serverQueue.mixer.isProcessAlive()) {
       console.error('❌ [PLAY] Mixer dead before first command');
       if (serverQueue.mixer) { serverQueue.mixer.kill(); serverQueue.mixer = null; }
       return null;
     }
 
-    // ALWAYS disable proactive crossfade in Rust – Node.js handles everything
-    safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setProactiveCrossfade(false), 'init');
     // Sync loop mode with Rust for auto-gapless
     safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.setLoop(!!serverQueue.loopEnabled), 'init');
 
@@ -229,6 +231,10 @@ async function playSong(guildId, interaction = null) {
   const serverQueue = queue.get(guildId);
   if (!serverQueue) return;
 
+  // Already playing: nothing to start. Checked before anything else, so a stray
+  // call cannot advance playIndex past a blacklisted song while audio is live.
+  if (serverQueue.currentDeckLoaded) return;
+
   // Ensure voice connection
   if (!serverQueue.connection && serverQueue.voiceChannel && !interaction) {
     try {
@@ -247,35 +253,22 @@ async function playSong(guildId, interaction = null) {
     }
   }
 
-  if (!getCurrentSong(serverQueue)) {
-    const lastSong = (serverQueue.history && serverQueue.history.length > 0)
-      ? serverQueue.history[serverQueue.history.length - 1]
-      : null;
+  // Skip songs blacklisted after repeated stream errors
+  const previousSong = getCurrentSong(serverQueue);
+  const song = skipBlacklistedSongs(serverQueue, guildId);
+  if (!song) {
     // Clear the deck state first: the dashboard reads it to decide it must
     // render the "queue finished" layout.
     serverQueue.currentDeckLoaded = null;
     serverQueue.nextDeckLoaded = null;
     cleanupLowLatencyStream(serverQueue);
-    await updateDashboardToFinished(serverQueue, lastSong);
-    return;
-  }
-
-  // Skip songs blacklisted after repeated stream errors
-  const previousSong = getCurrentSong(serverQueue);
-  const song = skipBlacklistedSongs(serverQueue, guildId);
-  if (!song) {
-    serverQueue.currentDeckLoaded = null;
-    cleanupLowLatencyStream(serverQueue);
     await updateDashboardToFinished(serverQueue, previousSong);
     return;
   }
 
-  // Already playing: nothing to start
-  if (serverQueue.currentDeckLoaded) return;
-
   // Avoid concurrent mixer startups
   if (serverQueue.mixerStarting) {
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < MIXER_STDOUT_POLL_ATTEMPTS; i++) {
       await new Promise(r => setTimeout(r, 50));
       if (!serverQueue.mixerStarting) break;
     }
@@ -324,6 +317,7 @@ async function playSong(guildId, interaction = null) {
   serverQueue.currentDeckLoaded = song.url;
   serverQueue.nextDeckTarget = null;
   serverQueue.songStartTime = Date.now();
+  serverQueue.isPaused = false;
 
   // ── Binding deck → song (source of truth for sync) ──
   bindDeckSong(serverQueue, deck, serverQueue.playIndex || 0, song.url);
@@ -338,43 +332,23 @@ async function playSong(guildId, interaction = null) {
 }
 
 /**
- * Handles pause/resume toggle atomically with state machine
+ * Pauses or resumes playback, keeping the Discord player, the Rust mixer and
+ * the listening statistics in step.
+ *
+ * The dashboard only enables the pause control while a deck is loaded, so this
+ * never has to start playback from scratch: that is what the play/skip/replay
+ * controls are for.
  * @param {string} guildId
  * @param {object} serverQueue
- * @param {object} deps - Dependencies (connectToVoice)
- * @returns {Promise<{success: boolean, action: 'play'|'pause'|'resume'|'error', error?: string}>}
+ * @returns {Promise<{success: boolean, action: 'pause'|'resume'|'error', error?: string}>}
  */
-async function togglePauseResume(guildId, serverQueue, deps = {}) {
+async function togglePauseResume(guildId, serverQueue) {
   try {
-    const stateVersion = stateVersionManager.get(guildId);
-
-    // STATE MACHINE: Determines current state and correct action
-
-    // CASE 1 & 2: nothing is loaded (restored session, or dead mixer/connection)
-    // but songs are queued → (re)start playback from scratch
-    const needsFreshStart = serverQueue.songs?.length > 0 && (
-      (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded) ||
-      !serverQueue.mixer || !serverQueue.connection
-    );
-
-    if (needsFreshStart) {
-      serverQueue.sessionRestored = false;
-      serverQueue.isPaused = false;
-      stateVersion.incrementVersion('pause_action');
-
-      const connected = deps.connectToVoice ? await deps.connectToVoice(serverQueue, null) : false;
-      if (!connected) return { success: false, action: 'error', error: 'Failed to connect to voice' };
-
-      await playSong(guildId);
-      return { success: true, action: 'play' };
-    }
-
-    // CASE 3: Empty queue → error
     if (!serverQueue.songs || serverQueue.songs.length === 0) {
       return { success: false, action: 'error', error: 'Queue is empty' };
     }
 
-    // CASE 4: Normal pause/resume toggle
+    const stateVersion = stateVersionManager.get(guildId);
     serverQueue.isPaused = !serverQueue.isPaused;
 
     if (serverQueue.isPaused) {
@@ -384,7 +358,6 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
 
       try { serverQueue.player?.pause(); } catch { /* player may be detached */ }
 
-      // Pause Rust mixer (ONLY if alive)
       if (serverQueue.mixer?.isProcessAlive?.()) {
         safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.pause(), 'pause');
       } else {
@@ -409,11 +382,10 @@ async function togglePauseResume(guildId, serverQueue, deps = {}) {
 
     try { serverQueue.player?.unpause(); } catch { /* player may be detached */ }
 
-    // Unpause Rust mixer (ONLY if alive)
     if (serverQueue.mixer?.isProcessAlive?.()) {
-      safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.play(serverQueue.currentDeck || 'A'), 'resume');
+      safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.resume(), 'resume');
     } else {
-      console.warn('⚠️  [RESUME] Mixer not alive, skipping mixer play');
+      console.warn('⚠️  [RESUME] Mixer not alive, skipping mixer resume');
       handleMixerCrash(guildId, 'mixer_dead_during_resume');
     }
 

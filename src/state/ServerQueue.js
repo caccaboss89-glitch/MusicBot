@@ -28,7 +28,6 @@ class ServerQueue {
 
     // ── Queue and Navigation ──
     this.songs = [];
-    this.history = [];
     this.playIndex = 0;
 
     // ── Playback State ──

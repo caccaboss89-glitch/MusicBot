@@ -271,9 +271,7 @@ pub fn download_and_decode_advanced(
     // RAW DATA READER - ADVANCED VERSION
     let mut reader = BufReader::new(stdout);
     let mut buffer: Vec<f32> = Vec::with_capacity(8192);
-    let mut _samples_read = 0;
     let mut total_samples = 0;
-    let mut last_log_time = std::time::Instant::now();
     let stream_start = std::time::Instant::now();
     let mut cancelled = false;
 
@@ -296,7 +294,6 @@ pub fn download_and_decode_advanced(
             Ok(sample_i16) => {
                 let sample_f32 = sample_i16 as f32 / 32768.0;
                 buffer.push(sample_f32);
-                _samples_read += 1;
                 total_samples += 1;
 
                 // Signals watchdog that data is arriving
@@ -323,11 +320,6 @@ pub fn download_and_decode_advanced(
                         break;
                     }
                     buffer.reserve(1920);
-
-                    if last_log_time.elapsed().as_secs() >= 1 {
-                        _samples_read = 0;
-                        last_log_time = std::time::Instant::now();
-                    }
                 }
             }
             Err(e) => {
@@ -342,15 +334,12 @@ pub fn download_and_decode_advanced(
                     if total_samples == 0 {
                         send_log(
                             "error",
-                            &format!("❌ CRITICAL: 0 samples downloaded - yt-dlp or ffmpeg failed!"),
+                            "❌ CRITICAL: 0 samples downloaded - yt-dlp or ffmpeg failed!",
                         );
+                        send_log("error", "Check: (1) yt-dlp is installed correctly");
                         send_log(
                             "error",
-                            &format!("Check: (1) yt-dlp is installed correctly"),
-                        );
-                        send_log(
-                            "error",
-                            &format!("Check: (2) the YouTube URL is valid and reachable"),
+                            "Check: (2) the YouTube URL is valid and reachable",
                         );
                         send_log(
                             "error",
@@ -372,7 +361,7 @@ pub fn download_and_decode_advanced(
                     } else if audio_seconds < 10 {
                         // PREMATURE TERMINATION - important to log
                         send_log("error", &format!("⚠️ PREMATURE STREAM END: only {} seconds of audio after {}ms of streaming!", audio_seconds, stream_duration_ms));
-                        send_log("error", &format!("This likely indicates that yt-dlp or ffmpeg failed mid-stream (possible Opus codec issue)"));
+                        send_log("error", "This likely indicates that yt-dlp or ffmpeg failed mid-stream (possible Opus codec issue)");
                     } else {
                         send_log(
                             "debug",
@@ -393,7 +382,7 @@ pub fn download_and_decode_advanced(
                     );
                     send_log(
                         "error",
-                        &format!("This means the yt-dlp/ffmpeg pipe is broken or crashed"),
+                        "This means the yt-dlp/ffmpeg pipe is broken or crashed",
                     );
                     // If it's a broken pipe error, it could be due to process issues
                     if total_samples > 0 {

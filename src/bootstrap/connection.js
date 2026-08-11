@@ -1,7 +1,7 @@
 import { queue } from '../state/globals.js';
 import ServerQueue from '../state/ServerQueue.js';
 import { joinVoiceChannel, entersState, VoiceConnectionStatus, createAudioPlayer } from '@discordjs/voice';
-import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../queue/QueueManager.js';
+import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../audio/teardown.js';
 import { loadQueueBackup } from '../queue/persistence.js';
 import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } from '../../config/index.js';
 import { safeReply } from '../utils/discord.js';
@@ -22,9 +22,8 @@ async function ensureBotConnection(interaction) {
     // Attempt to restore from saved backup
     try {
       const backup = loadQueueBackup(guildId);
-      if (backup && ((backup.songs && backup.songs.length > 0) || (backup.history && backup.history.length > 0))) {
-        serverQueue.songs = Array.isArray(backup.songs) ? backup.songs.slice() : [];
-        serverQueue.history = Array.isArray(backup.history) ? backup.history.slice() : [];
+      if (backup && backup.songs && backup.songs.length > 0) {
+        serverQueue.songs = backup.songs.slice();
         serverQueue.playIndex = backup.playIndex || 0;
         serverQueue.isPaused = !!backup.isPaused;
         serverQueue.loopEnabled = !!backup.loopEnabled;

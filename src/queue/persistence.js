@@ -39,12 +39,10 @@ export function loadQueueBackup(guildId) {
 
   // Validate structure
   if (!Array.isArray(backup.songs)) backup.songs = [];
-  if (!Array.isArray(backup.history)) backup.history = [];
   if (typeof backup.playIndex !== 'number' || backup.playIndex < 0) backup.playIndex = 0;
 
   // Filter invalid songs
   backup.songs = backup.songs.filter(s => s && typeof s === 'object' && s.url && s.title);
-  backup.history = backup.history.filter(s => s && typeof s === 'object' && s.url && s.title);
 
   // Ensure playIndex is within bounds
   if (backup.songs.length > 0 && backup.playIndex >= backup.songs.length) {
@@ -55,45 +53,36 @@ export function loadQueueBackup(guildId) {
 }
 
 /**
- * Saves the queue backup for a guild
+ * Saves the queue backup for a guild.
+ * Takes the whole queue rather than a long positional list, so a field can
+ * never be persisted into the wrong slot.
  * @param {string} guildId - Guild ID
- * @param {Array} songs - Array of songs in queue
- * @param {Array} history - Array of history
- * @param {number} playIndex - Current playback index
- * @param {boolean} isPaused - Pause state
- * @param {boolean} loopEnabled - Loop state
- * @param {boolean} fadeEnabled - Crossfade state
- * @param {string|null} currentDeckLoaded - URL of song loaded on current deck
- * @param {string|null} dashboardMessageId - ID of dashboard embed message
- * @param {string|null} textChannelId - ID of text channel where dashboard is
+ * @param {object} serverQueue - Server queue to snapshot
  */
-export function saveQueueBackup(guildId, songs, history, playIndex = 0, isPaused = false, loopEnabled = false, fadeEnabled = false, currentDeckLoaded = null, dashboardMessageId = null, textChannelId = null) {
+export function saveQueueBackup(guildId, serverQueue) {
   try {
-    if ((!songs || songs.length === 0) && (!history || history.length === 0)) {
+    const songs = serverQueue.songs || [];
+    if (songs.length === 0) {
       deleteQueueBackup(guildId);
       return;
     }
     const data = _getQueueCache();
-    const mapSong = s => ({
-      title: s.title,
-      url: s.url,
-      thumbnail: s.thumbnail,
-      isLive: s.isLive,
-      requester: s.requester,
-      duration: s.duration || 0
-    });
-    const safeSongs = songs ? songs.filter(s => s && s.title).map(mapSong) : [];
-    const safeHistory = history ? history.filter(s => s && s.title).map(mapSong) : [];
     data[guildId] = {
-      songs: safeSongs,
-      history: safeHistory,
-      playIndex: playIndex || 0,
-      isPaused,
-      loopEnabled,
-      fadeEnabled,
-      currentDeckLoaded,
-      dashboardMessageId,
-      textChannelId
+      songs: songs.filter(s => s && s.title).map(s => ({
+        title: s.title,
+        url: s.url,
+        thumbnail: s.thumbnail,
+        isLive: s.isLive,
+        requester: s.requester,
+        duration: s.duration || 0
+      })),
+      playIndex: serverQueue.playIndex || 0,
+      isPaused: !!serverQueue.isPaused,
+      loopEnabled: !!serverQueue.loopEnabled,
+      fadeEnabled: !!serverQueue.fadeEnabled,
+      currentDeckLoaded: serverQueue.currentDeckLoaded || null,
+      dashboardMessageId: serverQueue.dashboardMessageId || null,
+      textChannelId: serverQueue.textChannelId || null
     };
     _flushQueueCache();
   } catch (e) {
@@ -124,18 +113,7 @@ const _lastSaveTime = new Map(); // guildId -> timestamp
 const SAVE_DEBOUNCE_MS = 2000;
 
 function _doSaveQueueState(guildId, serverQueue) {
-  saveQueueBackup(
-    guildId,
-    serverQueue.songs,
-    serverQueue.history,
-    serverQueue.playIndex || 0,
-    serverQueue.isPaused,
-    serverQueue.loopEnabled,
-    serverQueue.fadeEnabled,
-    serverQueue.currentDeckLoaded,
-    serverQueue.dashboardMessageId || null,
-    serverQueue.textChannelId || null
-  );
+  saveQueueBackup(guildId, serverQueue);
 }
 
 /**

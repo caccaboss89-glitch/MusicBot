@@ -1,5 +1,5 @@
 import { queue } from '../state/globals.js';
-import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../queue/QueueManager.js';
+import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../audio/teardown.js';
 import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS } from '../../config/index.js';
 import * as stats from '../database/stats.js';
 

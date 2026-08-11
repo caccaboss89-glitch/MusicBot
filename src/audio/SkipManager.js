@@ -29,10 +29,12 @@ import { commandQueue } from './SerialQueue.js';
 import { CROSSFADE_DURATION_MS, SKIP_THROTTLE_MS } from '../../config/index.js';
 import { sanitizeTitle } from '../utils/sanitize.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { isMixerAlive, bindDeckSong, clearDeckBindings } from '../queue/QueueManager.js';
+import { isMixerAlive, bindDeckSong } from '../queue/QueueManager.js';
 import { clearAllTimers, onSongStart } from './PlaybackEngine.js';
 import { restartCurrentSong, resumeIfPaused } from './playback.js';
+import { stopGuildAudio } from './teardown.js';
 import { refreshDashboard, updateDashboardToFinished } from '../ui/index.js';
+import { LOADING_FOOTER } from '../ui/messages.js';
 import { flushGuildAndSave, incrementSongsCompleted } from '../database/stats.js';
 
 // Throttle to prevent spam of rapid skips
@@ -216,7 +218,7 @@ async function performTransition(guildId, targetIndex, reason) {
       if (reason !== 'auto') {
         // Published in the embed below; cleared by completePendingTransition()
         // or by the expiry timer, never by this function.
-        sq.loadingFooter = '⏳ Caricamento in corso...';
+        sq.loadingFooter = LOADING_FOOTER;
         refreshDashboard(sq);
       }
 
@@ -227,10 +229,9 @@ async function performTransition(guildId, targetIndex, reason) {
       //   • handleBufferReady()   → deck ready while song still playing
       //   • handleAutoEndSwitch() → Rust switched autonomously via auto-gapless stall
 
-      // Cancel any previous pending for same deck
-      if (sq.pendingTransition && sq.pendingTransition.targetDeck === targetDeck) {
-        if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
-      }
+      // The pending transition is replaced below whichever deck it targeted, so
+      // its expiry timer has to go with it rather than linger for another 30s.
+      if (sq.pendingTransition?._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
 
       const pendingStartTime = Date.now();
       const timeoutMs = sq.isPaused ? 2000 : 30000;
@@ -291,7 +292,7 @@ async function performTransition(guildId, targetIndex, reason) {
     onSongStart(guildId);
 
     // If paused during skip, resume automatically
-    resumeIfPaused(sq, guildId, targetDeck);
+    resumeIfPaused(sq, guildId);
 
     console.log(`✅ [SKIP] ${reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${targetIndex}, deck=${targetDeck}, fade=${fadeEnabled})`);
     return SKIP_OK;
@@ -413,45 +414,20 @@ async function endQueue(guildId) {
   const sq = queue.get(guildId);
   if (!sq) return;
 
-  clearAllTimers(guildId);
-
   // ── STATS: stop listening timer and save ──
   flushGuildAndSave(guildId);
 
   // Last song played (for "Queue Ended" embed and replay)
   const lastSong = sq.songs[sq.playIndex || 0] || null;
 
-  // Reset state – last song remains for replay
-  sq.songs = lastSong ? [lastSong] : [];
-  sq.history = [];
-  sq.playIndex = 0;
-  sq.currentDeckLoaded = null;
-  sq.nextDeckLoaded = null;
-  sq.nextDeckTarget = null;
-  sq.songStartTime = null;
-  sq.loadingFooter = null;
-  sq.currentDeck = 'A';
-  sq.isPaused = false;
-  clearDeckBindings(sq);
-  // Cancel any pending transition
-  if (sq.pendingTransition) {
-    if (sq.pendingTransition._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
-    sq.pendingTransition = null;
-  }
+  // Stops the mixer, the player and every timer, and clears the deck state
+  stopGuildAudio(sq, { reason: 'Queue ended' });
 
-  // Stop player and mixer. `intentionalKill` is only meaningful while a mixer
-  // exists to emit a crash event: setting it without one would leave a stale
-  // flag that silently swallows the next genuine crash recovery.
-  try { if (sq.player) sq.player.stop(true); } catch { /* player may be detached */ }
-  if (sq.mixer) {
-    sq.intentionalKill = true;
-    try { sq.mixer.kill(); } catch { /* already dead */ }
-    sq.mixer = null;
-  }
-  // Destroy low-latency stream to prevent pipe/fd leak
-  try {
-    if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; }
-  } catch { /* stream already torn down */ }
+  // Reset the queue – the last song stays available for replay
+  sq.songs = lastSong ? [lastSong] : [];
+  sq.playIndex = 0;
+  sq.songStartTime = null;
+  sq.isPaused = false;
 
   saveQueueState(guildId, sq);
   await updateDashboardToFinished(sq, lastSong);
@@ -547,7 +523,7 @@ async function completePendingTransition(guildId, alreadySwitched = false) {
 
   onSongStart(guildId);
 
-  resumeIfPaused(sq, guildId, pt.targetDeck);
+  resumeIfPaused(sq, guildId);
 
   console.log(`✅ [SKIP] ${pt.reason}: → "${sanitizeTitle(targetSong.title)}" (idx=${pt.targetIndex}, deck=${pt.targetDeck}, fade=${pt.fadeEnabled}, deferred)`);
 }

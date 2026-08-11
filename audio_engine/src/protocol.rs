@@ -14,48 +14,49 @@ pub enum InputCommand {
         url: String,
         deck: String,
         #[serde(default = "default_autoplay")]
-        autoplay: bool,
+        autoplay: bool
     },
+    /// Fades from the active deck to `to_deck` over `duration_ms`.
     Crossfade {
         duration_ms: u64,
-        to_deck: String,
+        to_deck: String
     },
+    /// Starts `deck` from the top and makes it the one being heard.
     Play {
-        deck: String,
+        deck: String
     },
     StopDeck {
-        deck: String,
+        deck: String
     },
-    SetProactiveCrossfade {
-        enabled: bool,
-    }, // 🔥 Controls proactive crossfade
+    /// Loop mode: when the deck finishes, restart it from full_samples
     SetLoop {
-        enabled: bool,
-    }, // 🔁 Loop mode: when the deck finishes, restart from full_samples
+        enabled: bool
+    },
+    /// Instant switch to `target_deck`, with no fade.
     SkipTo {
-        target_deck: String,
-    }, // 🎵 NEW: Direct skip to Rust (switches to target_deck)
-    ApproveProposal {
-        new_deck: String,
-    }, // 🤝 NEW: Approves a deck change proposal (and does crossfade)
+        target_deck: String
+    },
+    /// Replay: restart a deck from the beginning without re-downloading
     RestartDeck {
-        deck: String,
-    }, // 🔄 Replay: restart deck from beginning without re-downloading
+        deck: String
+    },
+    /// Halts the output without discarding any deck state.
     PauseAll,
+    /// Resumes the output exactly where `PauseAll` left it.
     ResumeAll,
-    Stop,
+    Stop
 }
 
 #[derive(Serialize)]
 struct LogMessage {
     event: String,
-    data: String,
+    data: String
 }
 
 pub fn send_log(event: &str, data: &str) {
     let msg = LogMessage {
         event: event.to_string(),
-        data: data.to_string(),
+        data: data.to_string()
     };
     if let Ok(json) = serde_json::to_string(&msg) {
         eprintln!("{}", json);

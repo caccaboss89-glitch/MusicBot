@@ -1,10 +1,14 @@
 //! Entry point: wires stdin (JSON commands from Node.js) to the mixer thread.
 
+mod commands;
 mod config;
 mod deck;
 mod download;
+mod events;
 mod mixer;
 mod protocol;
+mod state;
+mod transitions;
 
 use crossbeam_channel::bounded;
 #[cfg(unix)]
@@ -41,9 +45,7 @@ fn main() {
     // Input JSON thread (Node -> Rust)
     let stdin = io::stdin();
     let iterator = serde_json::Deserializer::from_reader(stdin).into_iter::<InputCommand>();
-    for item in iterator {
-        if let Ok(cmd) = item {
-            let _ = tx.send(cmd);
-        }
+    for cmd in iterator.flatten() {
+        let _ = tx.send(cmd);
     }
 }

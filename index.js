@@ -7,12 +7,8 @@ import { ROOT_DIR, DATA_DIR } from './config/index.js';
 import { queue, disconnectTimers, clearGuildCooldowns } from './src/state/globals.js';
 import { stateVersionManager } from './src/state/StateVersion.js';
 import { commandQueue, audioOperationBarrier } from './src/audio/SerialQueue.js';
-import { clearAllTimers } from './src/audio/PlaybackEngine.js';
-import { cleanupSkipState } from './src/audio/SkipManager.js';
-import { clearStreamErrors } from './src/audio/rust-events.js';
-import { cleanupRecoveryState } from './src/audio/recovery.js';
+import { stopGuildAudio, clearGuildAudioState } from './src/audio/teardown.js';
 import { playSong, updatePreloadAfterQueueChange } from './src/audio/index.js';
-import { resetMessageCleanupState } from './src/utils/cleanup.js';
 import { flushPendingSaves, saveQueueStateImmediate, cleanupGuild } from './src/queue/persistence.js';
 import { flushAllGuildsAndSave } from './src/database/stats.js';
 import { flushDatabaseSync } from './src/database/playlists.js';
@@ -97,41 +93,21 @@ client.on('guildDelete', (guild) => {
   const guildId = guild.id;
   console.log(`🚀 [CLEANUP] Bot left guild ${guildId} - cleaning up state`);
 
-  const sq = queue.get(guildId);
-
   // Stop everything that could still touch this guild
-  if (sq) {
-    if (sq.dashboardState?.timer) {
-      clearTimeout(sq.dashboardState.timer);
-      sq.dashboardState.timer = null;
-    }
-    if (sq.pendingTransition?._cleanupTimer) clearTimeout(sq.pendingTransition._cleanupTimer);
-    try { sq.player?.stop(true); } catch { /* player may be detached */ }
-    if (sq.mixer) {
-      sq.intentionalKill = true;
-      try { sq.mixer.kill(); } catch { /* already dead */ }
-      sq.mixer = null;
-    }
-    try { sq.connection?.destroy(); } catch { /* already destroyed */ }
-    try {
-      if (sq._llStream) { sq._llStream.unpipe(); sq._llStream.destroy(); sq._llStream = null; }
-    } catch { /* stream already torn down */ }
-  }
+  const sq = queue.get(guildId);
+  if (sq) stopGuildAudio(sq, { reason: 'Bot removed from guild', destroyConnection: true });
 
   if (disconnectTimers.has(guildId)) {
     clearTimeout(disconnectTimers.get(guildId));
     disconnectTimers.delete(guildId);
   }
 
-  clearAllTimers(guildId);
+  // Forget every per-guild registry: the bot will not see this guild again
+  clearGuildAudioState(guildId);
   stateVersionManager.cleanup(guildId);
   commandQueue.cleanup(guildId);
   audioOperationBarrier.cleanup(guildId);
   cleanupGuild(guildId);
-  cleanupRecoveryState(guildId);
-  clearStreamErrors(guildId);
-  cleanupSkipState(guildId);
-  resetMessageCleanupState(guildId);
   clearGuildCooldowns(guildId);
   queue.delete(guildId);
 

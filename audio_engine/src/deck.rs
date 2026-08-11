@@ -12,19 +12,18 @@ use crate::download::download_and_decode_advanced;
 use crate::protocol::send_log;
 
 pub struct Deck {
-    name: String,
+    name: &'static str,
     samples: VecDeque<f32>,
     pub full_samples: Vec<f32>, // All samples received (for replay without re-download)
-    is_loading: bool,
     pub has_ended: bool,
     pub receiver: Option<Receiver<Vec<f32>>>,
-    buffer_level: usize,
-    total_samples_read: usize,
+    /// Samples handed over by the download thread, used to tell an empty
+    /// download apart from one that simply has not started yet.
     real_samples_received: usize,
     pub samples_played: usize, // Samples actually PLAYED (not just received)
     cancel_token: Option<Arc<AtomicBool>>, // Signals the download thread to stop
     pub load_started_at: Option<std::time::Instant>, // When load() was called
-    // Flags for edge detection (managed by mixer loop)
+    // Flags for edge detection (managed by the mixer stages)
     pub buffer_prev_ready: bool,
     pub end_sent: bool,
     pub approaching_end_sent: bool,
@@ -34,20 +33,17 @@ pub struct Deck {
     // Real audio actually reached the output for this playback (stats gating)
     pub play_confirmed_sent: bool,
     // Replay: offset to read from full_samples without clone
-    replay_offset: Option<usize>,
+    replay_offset: Option<usize>
 }
 
 impl Deck {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &'static str) -> Self {
         Self {
-            name: name.to_string(),
+            name,
             samples: VecDeque::new(),
             full_samples: Vec::new(),
-            is_loading: false,
             has_ended: false,
             receiver: None,
-            buffer_level: 0,
-            total_samples_read: 0,
             real_samples_received: 0,
             samples_played: 0,
             cancel_token: None,
@@ -58,7 +54,7 @@ impl Deck {
             download_failed: false,
             fail_sent: false,
             play_confirmed_sent: false,
-            replay_offset: None,
+            replay_offset: None
         }
     }
 
@@ -71,28 +67,26 @@ impl Deck {
 
         self.samples.clear();
         self.full_samples.clear();
-        self.buffer_level = 0;
-        self.total_samples_read = 0;
         self.real_samples_received = 0;
         self.samples_played = 0;
         self.has_ended = false;
-        self.is_loading = true;
         self.load_started_at = Some(std::time::Instant::now());
         self.replay_offset = None;
         self.reset_flags();
+
         let (tx, rx) = bounded::<Vec<f32>>(100);
         self.receiver = Some(rx);
 
         let cancel = Arc::new(AtomicBool::new(false));
         self.cancel_token = Some(cancel.clone());
-        let deck_name = self.name.clone();
+        let deck_name = self.name;
 
         // Starts download thread
         thread::spawn(move || {
-            if let Err(e) = download_and_decode_advanced(&url, tx, cancel, &deck_name) {
+            if let Err(e) = download_and_decode_advanced(&url, tx, cancel, deck_name) {
                 send_log(
                     "error",
-                    &format!("[Deck {}] Download error: {}", deck_name, e),
+                    &format!("[Deck {}] Download error: {}", deck_name, e)
                 );
             }
         });
@@ -104,46 +98,42 @@ impl Deck {
             if offset < self.full_samples.len() {
                 let sample = self.full_samples[offset];
                 self.replay_offset = Some(offset + 1);
-                self.total_samples_read += 1;
                 self.samples_played += 1;
                 return Some(sample);
-            } else {
-                self.replay_offset = None;
-                if !self.has_ended {
-                    self.has_ended = true;
-                }
-                return None;
             }
+            self.replay_offset = None;
+            self.has_ended = true;
+            return None;
         }
 
         // Streaming mode: reads from VecDeque
         self.poll_receiver();
 
         if let Some(sample) = self.samples.pop_front() {
-            self.buffer_level = self.buffer_level.saturating_sub(1);
-            self.total_samples_read += 1;
             self.samples_played += 1;
-            Some(sample)
-        } else {
-            if !self.has_ended {
-                if self.receiver.is_none() && self.samples_played > 0 {
-                    self.has_ended = true;
-                    return None;
-                }
-                self.total_samples_read += 1;
-                Some(0.0)
-            } else {
-                None
-            }
+            return Some(sample);
         }
+
+        if self.has_ended {
+            return None;
+        }
+
+        // The buffer is momentarily empty. Only a finished download that already
+        // produced audio means the track is over; otherwise the download is
+        // still catching up, so emit silence and keep the deck alive.
+        if self.receiver.is_none() && self.samples_played > 0 {
+            self.has_ended = true;
+            return None;
+        }
+        Some(0.0)
     }
 
-    // NEW: Updates the buffer without consuming samples (for inactive decks)
+    /// Moves everything the download thread has produced into the buffer,
+    /// without consuming any of it. Safe to call on inactive decks.
     pub fn poll_receiver(&mut self) {
         if let Some(rx) = &self.receiver {
             // Read ALL available chunks, not just one
             let mut chunks_received = 0;
-            let _samples_before = self.samples.len();
             loop {
                 match rx.try_recv() {
                     Ok(chunk) => {
@@ -155,18 +145,14 @@ impl Deck {
                         }
                         self.full_samples.extend(&chunk); // Saves copy for replay
                         self.samples.extend(chunk);
-                        self.buffer_level = self.samples.len(); // Updates based on real queue
                     }
                     Err(TryRecvError::Disconnected) => {
-                        let samples_after = self.samples.len();
-                        send_log("info", &format!("✅ [RX-DONE] Deck {} → {} chunks received, final buffer: {} samples", self.name, chunks_received, samples_after));
+                        send_log("info", &format!("✅ [RX-DONE] Deck {} → {} chunks received, final buffer: {} samples", self.name, chunks_received, self.samples.len()));
                         // Download over without a single sample: yt-dlp/ffmpeg failed
                         if self.real_samples_received == 0 {
                             self.download_failed = true;
                         }
-                        if !self.has_ended {
-                            self.has_ended = true;
-                        }
+                        self.has_ended = true;
                         self.receiver = None;
                         break;
                     }
@@ -187,7 +173,7 @@ impl Deck {
         self.samples.len()
             + match self.replay_offset {
                 Some(offset) => self.full_samples.len().saturating_sub(offset),
-                None => 0,
+                None => 0
             }
     }
 
@@ -195,7 +181,12 @@ impl Deck {
         !self.samples.is_empty()
             || self
                 .replay_offset
-                .map_or(false, |o| o < self.full_samples.len())
+                .is_some_and(|offset| offset < self.full_samples.len())
+    }
+
+    /// Seconds of audio this deck has played, for the periodic status log.
+    pub fn played_seconds(&self) -> usize {
+        self.samples_played / (SAMPLE_RATE * CHANNELS)
     }
 
     /// Restarts the deck from the beginning without re-downloading.
@@ -205,8 +196,6 @@ impl Deck {
         self.replay_offset = Some(0);
         self.has_ended = false;
         self.samples_played = 0;
-        self.total_samples_read = 0;
-        self.buffer_level = self.full_samples.len();
         self.reset_flags();
     }
 
@@ -223,7 +212,7 @@ impl Deck {
 
 impl Drop for Deck {
     fn drop(&mut self) {
-        // When the Deck is destroyed (e.g. deck_a = Deck::new()),
+        // When the Deck is destroyed (e.g. replaced by MixerState::reset_deck),
         // signals the download thread to stop and kill yt-dlp/ffmpeg
         if let Some(ref token) = self.cancel_token {
             token.store(true, Ordering::Relaxed);
@@ -255,7 +244,7 @@ mod tests {
     fn deck_ends_once_it_has_played_and_the_download_is_over() {
         let mut deck = Deck::new("A");
         deck.samples_played = 10;
-        // This is the exact condition mixer_loop tests to emit 'end'
+        // This is the exact condition the mixer tests to emit 'end'
         assert_eq!(deck.get_next_sample(), None);
         assert!(deck.has_ended);
         assert!(deck.receiver.is_none());
@@ -311,6 +300,13 @@ mod tests {
         let mut ready = deck_with_cache(half_second);
         ready.restart();
         assert!(ready.is_ready_for_crossfade());
+    }
+
+    #[test]
+    fn played_seconds_counts_whole_seconds_of_output() {
+        let mut deck = Deck::new("A");
+        deck.samples_played = SAMPLE_RATE * CHANNELS * 2 + 5;
+        assert_eq!(deck.played_seconds(), 2);
     }
 
     #[test]

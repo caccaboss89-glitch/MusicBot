@@ -22,27 +22,43 @@ import { recordSongStart, incrementSongsCompleted } from '../database/stats.js';
 
 // ─── Stream error tracking ─────────────────────────────────
 
-const failedSongs = new Map();       // guildId -> Map<url, timestamp>
-const streamErrorCounts = new Map(); // guildId -> { url: count }
-const FAILED_SONG_TTL_MS = 60 * 60 * 1000; // 1 hour: transient errors are forgotten
+// guildId -> Map<url, { errors: number, lastErrorAt: number, blacklistedAt: number|null }>
+// One entry per song holds both the partial error count and the blacklist flag,
+// so they always expire together: a song that keeps failing every few minutes
+// can never have its progress towards the blacklist silently reset.
+const songErrors = new Map();
+const SONG_ERROR_TTL_MS = 60 * 60 * 1000; // 1 hour: transient errors are forgotten
 const STREAM_ERRORS_BEFORE_BLACKLIST = 3;
+const ERROR_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
 
 /**
- * Checks if a song is in the blacklist and if it is still within the TTL.
+ * Returns the error record of a song, dropping it if it has expired.
+ * @param {string} guildId
+ * @param {string} url
+ * @returns {{errors: number, lastErrorAt: number, blacklistedAt: number|null}|null}
+ */
+function getSongErrors(guildId, url) {
+  const guildErrors = songErrors.get(guildId);
+  if (!guildErrors) return null;
+  const entry = guildErrors.get(url);
+  if (!entry) return null;
+  if (Date.now() - entry.lastErrorAt > SONG_ERROR_TTL_MS) {
+    guildErrors.delete(url);
+    if (guildErrors.size === 0) songErrors.delete(guildId);
+    return null;
+  }
+  return entry;
+}
+
+/**
+ * Checks if a song has been marked unplayable and is still within the TTL.
  * @param {string} guildId
  * @param {string} url
  * @returns {boolean}
  */
 function isFailedSong(guildId, url) {
-  const guildFailed = failedSongs.get(guildId);
-  if (!guildFailed) return false;
-  const ts = guildFailed.get(url);
-  if (ts === undefined) return false;
-  if (Date.now() - ts > FAILED_SONG_TTL_MS) {
-    guildFailed.delete(url);
-    return false;
-  }
-  return true;
+  const entry = getSongErrors(guildId, url);
+  return !!entry && entry.blacklistedAt !== null;
 }
 
 /**
@@ -52,41 +68,40 @@ function isFailedSong(guildId, url) {
  * @returns {boolean} true if the song has just been marked unplayable
  */
 function recordStreamError(guildId, url) {
-  if (!streamErrorCounts.has(guildId)) streamErrorCounts.set(guildId, {});
-  const counts = streamErrorCounts.get(guildId);
-  counts[url] = (counts[url] || 0) + 1;
+  if (!songErrors.has(guildId)) songErrors.set(guildId, new Map());
+  const guildErrors = songErrors.get(guildId);
 
-  if (counts[url] >= STREAM_ERRORS_BEFORE_BLACKLIST) {
-    if (!failedSongs.has(guildId)) failedSongs.set(guildId, new Map());
-    failedSongs.get(guildId).set(url, Date.now());
-    console.error(`❌ [STREAM] Song marked as unplayable (${counts[url]} errors): ${url.substring(0, 60)}`);
-    return true;
-  }
-  return false;
+  const entry = getSongErrors(guildId, url) || { errors: 0, lastErrorAt: 0, blacklistedAt: null };
+  entry.errors++;
+  entry.lastErrorAt = Date.now();
+  guildErrors.set(url, entry);
+
+  if (entry.blacklistedAt !== null || entry.errors < STREAM_ERRORS_BEFORE_BLACKLIST) return false;
+
+  entry.blacklistedAt = Date.now();
+  console.error(`❌ [STREAM] Song marked as unplayable (${entry.errors} errors): ${url.substring(0, 60)}`);
+  return true;
 }
 
 function clearStreamErrors(guildId) {
-  streamErrorCounts.delete(guildId);
-  failedSongs.delete(guildId);
+  songErrors.delete(guildId);
 }
 
-// Periodic cleanup to prevent memory leaks (every 30 minutes)
+// Periodic sweep so guilds that stop erroring don't hold entries forever
 setInterval(() => {
   const now = Date.now();
-  streamErrorCounts.clear();
-  // Evict expired blacklist entries (TTL 1 hour)
-  for (const [guildId, urlMap] of failedSongs) {
-    for (const [url, ts] of urlMap) {
-      if (now - ts > FAILED_SONG_TTL_MS) urlMap.delete(url);
+  for (const [guildId, guildErrors] of songErrors) {
+    for (const [url, entry] of guildErrors) {
+      if (now - entry.lastErrorAt > SONG_ERROR_TTL_MS) guildErrors.delete(url);
     }
-    if (urlMap.size === 0) failedSongs.delete(guildId);
+    if (guildErrors.size === 0) songErrors.delete(guildId);
   }
-}, 30 * 60 * 1000);
+}, ERROR_SWEEP_INTERVAL_MS);
 
 // ─── Buffer ready ───────────────────────────────────────────
 
 /**
- * Callback invoked by the mixer when a deck becomes ready (versioning-aware).
+ * A deck reported it holds enough audio to be switched to.
  * @param {string} guildId
  * @param {string} deck - 'A' | 'B'
  */
@@ -125,6 +140,7 @@ const STUCK_TRANSITION_MS = 25000;
 // sends (info, debug, stream_opened, deck_restarted, …) is logged by
 // AudioMixerController and needs no handling here.
 const RUST_EVENT_HANDLERS = {
+  buffer_ready: handleBufferReady,
   stream_error: handleStreamError,
   crossfade_started: () => console.log('🎚️  [RUST] Crossfade started'),
   approaching_end: handleApproachingEnd,
@@ -145,7 +161,6 @@ const RUST_EVENT_HANDLERS = {
     const match = String(data || '').match(/deck=([A-C])/);
     PlaybackEngine.handleDeckChanged(guildId, match ? match[1] : String(data || ''));
   },
-  proactive_crossfade_proposal: handleProactiveCrossfadeProposal,
   error: (guildId, data) => console.error(`🦀 [RUST-${guildId}] ERROR`, data || '')
 };
 
@@ -219,24 +234,6 @@ function handleApproachingEnd(guildId) {
     console.log('⏭️  [APPROACHING-END] No next track – waiting for natural end');
   } else {
     console.log('⏭️  [APPROACHING-END] 3s before the end – fade OFF, waiting for natural end');
-  }
-}
-
-/**
- * Rust proposes a crossfade on its own initiative.
- * @param {string} guildId
- */
-function handleProactiveCrossfadeProposal(guildId) {
-  const sq = queue.get(guildId);
-  if (!sq || sq.isCrossfading) return;
-
-  if (sq.fadeEnabled !== false && getNextSong(sq)) {
-    console.log('🎚️  [PROACTIVE-CROSSFADE] Rust proposes crossfade – starting autoSkip');
-    SkipManager.autoSkip(guildId).catch(e => {
-      console.error('❌ [PROACTIVE-CROSSFADE] autoSkip error:', e);
-    });
-  } else {
-    console.log('⏭️  [PROACTIVE-CROSSFADE] Proposal ignored (fade off or no next track)');
   }
 }
 
@@ -506,12 +503,11 @@ function handleAutoLoopRestart(guildId, deck) {
   }
 }
 
+// handleBufferReady, handleDeckFailed and recordStreamError are reached through
+// the event table above, so they stay internal to this module.
 export {
   handleRustEvent,
-  handleBufferReady,
-  handleDeckFailed,
   confirmPlayback,
-  recordStreamError,
   clearStreamErrors,
   isFailedSong
 };

@@ -10,13 +10,13 @@ import {
   getYtDlpCommand
 } from '../../config/index.js';
 import { normalizeYoutubeUrl } from './sanitize.js';
+import { UNKNOWN_TITLE } from '../ui/messages.js';
 
 const DURATION_FETCH_CONCURRENCY = 3;  // Duration lookups started at the same time
 const MAX_YTDLP_CONCURRENT = 6;        // Max global yt-dlp processes (cross-guild)
 const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 const MAX_STDERR_CHARS = 8 * 1024;     // Keep only the tail we would ever log
 
-const UNKNOWN_TITLE = 'Titolo sconosciuto';
 const FALLBACK_THUMBNAIL = 'https://i.imgur.com/AfFp7pu.png';
 
 // ─── Global semaphore to limit concurrent yt-dlp processes ──────
@@ -254,7 +254,5 @@ async function getVideoInfo(query) {
   return songs;
 }
 
-export {
-  getVideoDuration,
-  getVideoInfo
-};
+// getVideoDuration only backfills durations for getVideoInfo: internal on purpose.
+export { getVideoInfo };

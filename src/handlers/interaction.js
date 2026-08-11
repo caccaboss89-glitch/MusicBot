@@ -41,7 +41,7 @@ async function refreshComponents(interaction, serverQueue) {
 
 // ─── Button Handlers ────────────────────────────────────────
 
-async function handleClearQueue(interaction, serverQueue, guildId) {
+async function handleClearQueue(_interaction, serverQueue, guildId) {
   // Cancel pending deferred transition before clearing queue
   if (serverQueue.pendingTransition) {
     if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
@@ -50,7 +50,6 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
   const currentSong = getCurrentSong(serverQueue);
   serverQueue.songs = currentSong ? [currentSong] : [];
   serverQueue.playIndex = 0;
-  serverQueue.history = [];
   serverQueue.nextDeckLoaded = null;
   serverQueue.nextDeckTarget = null;
   // Re-align bindings: only current song remains in queue (index 0 on active deck).
@@ -65,8 +64,8 @@ async function handleClearQueue(interaction, serverQueue, guildId) {
   }
 }
 
-async function handlePause(interaction, serverQueue, guildId, deps) {
-  const result = await audio.togglePauseResume(guildId, serverQueue, { connectToVoice: deps.connectToVoice });
+async function handlePause(interaction, serverQueue, guildId) {
+  const result = await audio.togglePauseResume(guildId, serverQueue);
   if (!result.success) {
     console.error(`❌ [PAUSE-BUTTON] ${result.error}`);
     await safeReply(interaction, { content: msg.PAUSE_TOGGLE_FAILED, flags: MessageFlags.Ephemeral });
@@ -88,8 +87,8 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
   try {
     const db = loadDatabase();
     const currentSong = getCurrentSong(serverQueue);
-    const seedSource = db.server.length > 0 ? db.server : (currentSong ? [currentSong] : serverQueue.history);
-    if (!seedSource || seedSource.length === 0) return await setStatus(msg.MIX_NEEDS_SEED);
+    const seedSource = db.server.length > 0 ? db.server : (currentSong ? [currentSong] : []);
+    if (seedSource.length === 0) return await setStatus(msg.MIX_NEEDS_SEED);
 
     const randomSong = seedSource[Math.floor(Math.random() * seedSource.length)];
     const videoId = getYoutubeId(randomSong.url);
@@ -102,7 +101,7 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
     const currentMixSong = getCurrentSong(serverQueue);
     if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
 
-    if (serverQueue.songs.length + (serverQueue.history || []).length + songsFound.length > MAX_QUEUE_SIZE) {
+    if (serverQueue.songs.length + songsFound.length > MAX_QUEUE_SIZE) {
       return await setStatus(msg.QUEUE_LIMIT_REACHED);
     }
 
@@ -341,9 +340,9 @@ export default function registerInteractionHandlers(client, deps) {
 
         // Quick path for the "add song" modal
         if (customId === 'btn_add_modal') {
-          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle('Aggiungi canzone');
+          const modal = new ModalBuilder().setCustomId('modal_add_song').setTitle(msg.ADD_SONG_MODAL_TITLE);
           modal.addComponents(new ActionRowBuilder().addComponents(
-            new TextInputBuilder().setCustomId('song_input').setLabel('Link o nome').setStyle(TextInputStyle.Short)
+            new TextInputBuilder().setCustomId('song_input').setLabel(msg.ADD_SONG_INPUT_LABEL).setStyle(TextInputStyle.Short)
           ));
           await interaction.showModal(modal);
           return;

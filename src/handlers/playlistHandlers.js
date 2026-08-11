@@ -13,7 +13,36 @@ import { safeReply } from '../utils/discord.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
 import * as audio from '../audio/index.js';
 import { recordPlaylistAdd } from '../database/stats.js';
-import { SONG_NOT_FOUND, PLAYLIST_EMPTY, PLAYLIST_NOT_FOUND, defaultPlaylistNotDeletable, defaultPlaylistNotRenamable } from '../ui/messages.js';
+import {
+  SONG_NOT_FOUND,
+  PLAYLIST_EMPTY,
+  PLAYLIST_NOT_FOUND,
+  defaultPlaylistNotDeletable,
+  defaultPlaylistNotRenamable,
+  ACTION_TITLE,
+  PLAY_BUTTON,
+  REMOVE_BUTTON,
+  BACK_MODAL_BUTTON,
+  playlistSongsAdded,
+  SEARCH_MODAL_TITLE_SERVER,
+  SEARCH_MODAL_TITLE_USER,
+  SEARCH_SONG_LABEL,
+  SEARCH_SONG_PLACEHOLDER,
+  CREATE_PLAYLIST_TITLE,
+  createPlaylistLabel,
+  PLAYLIST_NAME_PLACEHOLDER,
+  RENAME_PLAYLIST_TITLE,
+  renamePlaylistLabel,
+  DELETE_CONFIRMATION_TITLE,
+  deleteConfirmationMessage,
+  CONFIRM_BUTTON,
+  CANCEL_BUTTON,
+  playlistDeleted,
+  songRemovedFromPlaylist,
+  songAddedToPlaylist,
+  songStartedPlaying,
+  songAddedAsNext
+} from '../ui/messages.js';
 
 // In-memory map for active search queries (for result pagination)
 const activeSearches = new Map();
@@ -52,7 +81,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     if (songIndex < 0 || songIndex >= items.length) return await safeReply(interaction, { content: SONG_NOT_FOUND, flags: MessageFlags.Ephemeral }), true;
 
     const song = items[songIndex];
-    const embed = new EmbedBuilder().setColor(0xFFAA00).setTitle('⚡ Azioni Playlist').setDescription(`**${sanitizeTitle(song.title)}**`);
+    const embed = new EmbedBuilder().setColor(0xFFAA00).setTitle(ACTION_TITLE).setDescription(`**${sanitizeTitle(song.title)}**`);
 
     let playId, removeId, backId;
     if (songType === 'server') {
@@ -66,9 +95,9 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     }
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(playId).setLabel('Riproduci').setEmoji('▶️').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(removeId).setLabel('Rimuovi').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId(backId).setLabel('Indietro').setEmoji('🔙').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId(playId).setLabel(PLAY_BUTTON).setEmoji('▶️').setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(removeId).setLabel(REMOVE_BUTTON).setEmoji('🗑️').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(backId).setLabel(BACK_MODAL_BUTTON).setEmoji('🔙').setStyle(ButtonStyle.Secondary)
     );
     await interaction.editReply({ embeds: [embed], components: [row] });
     return true;
@@ -110,10 +139,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       const connected = await deps.connectToVoice(serverQueue, interaction);
       if (connected) await audio.playSong(interaction.guild.id, interaction);
     } else {
-      if (serverQueue.nextDeckLoaded === null && serverQueue.songs.length >= 2) { await audio.updatePreloadAfterQueueChange(guildId); }
+      await audio.updatePreloadAfterQueueChange(guildId);
       if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
     }
-    await safeReply(interaction, { content: `✅ Aggiunte ${toAdd.length} canzoni dalla playlist.`, flags: MessageFlags.Ephemeral });
+    await safeReply(interaction, { content: playlistSongsAdded(toAdd.length), flags: MessageFlags.Ephemeral });
     return true;
   }
 
@@ -191,16 +220,18 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
           const connected = await deps.connectToVoice(serverQueue, interaction);
           if (connected) await audio.playSong(interaction.guild.id, interaction);
         }
+        await safeReply(interaction, { content: songStartedPlaying(sanitizeTitle(song.title)), flags: MessageFlags.Ephemeral });
       } else {
         const insertAt = (serverQueue.playIndex || 0) + 1;
-        insertSongAtIndex(serverQueue, playObj, insertAt);
-        saveQueueState(guildId, serverQueue);
-        if (serverQueue.nextDeckLoaded === null || !areSameSong(serverQueue.nextDeckLoaded, playObj.url)) {
-          await audio.updatePreloadAfterQueueChange(guildId);
+        const inserted = insertSongAtIndex(serverQueue, playObj, insertAt);
+        if (!inserted.success) {
+          await safeReply(interaction, { content: SONG_NOT_FOUND, flags: MessageFlags.Ephemeral });
+          return true;
         }
+        await audio.updatePreloadAfterQueueChange(guildId);
         if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
+        await safeReply(interaction, { content: songAddedAsNext(sanitizeTitle(song.title)), flags: MessageFlags.Ephemeral });
       }
-      await safeReply(interaction, { content: `🚀 Avviata: **${song.title}**`, flags: MessageFlags.Ephemeral });
       return true;
     }
 
@@ -209,10 +240,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
 
   // --- Search in playlist (opens modal) ---
   if (customId === 'plist_search_server') {
-    const modal = new ModalBuilder().setCustomId('modal_search_server').setTitle('Cerca nella Playlist Server');
+    const modal = new ModalBuilder().setCustomId('modal_search_server').setTitle(SEARCH_MODAL_TITLE_SERVER);
     modal.addComponents(new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('search_query_input').setLabel('Nome canzone da cercare')
-        .setStyle(TextInputStyle.Short).setMaxLength(50).setPlaceholder('Es: Bohemian Rhapsody...').setRequired(true)
+      new TextInputBuilder().setCustomId('search_query_input').setLabel(SEARCH_SONG_LABEL)
+        .setStyle(TextInputStyle.Short).setMaxLength(50).setPlaceholder(SEARCH_SONG_PLACEHOLDER).setRequired(true)
     ));
     await interaction.showModal(modal);
     return true;
@@ -220,10 +251,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
 
   if (customId && customId.startsWith('plist_search_likes_')) {
     const plName = customId.replace('plist_search_likes_', '');
-    const modal = new ModalBuilder().setCustomId(`modal_search_likes_${plName}`).setTitle('Cerca nella Playlist');
+    const modal = new ModalBuilder().setCustomId(`modal_search_likes_${plName}`).setTitle(SEARCH_MODAL_TITLE_USER);
     modal.addComponents(new ActionRowBuilder().addComponents(
-      new TextInputBuilder().setCustomId('search_query_input').setLabel('Nome canzone da cercare')
-        .setStyle(TextInputStyle.Short).setMaxLength(50).setPlaceholder('Es: Bohemian Rhapsody...').setRequired(true)
+      new TextInputBuilder().setCustomId('search_query_input').setLabel(SEARCH_SONG_LABEL)
+        .setStyle(TextInputStyle.Short).setMaxLength(50).setPlaceholder(SEARCH_SONG_PLACEHOLDER).setRequired(true)
     ));
     await interaction.showModal(modal);
     return true;
@@ -263,12 +294,12 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
 
   // --- Create new playlist ---
   if (customId === 'plist_create') {
-    const modal = new ModalBuilder().setCustomId('modal_create_playlist').setTitle('Crea Nuova Playlist');
+    const modal = new ModalBuilder().setCustomId('modal_create_playlist').setTitle(CREATE_PLAYLIST_TITLE);
     modal.addComponents(new ActionRowBuilder().addComponents(
       new TextInputBuilder().setCustomId('playlist_name_input')
-        .setLabel(`Nome playlist (max ${MAX_PLAYLIST_NAME_LENGTH} caratteri)`)
+        .setLabel(createPlaylistLabel(MAX_PLAYLIST_NAME_LENGTH))
         .setStyle(TextInputStyle.Short).setMaxLength(MAX_PLAYLIST_NAME_LENGTH)
-        .setPlaceholder('Es: Rock, Chill, Preferiti...').setRequired(true)
+        .setPlaceholder(PLAYLIST_NAME_PLACEHOLDER).setRequired(true)
     ));
     await interaction.showModal(modal);
     return true;
@@ -288,18 +319,13 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       return true;
     }
     const songCount = userData.playlists[plName].length;
-    const songLabel = songCount === 1 ? 'canzone' : 'canzoni';
     const embed = new EmbedBuilder()
       .setColor(0xFF0000)
-      .setTitle('⚠️ Conferma eliminazione')
-      .setDescription(
-        `Sei sicuro di voler eliminare la playlist **${plName}**?\n\n` +
-                `Contiene **${songCount}** ${songLabel}.\n` +
-                'Questa azione non può essere annullata.'
-      );
+      .setTitle(DELETE_CONFIRMATION_TITLE)
+      .setDescription(deleteConfirmationMessage(plName, songCount));
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(`plist_delete_confirm_likes_${plName}`).setLabel('Conferma').setEmoji('🗑️').setStyle(ButtonStyle.Danger),
-      new ButtonBuilder().setCustomId(`plist_delete_cancel_likes_${plName}`).setLabel('Annulla').setEmoji('🔙').setStyle(ButtonStyle.Secondary)
+      new ButtonBuilder().setCustomId(`plist_delete_confirm_likes_${plName}`).setLabel(CONFIRM_BUTTON).setEmoji('🗑️').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`plist_delete_cancel_likes_${plName}`).setLabel(CANCEL_BUTTON).setEmoji('🔙').setStyle(ButtonStyle.Secondary)
     );
     await interaction.editReply({ embeds: [embed], components: [row] });
     return true;
@@ -326,7 +352,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     activeSearches.delete(`${interaction.user.id}_likes_${plName}`);
     saveDatabase(db);
     await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
-    await safeReply(interaction, { content: `🗑️ Playlist **${plName}** eliminata (${deletedCount} canzoni rimosse).`, flags: MessageFlags.Ephemeral });
+    await safeReply(interaction, { content: playlistDeleted(plName, deletedCount), flags: MessageFlags.Ephemeral });
     return true;
   }
 
@@ -347,10 +373,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       await safeReply(interaction, { content: defaultPlaylistNotRenamable(DEFAULT_PLAYLIST_NAME), flags: MessageFlags.Ephemeral });
       return true;
     }
-    const modal = new ModalBuilder().setCustomId(`modal_rename_playlist_${plName}`).setTitle('Rinomina Playlist');
+    const modal = new ModalBuilder().setCustomId(`modal_rename_playlist_${plName}`).setTitle(RENAME_PLAYLIST_TITLE);
     modal.addComponents(new ActionRowBuilder().addComponents(
       new TextInputBuilder().setCustomId('playlist_name_input')
-        .setLabel(`Nuovo nome (max ${MAX_PLAYLIST_NAME_LENGTH} caratteri)`)
+        .setLabel(renamePlaylistLabel(MAX_PLAYLIST_NAME_LENGTH))
         .setStyle(TextInputStyle.Short).setMaxLength(MAX_PLAYLIST_NAME_LENGTH)
         .setValue(plName).setRequired(true)
     ));
@@ -384,7 +410,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       recordPlaylistAdd(interaction.user.id, 'server');
     }
     saveDatabase(db);
-    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue, interaction.user.id) }).catch(() => { });
+    if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
     return true;
   }
 
@@ -400,10 +426,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     const idx = playlist.findIndex(x => areSameSong(x.url, song.url));
     if (idx !== -1) {
       playlist.splice(idx, 1);
-      await safeReply(interaction, { content: `🗑️ Rimossa da: **${activePlName}**!`, flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: songRemovedFromPlaylist(activePlName), flags: MessageFlags.Ephemeral });
     } else {
       playlist.push({ ...song });
-      await safeReply(interaction, { content: `✅ Aggiunta a: **${activePlName}**!`, flags: MessageFlags.Ephemeral });
+      await safeReply(interaction, { content: songAddedToPlaylist(activePlName), flags: MessageFlags.Ephemeral });
       recordPlaylistAdd(interaction.user.id, 'personal');
     }
     saveDatabase(db);

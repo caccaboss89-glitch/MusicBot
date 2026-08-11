@@ -2,7 +2,7 @@ import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { queue } from '../state/globals.js';
 import { getVideoInfo } from '../utils/youtube.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, updateDashboardToFinished, refreshDashboard } from '../ui/index.js';
+import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, refreshDashboard } from '../ui/index.js';
 import { cleanupOldMessages } from '../utils/cleanup.js';
 import { MAX_QUEUE_SIZE } from '../../config/index.js';
 import { clearFinishedQueue } from '../queue/QueueManager.js';
@@ -28,13 +28,9 @@ const data = new SlashCommandBuilder()
  */
 async function openDashboard(interaction, serverQueue, deps) {
   const guildId = interaction.guildId;
-  const hasSongs = serverQueue.songs.length > 0;
-  const lastSong = serverQueue.history?.length > 0
-    ? serverQueue.history[serverQueue.history.length - 1]
-    : null;
 
-  // Nothing to play and nothing played before: just show the empty dashboard
-  if (!hasSongs && !lastSong) {
+  // Nothing to play: just show the empty dashboard
+  if (serverQueue.songs.length === 0) {
     const ok = await updateDashboard(serverQueue, createCurrentSongEmbed(serverQueue), createDashboardComponents(serverQueue));
     return interaction.editReply(ok ? msg.DASHBOARD_OPENED : msg.DASHBOARD_OPEN_ERROR);
   }
@@ -42,18 +38,12 @@ async function openDashboard(interaction, serverQueue, deps) {
   const connected = await deps.connectToVoice(serverQueue, interaction);
   if (!connected) return interaction.editReply(msg.VOICE_CONNECTION_ERROR);
 
-  // Songs still queued: resume the session
-  if (hasSongs) {
-    await deps.playSong(guildId, interaction);
-    // playSong() skips the dashboard when a deck was already loaded during the
-    // restore, so make sure the player message exists in the text channel.
-    if (!serverQueue.dashboardMessage) await refreshDashboard(serverQueue);
-    return interaction.editReply(msg.SESSION_RESUMED);
-  }
-
-  // Queue is empty but something was played: show the "queue finished" screen
-  const ok = await updateDashboardToFinished(serverQueue, lastSong);
-  return interaction.editReply(ok ? msg.DASHBOARD_OPENED_FINISHED : msg.DASHBOARD_OPEN_ERROR);
+  // Songs still queued (including the one endQueue keeps for replay): resume
+  await deps.playSong(guildId, interaction);
+  // playSong() skips the dashboard when a deck was already loaded during the
+  // restore, so make sure the player message exists in the text channel.
+  if (!serverQueue.dashboardMessage) await refreshDashboard(serverQueue);
+  return interaction.editReply(msg.SESSION_RESUMED);
 }
 
 /**
@@ -78,7 +68,7 @@ async function addToQueue(interaction, serverQueue, query, deps) {
   }
 
   if (songsFound.length === 0) return interaction.editReply(msg.NO_RESULTS);
-  if (serverQueue.songs.length + serverQueue.history.length + songsFound.length > MAX_QUEUE_SIZE) {
+  if (serverQueue.songs.length + songsFound.length > MAX_QUEUE_SIZE) {
     return interaction.editReply(msg.QUEUE_LIMIT_REACHED);
   }
 

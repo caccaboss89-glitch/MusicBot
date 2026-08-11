@@ -30,7 +30,11 @@ const activeListeners = new Map();
 // Static buffer for pending time (not yet written to disk)
 const pendingTime = {};
 
-// Periodic flush of pending time to reduce data loss on non-graceful crash
+// Periodic write of the time already accumulated by users who stopped
+// listening. Time still being accrued by an active listener is only added to
+// the buffer when their timer stops, so a non-graceful crash still loses the
+// session in progress; the timers themselves are stopped on pause, disconnect,
+// queue end and shutdown, which covers every ordinary case.
 setInterval(() => {
   try { flushPendingAndSave(); } catch { /* periodic flush: retried on the next tick */ }
 }, 60 * 1000); // Every 60 seconds
@@ -165,17 +169,18 @@ function stopListening(guildId, userId) {
 const MAX_LISTENER_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 /**
- * Remove orphaned listeners active for more than 24h (stale from crash/bug).
+ * Close listeners left active for more than 24h (stale from crash/bug).
+ * They are stopped rather than dropped, so the time they did accumulate is
+ * still credited instead of being thrown away.
  */
 function cleanupStaleListeners() {
   const now = Date.now();
-  for (const [guildId, guildMap] of activeListeners) {
-    for (const [userId, startTime] of guildMap) {
+  for (const [guildId, guildMap] of [...activeListeners]) {
+    for (const [userId, startTime] of [...guildMap]) {
       if (now - startTime > MAX_LISTENER_AGE_MS) {
-        guildMap.delete(userId);
+        stopListening(guildId, userId);
       }
     }
-    if (guildMap.size === 0) activeListeners.delete(guildId);
   }
 }
 

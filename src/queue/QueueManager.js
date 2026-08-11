@@ -1,21 +1,15 @@
 /**
- * Centralized management of the music queue
- * These functions MUST be used EVERYWHERE to avoid synchronization bugs
+ * Centralized management of the music queue.
+ * These functions MUST be used EVERYWHERE to avoid synchronization bugs.
  *
- * TRANSACTIONS: Critical operations are wrapped with state versioning and rollback support
+ * This module is pure queue logic: it never reaches into the audio layer, so
+ * the audio modules are free to build on top of it. Stopping playback lives in
+ * src/audio/teardown.js.
  */
 
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
 import { saveQueueState } from './persistence.js';
-import { disconnectTimers } from '../state/globals.js';
 import { stateVersionManager } from '../state/StateVersion.js';
-import { DISCONNECT_TIMEOUT_MS } from '../../config/index.js';
-import { resetMessageCleanupState } from '../utils/cleanup.js';
-import { flushGuildAndSave } from '../database/stats.js';
-import { updatePreloadAfterQueueChange } from '../audio/PlaybackEngine.js';
-import { clearStreamErrors } from '../audio/rust-events.js';
-import { cleanupRecoveryState } from '../audio/recovery.js';
-import { cleanupSkipState } from '../audio/SkipManager.js';
 
 /**
  * Check if the bot is alone in the voice channel
@@ -40,14 +34,10 @@ function isBotAloneInChannel(serverQueue) {
  */
 function clearFinishedQueue(serverQueue) {
   if (!serverQueue) return;
-  if (!serverQueue.currentDeckLoaded) {
-    const hadContent = serverQueue.songs.length > 0 || (serverQueue.history && serverQueue.history.length > 0);
-    if (hadContent) {
-      console.log('🧹 [QUEUE-CLEAR] Cleanup finished queue for new music');
-      serverQueue.songs = [];
-      serverQueue.history = [];
-      serverQueue.playIndex = 0;
-    }
+  if (!serverQueue.currentDeckLoaded && serverQueue.songs.length > 0) {
+    console.log('🧹 [QUEUE-CLEAR] Cleanup finished queue for new music');
+    serverQueue.songs = [];
+    serverQueue.playIndex = 0;
   }
 }
 
@@ -130,7 +120,7 @@ function bindDeckSong(serverQueue, deck, index, url) {
 
 /**
  * Resolve the REAL index (in songs[]) of the song loaded on a deck.
- * Validates against the saved URL; if the queue was reordered (insert/remove/shuffle)
+ * Validates against the saved URL; if the queue was reordered (insert/shuffle)
  * searches by URL. Returns null if the binding is no longer valid.
  * @param {object} serverQueue
  * @param {string} deck - 'A' | 'B'
@@ -159,7 +149,6 @@ function clearDeckBindings(serverQueue) {
   serverQueue.deckSongs = { A: null, B: null };
 }
 
-
 /**
  * Check if a song is valid
  * @param {object} song - Song object
@@ -174,156 +163,36 @@ function isValidSong(song) {
 }
 
 /**
- * Insert song at specific position (with transaction and versioning)
+ * Insert a song at a specific position, keeping playIndex on the same song.
  * @param {object} serverQueue - Server queue
  * @param {object} song - Song to insert
  * @param {number} index - Insertion index
  * @returns {{success: boolean, error?: string}}
  */
 function insertSongAtIndex(serverQueue, song, index) {
-  try {
-    const guildId = serverQueue.guildId;
-    const stateVersion = stateVersionManager.get(guildId);
-
-    // Validation
-    if (!isValidSong(song) || index < 0) {
-      console.warn('⚠️ [QUEUE-INSERT] Attempted to insert invalid song');
-      return { success: false, error: 'Invalid song or index' };
-    }
-    if (!serverQueue || !serverQueue.songs) {
-      return { success: false, error: 'Invalid queue' };
-    }
-    if (index > serverQueue.songs.length) {
-      return { success: false, error: `Index out of range: ${index}` };
-    }
-
-    // Snapshot of state before modification (for rollback)
-    const previousSongs = [...serverQueue.songs];
-    const previousPlayIndex = serverQueue.playIndex;
-
-    try {
-      // Insert the song
-      serverQueue.songs.splice(index, 0, song);
-
-      // Adjust playIndex if insertion is before or at current point
-      const playIndex = serverQueue.playIndex || 0;
-      if (index <= playIndex) {
-        serverQueue.playIndex = playIndex + 1;
-      }
-
-      console.log(`📥 [QUEUE-INSERT] Inserted "${sanitizeTitle(song.title)}" at position ${index}`);
-
-      // Save state
-      saveQueueState(guildId, serverQueue);
-
-      // Increment version
-      stateVersion.incrementVersion('queue_insert');
-
-      return { success: true };
-
-    } catch (e) {
-      // ROLLBACK if save fails
-      console.error('❌ [QUEUE-INSERT] Error, rollback:', e.message);
-      serverQueue.songs = previousSongs;
-      serverQueue.playIndex = previousPlayIndex;
-
-      stateVersion.incrementVersion('queue_insert_rollback');
-
-      return { success: false, error: `Failed to insert song: ${e.message}` };
-    }
-
-  } catch (e) {
-    console.error('❌ [QUEUE-INSERT] Fatal error:', e);
-    return { success: false, error: e.message };
+  if (!serverQueue || !serverQueue.songs) {
+    return { success: false, error: 'Invalid queue' };
   }
-}
-
-/**
- * Remove song from specific index (with transaction and versioning)
- * @param {object} serverQueue - Server queue
- * @param {number} index - Index to remove
- * @returns {{success: boolean, removed?: object, error?: string}}
- */
-async function removeSongAtIndex(serverQueue, index) {
-  try {
-    const guildId = serverQueue.guildId;
-    const stateVersion = stateVersionManager.get(guildId);
-
-    // Validation
-    if (!serverQueue || !serverQueue.songs) {
-      return { success: false, error: 'Invalid queue' };
-    }
-    if (index < 0 || index >= serverQueue.songs.length) {
-      console.warn(`⚠️ [QUEUE-REMOVE] Index out of range: ${index}`);
-      return { success: false, error: `Index out of range: ${index}` };
-    }
-
-    // Snapshot of state before modification (for rollback)
-    const previousSongs = [...serverQueue.songs];
-    const previousPlayIndex = serverQueue.playIndex;
-    const previousNextDeckLoaded = serverQueue.nextDeckLoaded;
-    const previousNextDeckTarget = serverQueue.nextDeckTarget;
-
-    try {
-      // Remove the song
-      const removed = serverQueue.songs.splice(index, 1)[0];
-
-      if (removed) {
-        // Adjust playIndex after removal
-        const playIndex = serverQueue.playIndex || 0;
-        if (index < playIndex) {
-          serverQueue.playIndex = Math.max(0, playIndex - 1);
-        } else if (index === playIndex && serverQueue.playIndex >= serverQueue.songs.length && serverQueue.songs.length > 0) {
-          serverQueue.playIndex = serverQueue.songs.length - 1;
-        }
-
-        // Invalidate preload if the removed song was the preloaded one
-        if (serverQueue.nextDeckLoaded && areSameSong(serverQueue.nextDeckLoaded, removed.url)) {
-          serverQueue.nextDeckLoaded = null;
-          serverQueue.nextDeckTarget = null;
-        }
-
-        // Invalidate deck→song bindings that point to the removed song
-        if (serverQueue.deckSongs) {
-          for (const d of ['A', 'B']) {
-            const b = serverQueue.deckSongs[d];
-            if (b && areSameSong(b.url, removed.url)) serverQueue.deckSongs[d] = null;
-          }
-        }
-
-        console.log(`🗑️ [QUEUE-REMOVE] Removed "${sanitizeTitle(removed.title)}" from position ${index}`);
-
-        // Save state
-        saveQueueState(guildId, serverQueue);
-
-        // Increment version
-        stateVersion.incrementVersion('queue_remove');
-
-        // The preloaded deck may now hold the wrong song
-        await updatePreloadAfterQueueChange(guildId);
-
-        return { success: true, removed };
-      }
-
-      return { success: false, error: 'Failed to remove song' };
-
-    } catch (e) {
-      // ROLLBACK if save fails
-      console.error('❌ [QUEUE-REMOVE] Error, rollback:', e.message);
-      serverQueue.songs = previousSongs;
-      serverQueue.playIndex = previousPlayIndex;
-      serverQueue.nextDeckLoaded = previousNextDeckLoaded;
-      serverQueue.nextDeckTarget = previousNextDeckTarget;
-
-      stateVersion.incrementVersion('queue_remove_rollback');
-
-      return { success: false, error: `Failed to remove song: ${e.message}` };
-    }
-
-  } catch (e) {
-    console.error('❌ [QUEUE-REMOVE] Fatal error:', e);
-    return { success: false, error: e.message };
+  if (!isValidSong(song) || index < 0) {
+    console.warn('⚠️ [QUEUE-INSERT] Attempted to insert invalid song');
+    return { success: false, error: 'Invalid song or index' };
   }
+  if (index > serverQueue.songs.length) {
+    return { success: false, error: `Index out of range: ${index}` };
+  }
+
+  serverQueue.songs.splice(index, 0, song);
+
+  // Inserting at or before the current position shifts it by one
+  const playIndex = serverQueue.playIndex || 0;
+  if (index <= playIndex) serverQueue.playIndex = playIndex + 1;
+
+  console.log(`📥 [QUEUE-INSERT] Inserted "${sanitizeTitle(song.title)}" at position ${index}`);
+
+  saveQueueState(serverQueue.guildId, serverQueue);
+  stateVersionManager.get(serverQueue.guildId).incrementVersion('queue_insert');
+
+  return { success: true };
 }
 
 /**
@@ -332,146 +201,10 @@ async function removeSongAtIndex(serverQueue, index) {
  * @returns {boolean}
  */
 function isMixerAlive(serverQueue) {
-  return serverQueue &&
+  return !!(serverQueue &&
         serverQueue.mixer &&
         serverQueue.mixer.isProcessAlive &&
-        serverQueue.mixer.isProcessAlive();
-}
-
-// switchActiveDeck, advanceToNextSong, getCurrentPlayingSong removed in v3
-// All transition logic is centralized in SkipManager v3
-
-/**
- * Complete cleanup on forced disconnection (bot alone or disconnect)
- * @param {object} serverQueue
- */
-async function performDisconnectCleanup(serverQueue) {
-  if (!serverQueue) return;
-  if (serverQueue._cleaningUp) return; // Guard against re-entry (avoids cascade)
-  if (serverQueue._isReconnecting) return; // Don't interfere with ongoing reconnection
-  serverQueue._cleaningUp = true;
-  try {
-    console.log(`🧹 [CLEANUP] Performing disconnect cleanup for guild ${serverQueue.guildId}`);
-
-    // Clear pending deferred transition
-    if (serverQueue.pendingTransition) {
-      if (serverQueue.pendingTransition._cleanupTimer) clearTimeout(serverQueue.pendingTransition._cleanupTimer);
-      serverQueue.pendingTransition = null;
-    }
-
-    // Clear pending dashboard timer
-    if (serverQueue.dashboardState && serverQueue.dashboardState.timer) {
-      clearTimeout(serverQueue.dashboardState.timer);
-      serverQueue.dashboardState.timer = null;
-    }
-
-    // ── STATS: stop listening timers and save to disk ──
-    flushGuildAndSave(serverQueue.guildId);
-
-    // Stop the player
-    try { if (serverQueue.player) serverQueue.player.stop(true); } catch { /* player may be detached */ }
-    // Kill mixer if present
-    try { if (serverQueue.mixer && typeof serverQueue.mixer.kill === 'function') serverQueue.mixer.kill(); } catch { /* already dead */ }
-    // Destroy voice connection
-    try { if (serverQueue.connection) serverQueue.connection.destroy(); } catch { /* already destroyed */ }
-
-    // Cleanup low-latency stream to avoid pipe/fd leak
-    try {
-      if (serverQueue._llStream) { serverQueue._llStream.unpipe(); serverQueue._llStream.destroy(); serverQueue._llStream = null; }
-    } catch { /* stream already torn down */ }
-
-    // Cleanup per-guild audio state
-    clearStreamErrors(serverQueue.guildId);
-    cleanupRecoveryState(serverQueue.guildId);
-    cleanupSkipState(serverQueue.guildId);
-    resetMessageCleanupState(serverQueue.guildId);
-
-    // Reset some queue state fields
-    serverQueue.connection = null;
-    serverQueue.currentDeckLoaded = null;
-    serverQueue.nextDeckLoaded = null;
-    serverQueue.isPaused = false;
-    serverQueue.songStartTime = null;
-    serverQueue.nextDeckTarget = null;
-    clearDeckBindings(serverQueue);
-
-    // Save state to disk
-    saveQueueState(serverQueue.guildId, serverQueue);
-
-    // Drop mixer and player references so a restart does not reuse dead objects
-    serverQueue.mixer = null;
-    serverQueue.player = null;
-    // Clear any scheduled timer
-    disconnectTimers.delete(serverQueue.guildId);
-
-  } catch (e) {
-    console.error('❌ [CLEANUP] Error during disconnect cleanup:', e);
-  } finally {
-    serverQueue._cleaningUp = false;
-  }
-}
-
-/**
- * Schedule disconnection when bot is alone in voice channel
- * @param {object} serverQueue
- * @param {number} timeoutMs
- */
-function scheduleDisconnectIfAlone(serverQueue, timeoutMs = DISCONNECT_TIMEOUT_MS) {
-  if (!serverQueue || !serverQueue.guildId) return false;
-  const gid = serverQueue.guildId;
-
-  // Immediate cleanup request (e.g. bot disconnected/kicked)
-  // bypasses channel checks and calls cleanup directly.
-  if (timeoutMs === 0) {
-    // If there's already a scheduled timer, cancel it.
-    if (disconnectTimers.has(gid)) {
-      try { clearTimeout(disconnectTimers.get(gid)); } catch { /* timer already fired */ }
-      disconnectTimers.delete(gid);
-    }
-    performDisconnectCleanup(serverQueue);
-    return true;
-  }
-
-  // If not alone, make sure to clear any previous timer
-  if (!isBotAloneInChannel(serverQueue)) {
-    if (disconnectTimers.has(gid)) {
-      clearTimeout(disconnectTimers.get(gid));
-      disconnectTimers.delete(gid);
-    }
-    return false;
-  }
-  // If a timer already exists, do nothing
-  if (disconnectTimers.has(gid)) return true;
-  const t = setTimeout(() => {
-    try {
-      // Recheck before executing
-      if (isBotAloneInChannel(serverQueue)) {
-        performDisconnectCleanup(serverQueue);
-      } else {
-        // Someone returned: just delete the timer
-        disconnectTimers.delete(gid);
-      }
-    } catch { disconnectTimers.delete(gid); }
-  }, timeoutMs);
-  disconnectTimers.set(gid, t);
-  console.log(`⏱️ [SCHEDULE] Disconnect timer scheduled for guild ${gid} (${timeoutMs}ms)`);
-  return true;
-}
-
-/**
- * Cancel a scheduled disconnect timer
- * @param {object} serverQueue
- */
-function cancelScheduledDisconnect(serverQueue) {
-  if (!serverQueue || !serverQueue.guildId) return false;
-  const gid = serverQueue.guildId;
-  if (!disconnectTimers.has(gid)) return false;
-  try {
-    clearTimeout(disconnectTimers.get(gid));
-  } catch { /* the queue may have been removed meanwhile */ }
-  disconnectTimers.delete(gid);
-  console.log(`⏱️ [CANCEL] Disconnect timer cancelled for guild ${gid}`);
-  return true;
+        serverQueue.mixer.isProcessAlive());
 }
 
 export {
@@ -486,8 +219,5 @@ export {
   clearDeckBindings,
   isValidSong,
   insertSongAtIndex,
-  removeSongAtIndex,
-  isMixerAlive,
-  scheduleDisconnectIfAlone,
-  cancelScheduledDisconnect
+  isMixerAlive
 };

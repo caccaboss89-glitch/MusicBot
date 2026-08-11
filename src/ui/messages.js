@@ -16,7 +16,6 @@ export const SEARCH_ERROR = '❌ Errore durante la ricerca.';
 export const SEARCH_TERM_REQUIRED = '❌ Inserisci un termine di ricerca.';
 export const NO_RESULTS = '❌ Nessun risultato.';
 export const QUEUE_LIMIT_REACHED = '❌ **Limite della coda raggiunto!**';
-export const QUEUE_EMPTY = '❌ La coda è vuota.';
 export const TASK_IN_PROGRESS = '⚠️ **Sto elaborando...**';
 
 /**
@@ -27,7 +26,6 @@ export const songsAdded = (count) => `✅ Aggiunte **${count}** canzoni.`;
 
 // ─── Dashboard / playback ───────────────────────────────────
 export const DASHBOARD_OPENED = '✅ Dashboard aperta.';
-export const DASHBOARD_OPENED_FINISHED = '✅ Dashboard aperta (coda terminata).';
 export const DASHBOARD_OPEN_ERROR = '❌ Impossibile aprire la dashboard.';
 export const SESSION_RESUMED = '✅ **Sessione ripresa!**';
 export const SESSION_RESTORED_UPDATED = '✅ **Sessione ripristinata e aggiornata!**';
@@ -130,3 +128,146 @@ export const playlistCreated = (name) => `✅ Playlist **${name}** creata! Ora �
  * @returns {string}
  */
 export const playlistRenamed = (oldName, newName) => `✅ Playlist rinominata: **${oldName}** → **${newName}**`;
+
+/**
+ * @param {number} count - Number of songs added to the playlist
+ * @returns {string}
+ */
+export const playlistSongsAdded = (count) => `✅ Aggiunte ${count} canzoni dalla playlist.`;
+
+/**
+ * @param {string} plName - Playlist name
+ * @param {number} deletedCount - Number of songs in deleted playlist
+ * @returns {string}
+ */
+export const playlistDeleted = (plName, deletedCount) => `🗑️ Playlist **${plName}** eliminata (${deletedCount} canzoni rimosse).`;
+
+/**
+ * @param {string} activePlName - Active playlist name
+ * @returns {string}
+ */
+export const songRemovedFromPlaylist = (activePlName) => `🗑️ Rimossa da: **${activePlName}**!`;
+
+/**
+ * @param {string} activePlName - Active playlist name
+ * @returns {string}
+ */
+export const songAddedToPlaylist = (activePlName) => `✅ Aggiunta a: **${activePlName}**!`;
+
+/**
+ * @param {string} title - Sanitized song title
+ * @returns {string}
+ */
+export const songStartedPlaying = (title) => `🚀 Avviata: **${title}**`;
+
+/**
+ * @param {string} title - Sanitized song title
+ * @returns {string}
+ */
+export const songAddedAsNext = (title) => `➕ Aggiunta come prossima: **${title}**`;
+
+// ─── Components / UI strings ─────────────────────────────────
+export const EMPTY_PLACEHOLDER = 'Vuoto';
+export const SELECT_SONG_PLACEHOLDER = '⚡ Seleziona una canzone per le azioni...';
+export const SELECT_PLAYLIST_PLACEHOLDER = '📂 Seleziona playlist...';
+export const NO_SEARCH_RESULTS_FOOTER = 'Nessun risultato';
+export const NO_QUEUE_PLACEHOLDER = '🚫 Nessuna canzone in coda';
+export const UNKNOWN_QUEUE_TITLE = 'Sconosciuta';
+export const ADD_BUTTON = 'Aggiungi';
+export const MIX_BUTTON = 'Mix';
+export const CLEAR_QUEUE_BUTTON = 'Svuota coda';
+export const CREATE_BUTTON = 'Crea';
+export const DELETE_BUTTON = 'Elimina';
+export const BACK_TO_PLAYLIST_BUTTON = 'Playlist';
+
+/**
+ * @param {number} totalItems - Songs in the server playlist
+ * @returns {string}
+ */
+export const serverPlaylistTitle = (totalItems) => `📂 Playlist Server (${totalItems})`;
+
+/**
+ * @param {string} name - Playlist name
+ * @param {number} totalItems - Songs in that playlist
+ * @returns {string}
+ */
+export const userPlaylistTitle = (name, totalItems) => `👤 Playlist: ${name} (${totalItems})`;
+
+/**
+ * @param {number} page - Zero-based current page
+ * @param {number} maxPage - Zero-based last page
+ * @returns {string}
+ */
+export const paginationFooter = (page, maxPage) => `Pagina ${page + 1} di ${maxPage + 1}`;
+
+/**
+ * @param {string} query - Already truncated search term
+ * @param {number} totalResults
+ * @returns {string}
+ */
+export const serverSearchTitle = (query, totalResults) => `🔍 Cerca: "${query}" (${totalResults} risultati)`;
+
+/**
+ * @param {string} name - Playlist being searched
+ * @param {string} query - Already truncated search term
+ * @param {number} totalResults
+ * @returns {string}
+ */
+export const userSearchTitle = (name, query, totalResults) => `🔍 Cerca in ${name}: "${query}" (${totalResults})`;
+
+/**
+ * @param {number} songsInQueue - Songs still queued after the current one
+ * @returns {string}
+ */
+export const queuePlaceholder = (songsInQueue) => `📜 Prossime in coda (${songsInQueue})...`;
+
+// ─── Playlist action modals ────────────────────────────────────
+export const ACTION_TITLE = '⚡ Azioni Playlist';
+export const PLAY_BUTTON = 'Riproduci';
+export const REMOVE_BUTTON = 'Rimuovi';
+export const BACK_MODAL_BUTTON = 'Indietro';
+
+// ─── Search modals ────────────────────────────────────────────
+export const SEARCH_MODAL_TITLE_SERVER = 'Cerca nella Playlist Server';
+export const SEARCH_MODAL_TITLE_USER = 'Cerca nella Playlist';
+export const SEARCH_SONG_LABEL = 'Nome canzone da cercare';
+export const SEARCH_SONG_PLACEHOLDER = 'Es: Bohemian Rhapsody...';
+
+// ─── Create/Rename modals ────────────────────────────────────
+export const CREATE_PLAYLIST_TITLE = 'Crea Nuova Playlist';
+export const RENAME_PLAYLIST_TITLE = 'Rinomina Playlist';
+export const PLAYLIST_NAME_PLACEHOLDER = 'Es: Rock, Chill, Preferiti...';
+
+/**
+ * @param {number} maxLength - Maximum playlist name length
+ * @returns {string}
+ */
+export const createPlaylistLabel = (maxLength) => `Nome playlist (max ${maxLength} caratteri)`;
+
+/**
+ * @param {number} maxLength - Maximum playlist name length
+ * @returns {string}
+ */
+export const renamePlaylistLabel = (maxLength) => `Nuovo nome (max ${maxLength} caratteri)`;
+
+// ─── Delete confirmation ──────────────────────────────────────
+export const DELETE_CONFIRMATION_TITLE = '⚠️ Conferma eliminazione';
+
+/**
+ * @param {string} name - Playlist about to be deleted
+ * @param {number} songCount - Songs it holds
+ * @returns {string}
+ */
+export const deleteConfirmationMessage = (name, songCount) => {
+  const songLabel = songCount === 1 ? 'canzone' : 'canzoni';
+  return `Sei sicuro di voler eliminare la playlist **${name}**?\n\nContiene **${songCount}** ${songLabel}.\nQuesta azione non può essere annullata.`;
+};
+export const CONFIRM_BUTTON = 'Conferma';
+export const CANCEL_BUTTON = 'Annulla';
+
+// ─── Add song modal ───────────────────────────────────────────
+export const ADD_SONG_MODAL_TITLE = 'Aggiungi canzone';
+export const ADD_SONG_INPUT_LABEL = 'Link o nome';
+
+// ─── YouTube / Video info ────────────────────────────────────
+export const UNKNOWN_TITLE = 'Titolo sconosciuto';

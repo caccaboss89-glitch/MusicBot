@@ -167,9 +167,8 @@ function validatePlaylistName(name) {
   if (trimmed.length === 0) return { valid: false, error: 'The name cannot be empty.' };
   if (trimmed.length > MAX_PLAYLIST_NAME_LENGTH) return { valid: false, error: `The name cannot exceed ${MAX_PLAYLIST_NAME_LENGTH} characters.` };
   if (trimmed.includes('_')) return { valid: false, error: 'The name cannot contain underscores (_).' };
-  // Allow alphanumeric, spaces, hyphens, accents and other common unicode characters
-  const nameRegex = new RegExp(`^[^\\n\\r_]{1,${MAX_PLAYLIST_NAME_LENGTH}}$`);
-  if (!nameRegex.test(trimmed)) return { valid: false, error: 'The name contains invalid characters.' };
+  // Reject newlines and carriage returns
+  if (/[\n\r]/.test(trimmed)) return { valid: false, error: 'The name cannot contain newlines.' };
   return { valid: true };
 }
 
