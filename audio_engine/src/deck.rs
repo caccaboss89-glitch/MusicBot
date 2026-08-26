@@ -13,6 +13,24 @@ use crate::config::{
 use crate::download::download_and_decode_advanced;
 use crate::protocol::send_log;
 
+/// Extra capacity to reserve so a buffer can take `needed` more samples, or
+/// None when it already has room.
+///
+/// Vec and VecDeque grow by doubling, which is the right default until the
+/// buffer has a hard ceiling: past half of `ceiling`, doubling reserves twice
+/// what the buffer is ever allowed to hold — 536 MB of capacity for a deck that
+/// can never exceed 276 MB of audio. Once doubling would overshoot, this asks
+/// for exactly the ceiling instead, which happens at most once per track.
+fn reserve_to_ceiling(len: usize, capacity: usize, needed: usize, ceiling: usize) -> Option<usize> {
+    if len + needed <= capacity {
+        return None; // Already room: let the buffer be
+    }
+    if capacity.saturating_mul(2) <= ceiling {
+        return None; // Doubling still fits under the ceiling: nothing to correct
+    }
+    Some(ceiling.saturating_sub(len).max(needed))
+}
+
 pub struct Deck {
     name: &'static str,
     samples: VecDeque<f32>,
@@ -160,6 +178,15 @@ impl Deck {
                         // is lost past the cap.
                         if !self.cache_capped {
                             let room = MAX_TRACK_SAMPLES - self.full_samples.len();
+                            let take = room.min(chunk.len());
+                            if let Some(extra) = reserve_to_ceiling(
+                                self.full_samples.len(),
+                                self.full_samples.capacity(),
+                                take,
+                                MAX_TRACK_SAMPLES
+                            ) {
+                                self.full_samples.reserve_exact(extra);
+                            }
                             if room >= chunk.len() {
                                 self.full_samples.extend(&chunk);
                             } else {
@@ -175,6 +202,14 @@ impl Deck {
                             }
                         }
 
+                        if let Some(extra) = reserve_to_ceiling(
+                            self.samples.len(),
+                            self.samples.capacity(),
+                            chunk.len(),
+                            MAX_BUFFERED_SAMPLES
+                        ) {
+                            self.samples.reserve_exact(extra);
+                        }
                         self.samples.extend(chunk);
 
                         // Audio downloaded but never played has no ceiling of its
@@ -354,6 +389,18 @@ mod tests {
         let mut deck = Deck::new("A");
         deck.samples_played = SAMPLE_RATE * CHANNELS * 2 + 5;
         assert_eq!(deck.played_seconds(), 2);
+    }
+
+    #[test]
+    fn growth_doubles_until_it_would_pass_the_ceiling() {
+        // Plenty of room already: nothing to do
+        assert_eq!(reserve_to_ceiling(10, 100, 20, 1000), None);
+        // Growth needed, and doubling still fits under the ceiling: leave it alone
+        assert_eq!(reserve_to_ceiling(100, 100, 20, 1000), None);
+        // Doubling would overshoot: ask for exactly the ceiling instead
+        assert_eq!(reserve_to_ceiling(600, 600, 20, 1000), Some(400));
+        // At the ceiling the request still covers what the caller needs
+        assert_eq!(reserve_to_ceiling(1000, 1000, 20, 1000), Some(20));
     }
 
     #[test]
