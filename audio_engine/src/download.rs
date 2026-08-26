@@ -9,7 +9,7 @@ use libc;
 use std::env;
 use std::io::{self, BufRead, BufReader};
 use std::process::{Command as ProcessCommand, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::thread;
 
@@ -214,32 +214,54 @@ pub fn download_and_decode_advanced(
         ),
     );
 
-    // ── Download watchdog ──────────────────────────────────────
-    // If yt-dlp/ffmpeg don't produce data within 30 seconds, they're stuck.
-    // The watchdog kills them by PID, unblocking the read_i16 (which will get EOF).
+    // ── Download watchdog ─────────────────────────────
+    // Watches the WHOLE download, not just its first byte: a stream that dies
+    // half way through leaves read_i16 blocked forever, and with it this thread,
+    // yt-dlp and ffmpeg. Killing the two processes unblocks the read (EOF).
+    // It also reacts to cancellation, which a blocked read cannot observe.
     let yt_dlp_pid = yt_dlp_child.id();
     let ffmpeg_pid = ffmpeg_child.id();
     let cancel_wd = cancel.clone();
-    let first_data_arrived = Arc::new(AtomicBool::new(false));
-    let first_data_wd = first_data_arrived.clone();
+    let stream_start = std::time::Instant::now();
+    // Milliseconds since stream_start at which the reader last received data.
+    let last_progress_ms = Arc::new(AtomicU64::new(0));
+    let last_progress_wd = last_progress_ms.clone();
+    // Set once the reader loop is over, so the watchdog stops before the child
+    // processes are reaped and their PIDs could be reused by the system.
+    let reader_done = Arc::new(AtomicBool::new(false));
+    let reader_done_wd = reader_done.clone();
     let deck_name_wd = deck_name.to_string();
     thread::spawn(move || {
         let watchdog_secs = get_download_watchdog_secs();
+        let timeout_ms = watchdog_secs.saturating_mul(1000);
         send_log(
             "info",
             &format!("Download watchdog active: {}s", watchdog_secs),
         );
-        // Checks every 500ms until configured timeout.
-        let checks = watchdog_secs.saturating_mul(2);
-        for _ in 0..checks {
+
+        let reason = loop {
             std::thread::sleep(std::time::Duration::from_millis(500));
-            if first_data_wd.load(Ordering::Relaxed) || cancel_wd.load(Ordering::Relaxed) {
-                return; // Data arrived or download canceled: watchdog not needed
+            if reader_done_wd.load(Ordering::Relaxed) {
+                return; // Download finished on its own: nothing to kill
             }
+            if cancel_wd.load(Ordering::Relaxed) {
+                break "download cancelled".to_string();
+            }
+            let idle_ms = (stream_start.elapsed().as_millis() as u64)
+                .saturating_sub(last_progress_wd.load(Ordering::Relaxed));
+            if idle_ms >= timeout_ms {
+                break format!("{}s without data", watchdog_secs);
+            }
+        };
+
+        // Re-check: the reader may have finished while we were deciding, and
+        // signalling a PID that has already been reaped could hit another process.
+        if reader_done_wd.load(Ordering::Relaxed) {
+            return;
         }
-        // Timeout without data → kill stuck processes
-        send_log("error", &format!("⏰ [Deck {}] Download watchdog: {}s without data, killing yt-dlp (PID {}) + ffmpeg (PID {})",
-            deck_name_wd, watchdog_secs, yt_dlp_pid, ffmpeg_pid));
+
+        send_log("error", &format!("⏰ [Deck {}] Download watchdog: {}, killing yt-dlp (PID {}) + ffmpeg (PID {})",
+            deck_name_wd, reason, yt_dlp_pid, ffmpeg_pid));
         #[cfg(windows)]
         {
             // /F = force, /T = tree (kills sub-processes too)
@@ -265,7 +287,7 @@ pub fn download_and_decode_advanced(
     let mut reader = BufReader::new(stdout);
     let mut buffer: Vec<f32> = Vec::with_capacity(8192);
     let mut total_samples = 0;
-    let stream_start = std::time::Instant::now();
+    let mut first_data_logged = false;
     let mut cancelled = false;
 
     loop {
@@ -289,9 +311,8 @@ pub fn download_and_decode_advanced(
                 buffer.push(sample_f32);
                 total_samples += 1;
 
-                // Signals watchdog that data is arriving
-                if !first_data_arrived.load(Ordering::Relaxed) {
-                    first_data_arrived.store(true, Ordering::Relaxed);
+                if !first_data_logged {
+                    first_data_logged = true;
                     send_log(
                         "info",
                         &format!(
@@ -304,6 +325,9 @@ pub fn download_and_decode_advanced(
 
                 // Sends in ~20ms chunks for buffer_ready reactivity
                 if buffer.len() >= 1920 {
+                    // Tells the watchdog the stream is still alive
+                    last_progress_ms
+                        .store(stream_start.elapsed().as_millis() as u64, Ordering::Relaxed);
                     if tx.send(std::mem::take(&mut buffer)).is_err() {
                         send_log(
                             "info",
@@ -387,6 +411,11 @@ pub fn download_and_decode_advanced(
             }
         }
     }
+
+    // The watchdog must stop before the children are killed and reaped below,
+    // otherwise it could signal a PID the system has already handed to somebody
+    // else.
+    reader_done.store(true, Ordering::Relaxed);
 
     // If canceled, kill processes immediately to free resources and
     // prevent concurrent downloads of the same URL from blocking each other

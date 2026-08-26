@@ -7,7 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
-use crate::config::{CHANNELS, SAMPLE_RATE};
+use crate::config::{
+    CHANNELS, MAX_BUFFERED_SAMPLES, MAX_TRACK_MINUTES, MAX_TRACK_SAMPLES, SAMPLE_RATE,
+};
 use crate::download::download_and_decode_advanced;
 use crate::protocol::send_log;
 
@@ -15,6 +17,9 @@ pub struct Deck {
     name: &'static str,
     samples: VecDeque<f32>,
     pub full_samples: Vec<f32>, // All samples received (for replay without re-download)
+    /// Set once full_samples hit MAX_TRACK_SAMPLES, so the cap is reported once
+    /// per load instead of on every chunk.
+    cache_capped: bool,
     pub has_ended: bool,
     pub receiver: Option<Receiver<Vec<f32>>>,
     /// Samples handed over by the download thread, used to tell an empty
@@ -42,6 +47,7 @@ impl Deck {
             name,
             samples: VecDeque::new(),
             full_samples: Vec::new(),
+            cache_capped: false,
             has_ended: false,
             receiver: None,
             real_samples_received: 0,
@@ -67,6 +73,8 @@ impl Deck {
 
         self.samples.clear();
         self.full_samples.clear();
+        self.full_samples.shrink_to_fit(); // Give the previous track's memory back now
+        self.cache_capped = false;
         self.real_samples_received = 0;
         self.samples_played = 0;
         self.has_ended = false;
@@ -143,8 +151,47 @@ impl Deck {
                         if self.load_started_at.is_some() {
                             self.load_started_at = None;
                         }
-                        self.full_samples.extend(&chunk); // Saves copy for replay
+
+                        // Replay cache, capped at one full-length track. Node.js
+                        // already refuses anything longer, but this is the last
+                        // line of defence: a track that slips through stops
+                        // growing the cache instead of eating the whole machine.
+                        // Playback is untouched — only replay-without-redownload
+                        // is lost past the cap.
+                        if !self.cache_capped {
+                            let room = MAX_TRACK_SAMPLES - self.full_samples.len();
+                            if room >= chunk.len() {
+                                self.full_samples.extend(&chunk);
+                            } else {
+                                self.full_samples.extend(&chunk[..room]);
+                                self.cache_capped = true;
+                                send_log(
+                                    "error",
+                                    &format!(
+                                        "[Deck {}] Replay cache capped at {} minutes, playback continues without it",
+                                        self.name, MAX_TRACK_MINUTES
+                                    )
+                                );
+                            }
+                        }
+
                         self.samples.extend(chunk);
+
+                        // Audio downloaded but never played has no ceiling of its
+                        // own: dropping the receiver makes the download thread's
+                        // next send fail, which kills yt-dlp/ffmpeg through the
+                        // path a cancelled download already uses.
+                        if self.samples.len() >= MAX_BUFFERED_SAMPLES {
+                            send_log(
+                                "error",
+                                &format!(
+                                    "[Deck {}] Buffered audio passed {} minutes, stopping the download",
+                                    self.name, MAX_TRACK_MINUTES
+                                )
+                            );
+                            self.receiver = None;
+                            break;
+                        }
                     }
                     Err(TryRecvError::Disconnected) => {
                         send_log("info", &format!("✅ [RX-DONE] Deck {} → {} chunks received, final buffer: {} samples", self.name, chunks_received, self.samples.len()));
@@ -307,6 +354,18 @@ mod tests {
         let mut deck = Deck::new("A");
         deck.samples_played = SAMPLE_RATE * CHANNELS * 2 + 5;
         assert_eq!(deck.played_seconds(), 2);
+    }
+
+    #[test]
+    fn buffer_ceilings_stay_tied_to_the_track_limit() {
+        // The replay cache stops at exactly one full-length track...
+        assert_eq!(
+            MAX_TRACK_SAMPLES,
+            SAMPLE_RATE * CHANNELS * MAX_TRACK_MINUTES * 60
+        );
+        // ...and the ceiling on un-played audio always sits above it, so a track
+        // right on the limit gets its cache capped, never its download cut.
+        assert!(MAX_BUFFERED_SAMPLES > MAX_TRACK_SAMPLES);
     }
 
     #[test]

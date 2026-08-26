@@ -80,8 +80,14 @@ fn mix_crossfade_sample(state: &mut MixerState) -> f32 {
     let target_is_a = target == "A";
 
     if completed {
+        // The fade is over: the source deck is not heard any more, so discard
+        // it outright instead of only clearing its flags. Every other
+        // transition already does this; leaving the deck loaded held its whole
+        // sample cache until the next preload overwrote it, and let
+        // handle_track_end mistake that leftover audio for a queued track and
+        // switch back to the song we just faded away from.
         let previous = state.active_deck;
-        state.deck_mut(previous).reset_flags();
+        state.reset_deck(previous);
         state.crossfade = None;
         state.switch_to(target);
         send_log("info", &format!("Crossfade completed, switched to {}", target));
@@ -172,6 +178,10 @@ fn mix_chunk(state: &mut MixerState, out: &mut Vec<u8>) -> (bool, ChunkEvent) {
 pub fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
     let mut state = MixerState::new();
     let mut buffer_monitor_counter: u32 = 0;
+    // 0 = Node.js asked us to stop, 1 = the PCM stream broke. Leaving the
+    // process alive after either would make it a silent zombie: Node.js only
+    // learns the engine is gone from the exit of the process.
+    let mut exit_code = 0;
 
     let stdout = io::stdout();
     let mut handle = stdout.lock();
@@ -217,6 +227,7 @@ pub fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             out_bytes.resize(CHUNK_SIZE * 2, 0u8);
             if let Err(e) = write_pcm_chunk(&mut handle, &out_bytes) {
                 send_log("error", &format!("Fatal stdout write error: {}", e));
+                exit_code = 1;
                 break 'main;
             }
             continue;
@@ -225,6 +236,7 @@ pub fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
         let (has_audio, chunk_event) = mix_chunk(&mut state, &mut out_bytes);
         if let Err(e) = write_pcm_chunk(&mut handle, &out_bytes) {
             send_log("error", &format!("Fatal stdout write error: {}", e));
+            exit_code = 1;
             break 'main;
         }
 
@@ -276,4 +288,9 @@ pub fn mixer_loop(cmd_rx: Receiver<InputCommand>) {
             last_status_log = Instant::now();
         }
     }
+
+    // The mixer thread is the process: once it is done there is nothing left to
+    // produce audio, so exit instead of idling with stdin still open.
+    send_log("info", &format!("Mixer loop ended (exit {})", exit_code));
+    std::process::exit(exit_code);
 }
