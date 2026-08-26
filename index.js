@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { Client, GatewayIntentBits } from 'discord.js';
 
-import { ROOT_DIR, DATA_DIR } from './config/index.js';
+import { ROOT_DIR, DATA_DIR, LOCAL_TEMP_DIR } from './config/index.js';
 import { queue, disconnectTimers, clearGuildCooldowns } from './src/state/globals.js';
 import { stateVersionManager } from './src/state/StateVersion.js';
 import { commandQueue, audioOperationBarrier } from './src/audio/SerialQueue.js';
@@ -16,6 +16,7 @@ import { ensureBotConnection, connectToVoice } from './src/bootstrap/connection.
 import registerInteractionHandlers from './src/handlers/interaction.js';
 import registerVoiceStateHandler from './src/handlers/voiceState.js';
 import { pushStats } from './scripts/push-stats.js';
+import { appendCapped, cleanupOldFiles } from './src/utils/logfiles.js';
 
 // All paths resolve from the project root so the bot behaves the same no matter
 // which working directory it was launched from.
@@ -24,6 +25,10 @@ const PUSH_STATE_FILE = path.join(DATA_DIR, 'pushState.json');
 
 const STATS_PUSH_CHECK_INTERVAL_MS = 60 * 1000;
 const STATS_PUSH_HOUR = 10; // Rome time, on the 1st of the month
+
+// temp/ collects one log per guild mixer plus whatever yt-dlp leaves behind,
+// and nothing ever removed any of it. Swept at startup and once a day after.
+const TEMP_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 fs.mkdirSync(LOGS_DIR, { recursive: true });
 
@@ -40,9 +45,9 @@ function logFatal(fileName, label, error) {
   const stack = error instanceof Error ? error.stack : 'N/A';
   console.error(`🚨 [${label}] ${message}`);
   console.error('Stack:', stack);
-  try {
-    fs.appendFileSync(path.join(LOGS_DIR, fileName), `[${new Date().toISOString()}] ${label}: ${message}\n${stack}\n\n`);
-  } catch { /* logging must never mask the original failure */ }
+  // Capped: these files are append-only and were never rotated, so a crash
+  // loop used to be able to fill the disk on its own.
+  appendCapped(path.join(LOGS_DIR, fileName), `[${new Date().toISOString()}] ${label}: ${message}\n${stack}\n\n`);
 }
 
 /**
@@ -185,6 +190,9 @@ client.once('clientReady', () => {
   console.log(`Logged in as ${client.user?.tag}`);
   tryPushStats();
   setInterval(tryPushStats, STATS_PUSH_CHECK_INTERVAL_MS);
+
+  cleanupOldFiles(LOCAL_TEMP_DIR);
+  setInterval(() => cleanupOldFiles(LOCAL_TEMP_DIR), TEMP_CLEANUP_INTERVAL_MS);
 });
 
 // ─── GRACEFUL SHUTDOWN ────────────────────────────────────────

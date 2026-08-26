@@ -5,7 +5,6 @@
  * restarting, and restarts playback when it is.
  */
 
-import fs from 'fs';
 import path from 'path';
 import { VoiceConnectionStatus } from '@discordjs/voice';
 import { queue } from '../state/globals.js';
@@ -15,6 +14,7 @@ import { stopGuildAudio, scheduleDisconnectIfAlone } from './teardown.js';
 import { recordMixerCrashTime } from './crash-cooldown.js';
 import { stopAllListeners } from '../database/stats.js';
 import { ROOT_DIR } from '../../config/index.js';
+import { appendCapped } from '../utils/logfiles.js';
 
 // Resolved from the project root, so the log lands in the same place no matter
 // which working directory the bot was started from.
@@ -27,10 +27,7 @@ const MAX_RECOVERY_ATTEMPTS = 2;
  * @param {object} crashContext
  */
 function logCrashToFile(crashContext) {
-  try {
-    fs.mkdirSync(LOGS_DIR, { recursive: true });
-    fs.appendFileSync(path.join(LOGS_DIR, 'mixer-crashes.log'), `${JSON.stringify(crashContext)}\n`);
-  } catch { /* diagnostics only: never let logging break recovery */ }
+  appendCapped(path.join(LOGS_DIR, 'mixer-crashes.log'), `${JSON.stringify(crashContext)}\n`);
 }
 
 /**

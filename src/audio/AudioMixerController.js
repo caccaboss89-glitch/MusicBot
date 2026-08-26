@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import readline from 'readline';
 import path from 'path';
 import fs from 'fs';
+import { rotateIfNeeded, MAX_MIXER_LOG_BYTES } from '../utils/logfiles.js';
 import {
   ROOT_DIR,
   RUST_ENGINE_PATH,
@@ -42,6 +43,11 @@ class AudioMixerController {
     this.hasCrashed = false;
     this.generation = getNextMixerGeneration(); // Unique ID for this mixer
     this.logStream = null;
+    this.logPath = null;
+    // Bytes written to the current log file. The stream stays open for the
+    // whole life of the process, so its size is tracked here rather than
+    // stat()ed on every line.
+    this.logBytes = 0;
   }
 
   start() {
@@ -132,7 +138,7 @@ class AudioMixerController {
     log._mixerGeneration = this.generation;
 
     const data = log.data || '';
-    try { this.logStream?.write(`${log.event} ${data}\n`); } catch { /* diagnostics only */ }
+    this._writeLog(`${log.event} ${data}\n`);
 
     if (CONSOLE_ERROR_EVENTS.has(log.event)) {
       console.error(`⚠️ [RUST-${log.event.toUpperCase()}] ${data}`);
@@ -147,13 +153,40 @@ class AudioMixerController {
     }
   }
 
+  /**
+   * Writes one line to the per-guild mixer log, rotating the file once it has
+   * grown past its limit. Without this the log grew for as long as the mixer
+   * lived, which on the bot's NVMe is both a space and a wear problem.
+   * @param {string} line
+   */
+  _writeLog(line) {
+    if (!this.logStream) return;
+    try {
+      this.logStream.write(line);
+      this.logBytes += Buffer.byteLength(line);
+      if (this.logBytes >= MAX_MIXER_LOG_BYTES) this._rotateLogStream();
+    } catch { /* diagnostics only */ }
+  }
+
+  /** Closes the current log file, rotates it and starts a fresh one. */
+  _rotateLogStream() {
+    const target = this.logPath;
+    this._closeLogStream('ROTATED');
+    if (target) rotateIfNeeded(target, MAX_MIXER_LOG_BYTES);
+    this._openLogStream();
+  }
+
   _openLogStream() {
     this._closeLogStream();
     try {
       const logsDir = path.join(ROOT_DIR, 'temp');
       fs.mkdirSync(logsDir, { recursive: true });
-      this.logStream = fs.createWriteStream(path.join(logsDir, `mixer-${this.guildId}.log`), { flags: 'a' });
-      this.logStream.write(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
+      this.logPath = path.join(logsDir, `mixer-${this.guildId}.log`);
+      // A log left over from a previous run counts towards the limit too
+      rotateIfNeeded(this.logPath, MAX_MIXER_LOG_BYTES);
+      this.logBytes = fs.statSync(this.logPath, { throwIfNoEntry: false })?.size || 0;
+      this.logStream = fs.createWriteStream(this.logPath, { flags: 'a' });
+      this._writeLog(`\n===== Mixer start ${new Date().toISOString()} generation=${this.generation} =====\n`);
     } catch (e) {
       console.error('Unable to open mixer log stream', e);
     }
@@ -166,6 +199,7 @@ class AudioMixerController {
       this.logStream.end();
     } catch { /* stream already closed */ }
     this.logStream = null;
+    this.logBytes = 0;
   }
 
   _closeReadline() {

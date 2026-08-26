@@ -36,8 +36,7 @@ export const rejectedSongsNotice = (tooLong, live, maxMinutes) => {
   const parts = [];
   if (tooLong > 0) parts.push(`${tooLong} più lunghe di ${maxMinutes} minuti`);
   if (live > 0) parts.push(`${live} in diretta`);
-  return parts.length > 0 ? `
-⚠️ Scartate: ${parts.join(', ')}.` : '';
+  return parts.length > 0 ? `\n⚠️ Scartate: ${parts.join(', ')}.` : '';
 };
 
 /**
