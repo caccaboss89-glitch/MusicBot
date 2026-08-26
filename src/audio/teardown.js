@@ -121,6 +121,9 @@ function schedulePauseTimeout(serverQueue) {
     console.log(`⏸️ [PAUSE-TIMEOUT] Guild ${serverQueue.guildId} paused for ${MAX_PAUSE_MS}ms, disconnecting`);
     const channel = serverQueue.textChannel;
     performDisconnectCleanup(serverQueue);
+    // Marks the queue the way a restart does, so /play and the replay button
+    // pick the session up at the song it was paused on instead of the first one.
+    serverQueue.sessionRestored = true;
 
     const minutes = Math.round(MAX_PAUSE_MS / 60000);
     channel?.send?.({ content: pausedTooLong(minutes) })?.catch?.(() => { });

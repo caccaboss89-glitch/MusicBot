@@ -1,6 +1,5 @@
 //! Handling of the commands Node.js sends over stdin.
 
-use crate::config::{CHANNELS, SAMPLE_RATE};
 use crate::protocol::{send_log, InputCommand};
 use crate::state::{deck_name, Crossfade, MixerState, PendingTransition};
 
@@ -8,11 +7,6 @@ use crate::state::{deck_name, Crossfade, MixerState, PendingTransition};
 pub enum CommandOutcome {
     Continue,
     Shutdown
-}
-
-/// Converts a fade duration into the number of stereo samples it spans.
-fn crossfade_samples(duration_ms: u64) -> usize {
-    (duration_ms as usize * SAMPLE_RATE / 1000) * CHANNELS
 }
 
 /// Applies one command from Node.js. Commands naming an unknown deck are
@@ -104,17 +98,14 @@ pub fn apply_command(state: &mut MixerState, cmd: InputCommand) -> CommandOutcom
                 // halted because the previous deck turned out unplayable.
                 state.is_playing = true;
                 state.pending = None;
-                let total = crossfade_samples(duration_ms);
                 send_log(
                     "crossfade_started",
                     &format!("from={}, to={}", state.active_deck, target)
                 );
-                state.crossfade = Some(Crossfade {
-                    target,
-                    total,
-                    left: total,
-                    stalled_since: None
-                });
+                // Built through the constructor, like the deferred path does:
+                // it is the only place that guarantees a non-zero span, and the
+                // mix ratio is divided by it on every sample.
+                state.crossfade = Some(Crossfade::new(target, duration_ms));
             } else {
                 // Target not ready: keep playing the current deck and fade as
                 // soon as the download delivers something.

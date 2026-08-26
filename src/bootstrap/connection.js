@@ -3,6 +3,7 @@ import ServerQueue from '../state/ServerQueue.js';
 import { joinVoiceChannel, entersState, VoiceConnectionStatus, createAudioPlayer } from '@discordjs/voice';
 import { scheduleDisconnectIfAlone, cancelScheduledDisconnect } from '../audio/teardown.js';
 import { loadQueueBackup } from '../queue/persistence.js';
+import { filterPlayableSongs } from '../queue/QueueManager.js';
 import { DISCONNECT_TIMEOUT_MS, RECONCILE_WINDOW_MS, VOICE_CONNECTION_TIMEOUT_MS } from '../../config/index.js';
 import { safeReply } from '../utils/discord.js';
 import { JOIN_VOICE, VOICE_CONNECTION_ERROR } from '../ui/messages.js';
@@ -23,8 +24,22 @@ async function ensureBotConnection(interaction) {
     try {
       const backup = loadQueueBackup(guildId);
       if (backup && backup.songs && backup.songs.length > 0) {
-        serverQueue.songs = backup.songs.slice();
-        serverQueue.playIndex = backup.playIndex || 0;
+        // A backup can predate the acceptance rules, or have been written when a
+        // song's duration was still unknown. Restoring a live stream or an
+        // hours-long track would walk straight past the limits that keep the
+        // engine's memory bounded, so the same filter runs on the way back in.
+        const previousUrl = backup.songs[backup.playIndex || 0]?.url || null;
+        const { accepted, rejected } = filterPlayableSongs(backup.songs);
+        serverQueue.songs = accepted;
+        if (rejected > 0) {
+          console.warn(`⚠️ [RESTORE] Dropped ${rejected} unplayable song(s) from the restored queue of guild ${guildId}`);
+          // playIndex counted the songs that were just dropped: follow the song
+          // itself instead, so the session resumes where it left off.
+          const movedTo = previousUrl ? accepted.findIndex(s => s.url === previousUrl) : -1;
+          serverQueue.playIndex = movedTo >= 0 ? movedTo : 0;
+        } else {
+          serverQueue.playIndex = backup.playIndex || 0;
+        }
         serverQueue.isPaused = !!backup.isPaused;
         serverQueue.loopEnabled = !!backup.loopEnabled;
         serverQueue.fadeEnabled = !!backup.fadeEnabled;

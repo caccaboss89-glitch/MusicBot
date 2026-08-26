@@ -54,6 +54,20 @@ function logFatal(fileName, label, error) {
  * Writes everything still held in memory to disk.
  * Shared by the shutdown signals and the uncaught-exception handler.
  */
+/**
+ * Kills every Rust engine still running.
+ *
+ * They would die on their own once Node closes their stdin, but only once the
+ * OS gets round to it: doing it explicitly means no engine - and none of the
+ * yt-dlp/ffmpeg processes hanging off it - outlives a restart or a crash.
+ */
+function stopAllGuildAudio() {
+  queue.forEach((sq) => {
+    try { stopGuildAudio(sq, { reason: 'Process shutdown', destroyConnection: true }); }
+    catch { /* keep tearing down the other guilds */ }
+  });
+}
+
 function persistEverything() {
   try {
     flushPendingSaves();
@@ -72,6 +86,7 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (error) => {
   logFatal('uncaught-exceptions.log', 'UNCAUGHT-EXCEPTION', error);
   persistEverything();
+  stopAllGuildAudio();
   process.exit(1);
 });
 
@@ -200,6 +215,7 @@ client.once('clientReady', () => {
 function gracefulShutdown(signal) {
   console.log(`\n🚫 [SHUTDOWN] Received ${signal}, saving in progress...`);
   persistEverything();
+  stopAllGuildAudio();
   console.log('✅ [SHUTDOWN] Saving completed.');
   process.exit(0);
 }

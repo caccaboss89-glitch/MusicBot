@@ -19,6 +19,13 @@ use crate::config::{
 };
 use crate::protocol::send_log;
 
+/// First `max` characters of a URL, cut on a character boundary.
+/// Slicing a String by byte index panics in the middle of a multi-byte
+/// character, and the engine has no business dying over a log line.
+fn url_preview(url: &str, max: usize) -> String {
+    url.chars().take(max).collect()
+}
+
 pub fn download_and_decode_advanced(
     url: &str,
     tx: Sender<Vec<f32>>,
@@ -30,7 +37,7 @@ pub fn download_and_decode_advanced(
     // 2. yt-dlp's stdout is connected to ffmpeg's stdin
     // 3. ffmpeg decodes and returns PCM
 
-    send_log("info", &format!("Streaming: {}", &url[..url.len().min(60)]));
+    send_log("info", &format!("Streaming: {}", url_preview(url, 60)));
 
     // Uses yt-dlp binary from bot directory
     let yt_dlp_binary = format!("{}/bin/yt-dlp", get_base_path());
@@ -210,7 +217,7 @@ pub fn download_and_decode_advanced(
         &format!(
             "[Deck {}] Streaming: {}",
             deck_name,
-            &url[..url.len().min(60)]
+            url_preview(url, 60)
         ),
     );
 

@@ -50,7 +50,7 @@ function schedulePreloadRetry(guildId, delayMs) {
   if (state.preloadTimer) clearTimeout(state.preloadTimer);
 
   state.preloadTimer = setTimeout(() => {
-    preloadNextSong(guildId);
+    preloadNextSong(guildId).catch(e => console.error('[PRELOAD] Retry error:', e));
   }, safeDelay);
 
   timers.set(guildId, state);
@@ -113,7 +113,7 @@ function onSongStart(guildId) {
 
   // ── Timer: Preload the next song after 5 seconds ──
   const preloadTimer = setTimeout(() => {
-    preloadNextSong(guildId);
+    preloadNextSong(guildId).catch(e => console.error('[PRELOAD] Error:', e));
   }, preloadDelayFor(sq));
 
   // ── Timer: statistics fallback ──
