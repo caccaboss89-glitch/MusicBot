@@ -49,13 +49,57 @@ import {
   songAddedAsNext
 } from '../ui/messages.js';
 
-// In-memory map for active search queries (for result pagination)
+// Active search queries, kept so the result pages can be rebuilt as the user
+// pages through them.
+// key: "<userId>_<type>_<playlistName>" -> { query, storedAt }
 const activeSearches = new Map();
+const SEARCH_TTL_MS = 30 * 60 * 1000;      // A pagination session never outlives this
+const SEARCH_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
 
-// Periodic cleanup to prevent memory leak (every 30 minutes)
-setInterval(() => {
-  activeSearches.clear();
-}, 30 * 60 * 1000);
+/**
+ * Stores the query a user is paging through.
+ * @param {string} key
+ * @param {string} query
+ */
+function setActiveSearch(key, query) {
+  activeSearches.set(key, { query, storedAt: Date.now() });
+}
+
+/**
+ * Returns a stored query, dropping it if it has expired. Expiry is checked on
+ * read as well as by the sweep below, so a stale entry can never be handed out.
+ * @param {string} key
+ * @returns {string|null}
+ */
+function getActiveSearch(key) {
+  const entry = activeSearches.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.storedAt > SEARCH_TTL_MS) {
+    activeSearches.delete(key);
+    return null;
+  }
+  return entry.query;
+}
+
+/**
+ * Forgets a stored query (user went back, playlist deleted).
+ * @param {string} key
+ */
+function deleteActiveSearch(key) {
+  activeSearches.delete(key);
+}
+
+// Periodic sweep so queries nobody comes back to are not kept forever. It only
+// removes entries past the TTL: clearing the whole map used to throw away
+// searches that had just been started.
+const searchSweepTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of activeSearches) {
+    if (now - entry.storedAt > SEARCH_TTL_MS) activeSearches.delete(key);
+  }
+}, SEARCH_SWEEP_INTERVAL_MS);
+// Housekeeping must never be the reason the process stays up
+searchSweepTimer.unref?.();
 
 /**
  * Handles all playlist interactions (plist_*, act_*, srch_*, open_plist_*, btn_toggle_*).
@@ -297,7 +341,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       newPage = (dir === 'prev' ? -1 : 1) + safeParseInt(parts[4], 0);
     }
     const searchKey = `${interaction.user.id}_${type}_${plName || ''}`;
-    const query = activeSearches.get(searchKey);
+    const query = getActiveSearch(searchKey);
     if (!query) {
       await interaction.editReply(generatePlaylistView(type, interaction.user.id, 0, plName));
       return true;
@@ -311,7 +355,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     const type = parts[2];
     let plName = null;
     if (type === 'likes') plName = parts.slice(3).join('_');
-    activeSearches.delete(`${interaction.user.id}_${type}_${plName || ''}`);
+    deleteActiveSearch(`${interaction.user.id}_${type}_${plName || ''}`);
     await interaction.editReply(generatePlaylistView(type, interaction.user.id, 0, plName));
     return true;
   }
@@ -373,7 +417,7 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     delete userData.playlists[plName];
     if (userData.activePlaylist === plName) userData.activePlaylist = DEFAULT_PLAYLIST_NAME;
     // Clean active searches related to this playlist
-    activeSearches.delete(`${interaction.user.id}_likes_${plName}`);
+    deleteActiveSearch(`${interaction.user.id}_likes_${plName}`);
     saveDatabase(db);
     await interaction.editReply(generatePlaylistView('likes', interaction.user.id, 0, DEFAULT_PLAYLIST_NAME));
     await safeReply(interaction, { content: playlistDeleted(plName, deletedCount), flags: MessageFlags.Ephemeral });
@@ -463,4 +507,4 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
   return false;
 }
 
-export { handlePlaylist, activeSearches };
+export { handlePlaylist, setActiveSearch };

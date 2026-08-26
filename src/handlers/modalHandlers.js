@@ -10,7 +10,7 @@ import { getVideoInfo } from '../utils/youtube.js';
 import { clearFinishedQueue, filterPlayableSongs } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER, MAX_SONG_DURATION_SECONDS, MAX_QUEUE_SIZE } from '../../config/index.js';
-import { activeSearches } from './playlistHandlers.js';
+import { setActiveSearch } from './playlistHandlers.js';
 import * as audio from '../audio/index.js';
 import {
   SEARCH_TERM_REQUIRED,
@@ -42,7 +42,7 @@ async function handleModal(interaction, guildId, deps) {
     try {
       const query = (interaction.fields.getTextInputValue('search_query_input') || '').trim();
       if (!query) return await interaction.editReply(SEARCH_TERM_REQUIRED);
-      activeSearches.set(`${interaction.user.id}_server_`, query);
+      setActiveSearch(`${interaction.user.id}_server_`, query);
       return await interaction.editReply(generateSearchResultsView('server', interaction.user.id, query, 0));
     } catch (e) {
       console.error('❌ [MODAL_SEARCH_SERVER] Error:', e);
@@ -57,7 +57,7 @@ async function handleModal(interaction, guildId, deps) {
       const plName = modalCustomId.replace('modal_search_likes_', '');
       const query = (interaction.fields.getTextInputValue('search_query_input') || '').trim();
       if (!query) return await interaction.editReply(SEARCH_TERM_REQUIRED);
-      activeSearches.set(`${interaction.user.id}_likes_${plName}`, query);
+      setActiveSearch(`${interaction.user.id}_likes_${plName}`, query);
       return await interaction.editReply(generateSearchResultsView('likes', interaction.user.id, query, 0, plName));
     } catch (e) {
       console.error('❌ [MODAL_SEARCH_LIKES] Error:', e);
