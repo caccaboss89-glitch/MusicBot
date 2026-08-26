@@ -1,5 +1,5 @@
 import { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
-import { interactionCooldowns } from '../state/globals.js';
+import { interactionCooldowns, canStartPlayback } from '../state/globals.js';
 import { audioOperationBarrier } from '../audio/SerialQueue.js';
 import * as audio from '../audio/index.js';
 import { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong, filterPlayableSongs } from '../queue/QueueManager.js';
@@ -37,6 +37,26 @@ async function refreshComponents(interaction, serverQueue) {
       await serverQueue.dashboardMessage.edit({ components }).catch(() => { });
     }
   }
+}
+
+/**
+ * Refuses a control that would have to start playback while another server
+ * holds the single playback slot.
+ *
+ * A control acting inside a session already running here is never refused:
+ * that guild owns the slot already. Only the paths that would spin up a new
+ * engine have to ask, and they ask before the audio barrier so a refusal does
+ * not burn the caller's throttle window.
+ * @param {import('discord.js').Interaction} interaction
+ * @param {object} serverQueue
+ * @param {string} guildId
+ * @returns {Promise<boolean>} true when the caller must stop
+ */
+async function refusedForBusyPlayer(interaction, serverQueue, guildId) {
+  if (serverQueue.currentDeckLoaded || canStartPlayback(guildId)) return false;
+  console.warn(`⛔ [CONTROL] Refused for guild ${guildId}: another server is using the player`);
+  await safeReply(interaction, { content: msg.PLAYER_BUSY_ELSEWHERE, flags: MessageFlags.Ephemeral });
+  return true;
 }
 
 // ─── Button Handlers ────────────────────────────────────────
@@ -133,6 +153,8 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
 }
 
 async function handleReplay(interaction, serverQueue, guildId, deps) {
+  if (await refusedForBusyPlayer(interaction, serverQueue, guildId)) return;
+
   const result = await audioOperationBarrier.run(guildId, 'replay', async () => {
     if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs.length > 0) {
       serverQueue.sessionRestored = false;
@@ -158,6 +180,8 @@ async function handleReplay(interaction, serverQueue, guildId, deps) {
 }
 
 async function handleSkip(interaction, serverQueue, guildId, deps) {
+  if (await refusedForBusyPlayer(interaction, serverQueue, guildId)) return;
+
   const result = await audioOperationBarrier.run(guildId, 'skip', async () => {
     if (serverQueue.sessionRestored && !serverQueue.currentDeckLoaded && serverQueue.songs.length > 1) {
       serverQueue.sessionRestored = false;
@@ -181,6 +205,8 @@ async function handleSkip(interaction, serverQueue, guildId, deps) {
 }
 
 async function handlePrev(interaction, serverQueue, guildId, deps) {
+  if (await refusedForBusyPlayer(interaction, serverQueue, guildId)) return;
+
   const result = await audioOperationBarrier.run(guildId, 'prev', async () => {
     if (!serverQueue.currentDeckLoaded && !serverQueue.mixer?.isProcessAlive?.() && serverQueue.songs.length > 0) {
       if (serverQueue.sessionRestored && (serverQueue.playIndex || 0) > 0) {
