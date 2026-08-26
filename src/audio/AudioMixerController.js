@@ -13,6 +13,7 @@ import { rotateIfNeeded, MAX_MIXER_LOG_BYTES } from '../utils/logfiles.js';
 import {
   ROOT_DIR,
   RUST_ENGINE_PATH,
+  PYTHON_BIN,
   CROSSFADE_DURATION_MS,
   resolveYtDlpProxyUrl,
   resolveYtDlpCookieBrowser,
@@ -55,15 +56,19 @@ class AudioMixerController {
 
     console.info(`🦀 [RUST] Starting audio engine for ${this.guildId}`);
 
-    // Pass DISCORD_BOT_PATH and the yt-dlp config to the Rust process, resolved
-    // here so both languages agree on it. The proxy has no default: 'none' is
-    // sent unless YTDLP_PROXY_URL explicitly configures one.
+    // Pass DISCORD_BOT_PATH, the interpreter and the yt-dlp config to the Rust
+    // process, resolved here so both languages agree on them. The proxy has no
+    // default: 'none' is sent unless YTDLP_PROXY_URL explicitly configures one.
+    // PYTHON_BIN is resolved rather than merely inherited, so the engine runs
+    // yt-dlp through the same interpreter as the metadata calls even when the
+    // variable is unset.
     const proxyUrl = resolveYtDlpProxyUrl();
     const cookieBrowser = resolveYtDlpCookieBrowser();
     const env = {
       ...process.env,
       PATH: `${process.env.PATH}${path.delimiter}${ROOT_DIR}`,
       DISCORD_BOT_PATH: ROOT_DIR,
+      PYTHON_BIN,
       YTDLP_PROXY_URL: proxyUrl || 'none',
       YTDLP_COOKIE_BROWSER: cookieBrowser || 'none',
       YTDLP_EXTRACTOR_ARGS: resolveYtDlpExtractorArgs()

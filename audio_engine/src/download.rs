@@ -39,10 +39,20 @@ pub fn download_and_decode_advanced(
 
     send_log("info", &format!("Streaming: {}", url_preview(url, 60)));
 
-    // Uses yt-dlp binary from bot directory
-    let yt_dlp_binary = format!("{}/bin/yt-dlp", get_base_path());
-
-    let mut yt_dlp_cmd = ProcessCommand::new(yt_dlp_binary);
+    // yt-dlp runs through PYTHON_BIN, the same interpreter Node uses for its own
+    // metadata calls. The zipapp in bin/ is only a fallback: its shebang picks
+    // the system python3, which is a different install with a different yt-dlp
+    // version and its own dependencies. Missing curl_cffi there makes
+    // --impersonate fail on every playback while search keeps working, which is
+    // exactly the kind of split-brain failure this avoids.
+    let mut yt_dlp_cmd = match env_opt("PYTHON_BIN") {
+        Some(python) => {
+            let mut cmd = ProcessCommand::new(python);
+            cmd.arg("-m").arg("yt_dlp");
+            cmd
+        }
+        None => ProcessCommand::new(format!("{}/bin/yt-dlp", get_base_path())),
+    };
     yt_dlp_cmd
         .arg("--no-update")
         .arg("-f").arg("ba/b/bestaudio/best")
