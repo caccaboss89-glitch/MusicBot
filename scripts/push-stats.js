@@ -6,7 +6,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,6 +21,30 @@ const GIT_AUTHOR_NAME = process.env.GIT_AUTHOR_NAME || 'MusicBot';
 const GIT_AUTHOR_EMAIL = process.env.GIT_AUTHOR_EMAIL || 'bot@musicbot.local';
 const ROME_TZ = 'Europe/Rome';
 const GIT_DATA_FILES = ['data/stats.json', 'data/playlists.json'];
+// git status on a grown monthly-stats/ can outrun the 1 MB default
+const GIT_MAX_BUFFER = 10 * 1024 * 1024;
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Runs one git command in the project root without blocking the event loop.
+ *
+ * A synchronous call would stall Node for the whole round trip of a network
+ * operation, and while it is stalled nothing drains the audio engine's PCM
+ * output: the monthly push was audible as a gap in playback. Arguments are
+ * passed as an array, so no shell ever sees them.
+ * @param {string[]} args - Git arguments
+ * @returns {Promise<string>} stdout
+ * @throws {Error} When git exits non-zero; the error carries stdout and stderr
+ */
+async function git(args) {
+  const { stdout } = await execFileAsync('git', args, {
+    cwd: PROJECT_ROOT,
+    encoding: 'utf-8',
+    maxBuffer: GIT_MAX_BUFFER
+  });
+  return stdout;
+}
 
 function getRomeCalendarParts(date = new Date()) {
   const fmt = new Intl.DateTimeFormat('en-US', {
@@ -81,14 +106,15 @@ async function flushDataToDisk() {
 
 /**
  * Commits and pushes stats.json, playlists.json and monthly-stats/ to GitHub.
- * @returns {boolean} false only if push fails
+ * One command at a time: git refuses to run two operations on the same
+ * repository at once, and the sequence below depends on its own order anyway.
+ * @returns {Promise<boolean>} false only if push fails
  */
-function gitPushDataFiles(commitMsg) {
+async function gitPushDataFiles(commitMsg) {
   const gitPaths = getGitDataPaths();
-  const gitPathsArg = gitPaths.join(' ');
-  execSync(`git add --force ${gitPathsArg}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+  await git(['add', '--force', ...gitPaths]);
 
-  const status = execSync(`git status --porcelain ${gitPathsArg}`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+  const status = await git(['status', '--porcelain', ...gitPaths]);
 
   if (!status.trim()) {
     console.log('ℹ️ No changes in stats.json / playlists.json / monthly-stats to sync to GitHub');
@@ -98,17 +124,17 @@ function gitPushDataFiles(commitMsg) {
   console.log('📝 Files to be committed:');
   console.log(status);
 
-  execSync(`git commit -m "${commitMsg}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+  await git(['commit', '-m', commitMsg]);
   console.log('✅ Commit created successfully');
 
   try {
-    execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+    await git(['push', 'origin', 'HEAD']);
     console.log('✅ stats.json, playlists.json and monthly-stats pushed to GitHub');
   } catch {
     console.warn('⚠️ [STATS-PUSH] Non-fast-forward push; executing git pull --rebase and retrying...');
     try {
-      execSync('git pull --rebase origin main', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-      execSync('git push origin HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+      await git(['pull', '--rebase', 'origin', 'main']);
+      await git(['push', 'origin', 'HEAD']);
       console.log('✅ Push successful after rebase');
     } catch (e) {
       console.error('❌ [STATS-PUSH] Push failed:', e.message);
@@ -200,13 +226,13 @@ async function pushStats(forceArchive = false) {
     }
 
     try {
-      execSync(`git config user.name "${GIT_AUTHOR_NAME}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
-      execSync(`git config user.email "${GIT_AUTHOR_EMAIL}"`, { cwd: PROJECT_ROOT, encoding: 'utf-8' });
+      await git(['config', 'user.name', GIT_AUTHOR_NAME]);
+      await git(['config', 'user.email', GIT_AUTHOR_EMAIL]);
     } catch (e) {
       console.warn('⚠️ Git config may be already set:', e.message);
     }
 
-    const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8' }).trim();
+    const currentBranch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
     if (currentBranch !== 'main') {
       console.warn(`⚠️ Current branch: ${currentBranch} (not 'main'), will proceed anyway`);
     }
@@ -235,7 +261,7 @@ async function pushStats(forceArchive = false) {
     // month's push commits it — by then stats.json holds a different month's
     // data, so the two files never overlap in the same commit.
     console.log('📤 Pushing stats.json, playlists.json and monthly-stats to GitHub...');
-    if (!gitPushDataFiles(commitMsg)) {
+    if (!await gitPushDataFiles(commitMsg)) {
       return false;
     }
 
