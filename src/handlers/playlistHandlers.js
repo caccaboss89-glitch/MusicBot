@@ -7,10 +7,10 @@ import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilde
 import { loadDatabase, saveDatabase, getUserData, getUserPlaylist, getActivePlaylistName, setActivePlaylist } from '../database/playlists.js';
 import { generatePlaylistView, generateSearchResultsView, createDashboardComponents } from '../ui/index.js';
 import { sanitizeTitle, areSameSong, safeParseInt } from '../utils/sanitize.js';
-import { clearFinishedQueue, insertSongAtIndex, getCurrentSong } from '../queue/QueueManager.js';
+import { clearFinishedQueue, insertSongAtIndex, getCurrentSong, filterPlayableSongs, songRejectionReason } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { safeReply } from '../utils/discord.js';
-import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH } from '../../config/index.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
 import * as audio from '../audio/index.js';
 import { recordPlaylistAdd } from '../database/stats.js';
 import {
@@ -24,6 +24,10 @@ import {
   REMOVE_BUTTON,
   BACK_MODAL_BUTTON,
   playlistSongsAdded,
+  allSongsRejected,
+  rejectedSongsNotice,
+  songTooLong,
+  SONG_IS_LIVE,
   SEARCH_MODAL_TITLE_SERVER,
   SEARCH_MODAL_TITLE_USER,
   SEARCH_SONG_LABEL,
@@ -127,7 +131,12 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     }
     if (!items || items.length === 0) return await safeReply(interaction, { content: PLAYLIST_EMPTY, flags: MessageFlags.Ephemeral }), true;
 
-    const toAdd = items.map(s => ({ ...s, requester: interaction.user.id }));
+    // A playlist can hold entries saved before the length limit existed
+    const maxMinutes = MAX_SONG_DURATION_SECONDS / 60;
+    const { accepted, tooLong, live } = filterPlayableSongs(items);
+    if (accepted.length === 0) return await safeReply(interaction, { content: allSongsRejected(maxMinutes), flags: MessageFlags.Ephemeral }), true;
+
+    const toAdd = accepted.map(s => ({ ...s, requester: interaction.user.id }));
     for (let i = toAdd.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [toAdd[i], toAdd[j]] = [toAdd[j], toAdd[i]];
@@ -142,7 +151,8 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       await audio.updatePreloadAfterQueueChange(guildId);
       if (serverQueue.dashboardMessage) serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
     }
-    await safeReply(interaction, { content: playlistSongsAdded(toAdd.length), flags: MessageFlags.Ephemeral });
+    const notice = rejectedSongsNotice(tooLong, live, maxMinutes);
+    await safeReply(interaction, { content: playlistSongsAdded(toAdd.length) + notice, flags: MessageFlags.Ephemeral });
     return true;
   }
 
@@ -211,6 +221,14 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
       }
       if (songIndex < 0 || songIndex >= items.length) return true;
       const song = items[songIndex];
+
+      const reason = songRejectionReason(song);
+      if (reason) {
+        const content = reason === 'live' ? SONG_IS_LIVE : songTooLong(MAX_SONG_DURATION_SECONDS / 60);
+        await safeReply(interaction, { content, flags: MessageFlags.Ephemeral });
+        return true;
+      }
+
       const playObj = { ...song, requester: interaction.user.id };
 
       clearFinishedQueue(serverQueue);

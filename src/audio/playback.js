@@ -8,7 +8,7 @@
 
 import { joinVoiceChannel, createAudioResource, StreamType, entersState, VoiceConnectionStatus } from '@discordjs/voice';
 import { PassThrough } from 'stream';
-import { queue } from '../state/globals.js';
+import { queue, acquirePlaybackSession, releasePlaybackSession } from '../state/globals.js';
 import { stateVersionManager } from '../state/StateVersion.js';
 import { getCurrentSong, isValidSong, bindDeckSong } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
@@ -19,7 +19,9 @@ import { onSongStart, updatePreloadAfterQueueChange } from './PlaybackEngine.js'
 import { handleRustEvent, isFailedSong } from './rust-events.js';
 import { handleMixerCrash } from './recovery.js';
 import { getMixerCrashCooldownMs } from './crash-cooldown.js';
+import { schedulePauseTimeout, cancelPauseTimeout } from './teardown.js';
 import { stopAllListeners, startAllListeners } from '../database/stats.js';
+import { PLAYER_BUSY_ELSEWHERE } from '../ui/messages.js';
 
 // Key factor for pipeline latency:
 // low highWaterMark = less audio buffered in pipe = more reactive skips
@@ -90,6 +92,7 @@ function resumeIfPaused(serverQueue, guildId) {
 
   serverQueue.isPaused = false;
   serverQueue.pauseStart = null;
+  cancelPauseTimeout(serverQueue);
 
   // Resume Discord player
   try { serverQueue.player?.unpause(); } catch { /* player may be detached */ }
@@ -235,6 +238,15 @@ async function playSong(guildId, interaction = null) {
   // call cannot advance playIndex past a blacklisted song while audio is live.
   if (serverQueue.currentDeckLoaded) return;
 
+  // One playback at a time across every server: a second engine would double
+  // the decoded audio held in memory. The commands check this first so the user
+  // gets a proper reply; this is the guard for every other entry point.
+  if (!acquirePlaybackSession(guildId)) {
+    console.warn(`⛔ [PLAY] Playback refused for guild ${guildId}: another server is using the player`);
+    try { await serverQueue.textChannel?.send?.({ content: PLAYER_BUSY_ELSEWHERE }); } catch { /* channel may be gone */ }
+    return;
+  }
+
   // Ensure voice connection
   if (!serverQueue.connection && serverQueue.voiceChannel && !interaction) {
     try {
@@ -249,6 +261,7 @@ async function playSong(guildId, interaction = null) {
     } catch (e) {
       console.error('❌ [PLAY] Unable to join the voice channel:', e.message);
       cleanupLowLatencyStream(serverQueue);
+      releasePlaybackSession(guildId);
       return;
     }
   }
@@ -262,6 +275,7 @@ async function playSong(guildId, interaction = null) {
     serverQueue.currentDeckLoaded = null;
     serverQueue.nextDeckLoaded = null;
     cleanupLowLatencyStream(serverQueue);
+    releasePlaybackSession(guildId);
     await updateDashboardToFinished(serverQueue, previousSong);
     return;
   }
@@ -287,12 +301,16 @@ async function playSong(guildId, interaction = null) {
       serverQueue.mixer = null;
     }
     const stdout = await startMixer(serverQueue, guildId);
-    if (!stdout) return;
+    if (!stdout) {
+      releasePlaybackSession(guildId);
+      return;
+    }
     attachMixerOutput(serverQueue, stdout);
   } else {
     const stdout = serverQueue.mixer.getStdout();
     if (!stdout) {
       console.error('❌ [PLAY] Existing mixer has no stdout');
+      releasePlaybackSession(guildId);
       return;
     }
     attachMixerOutput(serverQueue, stdout);
@@ -310,7 +328,10 @@ async function playSong(guildId, interaction = null) {
   // Without this delay, play command executes before data arrives, causing silence.
   // In replay (restartDeck) it's not needed because data is already buffered in full_samples.
   await new Promise(resolve => setTimeout(resolve, FIRST_CHUNK_DELAY_MS));
-  if (!serverQueue.mixer) return;
+  if (!serverQueue.mixer) {
+    releasePlaybackSession(guildId);
+    return;
+  }
 
   safeMixerInvoke(serverQueue, guildId, () => serverQueue.mixer.play(deck), 'play');
   serverQueue.currentDeck = deck;
@@ -368,6 +389,10 @@ async function togglePauseResume(guildId, serverQueue) {
       // ── STATS: stop listening timer during pause ──
       stopAllListeners(guildId);
 
+      // A pause left running forever keeps the whole engine (and its buffers)
+      // alive for nothing: disconnect once it has lasted too long.
+      schedulePauseTimeout(serverQueue);
+
       stateVersion.incrementVersion('pause_action');
       return { success: true, action: 'pause' };
     }
@@ -379,6 +404,7 @@ async function togglePauseResume(guildId, serverQueue) {
       ? serverQueue.songStartTime + pausedFor
       : Date.now();
     serverQueue.pauseStart = null;
+    cancelPauseTimeout(serverQueue);
 
     try { serverQueue.player?.unpause(); } catch { /* player may be detached */ }
 

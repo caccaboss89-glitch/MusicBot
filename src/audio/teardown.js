@@ -10,8 +10,8 @@
  * differs between them is expressed as options.
  */
 
-import { disconnectTimers } from '../state/globals.js';
-import { DISCONNECT_TIMEOUT_MS } from '../../config/index.js';
+import { disconnectTimers, releasePlaybackSession } from '../state/globals.js';
+import { DISCONNECT_TIMEOUT_MS, MAX_PAUSE_MS } from '../../config/index.js';
 import { clearDeckBindings, isBotAloneInChannel } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { flushGuildAndSave } from '../database/stats.js';
@@ -21,6 +21,8 @@ import { commandQueue } from './SerialQueue.js';
 import { cleanupSkipState } from './SkipManager.js';
 import { clearStreamErrors } from './rust-events.js';
 import { cleanupRecoveryState } from './crash-cooldown.js';
+import { refreshDashboard } from '../ui/index.js';
+import { pausedTooLong } from '../ui/messages.js';
 
 /**
  * Stops everything that produces audio for a guild and resets the deck state
@@ -51,6 +53,14 @@ function stopGuildAudio(serverQueue, options = {}) {
     serverQueue.dashboardState.timer = null;
   }
 
+  // A crash recovery scheduled earlier would restart playback — and rejoin the
+  // voice channel — after the very teardown that was meant to stop it.
+  if (serverQueue._recoveryTimer) {
+    clearTimeout(serverQueue._recoveryTimer);
+    serverQueue._recoveryTimer = null;
+  }
+
+  cancelPauseTimeout(serverQueue);
   clearAllTimers(guildId);
   commandQueue.flushPending(guildId, reason);
 
@@ -86,6 +96,46 @@ function stopGuildAudio(serverQueue, options = {}) {
   serverQueue.mixerStarting = false;
   serverQueue.loadingFooter = null;
   clearDeckBindings(serverQueue);
+
+  // Nothing is playing here any more: let another guild have the single slot.
+  releasePlaybackSession(guildId);
+}
+
+/**
+ * Starts the countdown that disconnects a paused session.
+ *
+ * A pause keeps the engine, its two decks and every sample they hold alive for
+ * as long as nobody comes back, which on a box shared with other bots is memory
+ * spent on silence. Any resume cancels it.
+ * @param {object} serverQueue
+ */
+function schedulePauseTimeout(serverQueue) {
+  if (!serverQueue || !serverQueue.guildId) return;
+  cancelPauseTimeout(serverQueue);
+
+  serverQueue._pauseTimer = setTimeout(() => {
+    serverQueue._pauseTimer = null;
+    // Somebody resumed and paused again in the meantime, or playback is over
+    if (!serverQueue.isPaused || !serverQueue.currentDeckLoaded) return;
+
+    console.log(`⏸️ [PAUSE-TIMEOUT] Guild ${serverQueue.guildId} paused for ${MAX_PAUSE_MS}ms, disconnecting`);
+    const channel = serverQueue.textChannel;
+    performDisconnectCleanup(serverQueue);
+
+    const minutes = Math.round(MAX_PAUSE_MS / 60000);
+    channel?.send?.({ content: pausedTooLong(minutes) })?.catch?.(() => { });
+    refreshDashboard(serverQueue).catch(() => { });
+  }, MAX_PAUSE_MS);
+}
+
+/**
+ * Cancels the pause countdown (resume, skip, teardown).
+ * @param {object} serverQueue
+ */
+function cancelPauseTimeout(serverQueue) {
+  if (!serverQueue || !serverQueue._pauseTimer) return;
+  clearTimeout(serverQueue._pauseTimer);
+  serverQueue._pauseTimer = null;
 }
 
 /**
@@ -191,6 +241,8 @@ function cancelScheduledDisconnect(serverQueue) {
 
 export {
   stopGuildAudio,
+  schedulePauseTimeout,
+  cancelPauseTimeout,
   clearGuildAudioState,
   performDisconnectCleanup,
   scheduleDisconnectIfAlone,

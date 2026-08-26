@@ -112,7 +112,11 @@ async function handleMixerCrash(guildId, reason) {
 
     const delayMs = 500 + (sq.crashRecoveryAttempts * 500);
     console.log(`⏳ [CRASH-RECOVERY] Scheduling playSong restart in ${delayMs}ms`);
-    setTimeout(() => {
+    // Tracked on the queue so any teardown in the meantime cancels it: an
+    // untracked timer would restart playback, and rejoin the voice channel,
+    // after the bot had already been told to leave.
+    sq._recoveryTimer = setTimeout(() => {
+      sq._recoveryTimer = null;
       playSong(guildId).catch(e => {
         console.error(`❌ [CRASH-RECOVERY] playSong restart error (guild=${guildId}):`, e);
       });

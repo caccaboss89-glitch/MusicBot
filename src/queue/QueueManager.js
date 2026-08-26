@@ -10,6 +10,7 @@
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
 import { saveQueueState } from './persistence.js';
 import { stateVersionManager } from '../state/StateVersion.js';
+import { MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
 
 /**
  * Check if the bot is alone in the voice channel
@@ -149,6 +150,52 @@ function clearDeckBindings(serverQueue) {
   serverQueue.deckSongs = { A: null, B: null };
 }
 
+// ─── Acceptance rules ─────────────────────────────────────────────────
+//
+// The audio engine holds every decoded sample of a track in memory, so what
+// goes into the queue is what bounds its footprint. Both rules are checked
+// here, once, for every path that can add a song.
+
+/**
+ * Why a song cannot be queued.
+ * @param {object} song
+ * @returns {'live'|'too_long'|null} null when the song is acceptable
+ */
+function songRejectionReason(song) {
+  if (!song) return null;
+  if (song.isLive) return 'live';
+  // duration 0 means yt-dlp did not report one: accept it and let the engine's
+  // own ceiling deal with it, rather than refusing a perfectly normal track.
+  const duration = Number(song.duration) || 0;
+  if (duration > MAX_SONG_DURATION_SECONDS) return 'too_long';
+  return null;
+}
+
+/**
+ * Splits a batch of songs into the ones that can be queued and the counts of
+ * those that cannot, so the caller can tell the user what was dropped.
+ * @param {Array<object>} songs
+ * @returns {{accepted: Array<object>, tooLong: number, live: number, rejected: number}}
+ */
+function filterPlayableSongs(songs) {
+  const accepted = [];
+  let tooLong = 0;
+  let live = 0;
+
+  for (const song of songs || []) {
+    const reason = songRejectionReason(song);
+    if (reason === 'live') live++;
+    else if (reason === 'too_long') tooLong++;
+    else accepted.push(song);
+  }
+
+  const rejected = tooLong + live;
+  if (rejected > 0) {
+    console.log(`⛔ [QUEUE-FILTER] Rejected ${rejected} song(s): ${tooLong} too long, ${live} live`);
+  }
+  return { accepted, tooLong, live, rejected };
+}
+
 /**
  * Check if a song is valid
  * @param {object} song - Song object
@@ -210,6 +257,8 @@ function isMixerAlive(serverQueue) {
 export {
   isBotAloneInChannel,
   clearFinishedQueue,
+  songRejectionReason,
+  filterPlayableSongs,
   getCurrentSong,
   getPlayingIndex,
   getNextSong,

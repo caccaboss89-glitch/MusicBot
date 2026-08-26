@@ -4,8 +4,9 @@ import { getVideoInfo } from '../utils/youtube.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { createDashboardComponents, updateDashboard, createCurrentSongEmbed, refreshDashboard } from '../ui/index.js';
 import { cleanupOldMessages } from '../utils/cleanup.js';
-import { MAX_QUEUE_SIZE } from '../../config/index.js';
-import { clearFinishedQueue } from '../queue/QueueManager.js';
+import { MAX_QUEUE_SIZE, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
+import { clearFinishedQueue, filterPlayableSongs } from '../queue/QueueManager.js';
+import { canStartPlayback } from '../state/globals.js';
 import * as msg from '../ui/messages.js';
 
 // Name of the search option. Must match the one registered by deploy-commands.js,
@@ -68,18 +69,28 @@ async function addToQueue(interaction, serverQueue, query, deps) {
   }
 
   if (songsFound.length === 0) return interaction.editReply(msg.NO_RESULTS);
-  if (serverQueue.songs.length + songsFound.length > MAX_QUEUE_SIZE) {
+
+  // Live streams and over-long tracks never enter the queue: the audio engine
+  // buffers every decoded sample, so they are what bounds its memory.
+  const maxMinutes = MAX_SONG_DURATION_SECONDS / 60;
+  const { accepted, tooLong, live } = filterPlayableSongs(songsFound);
+  if (accepted.length === 0) return interaction.editReply(msg.allSongsRejected(maxMinutes));
+
+  if (serverQueue.songs.length + accepted.length > MAX_QUEUE_SIZE) {
     return interaction.editReply(msg.QUEUE_LIMIT_REACHED);
   }
 
   clearFinishedQueue(serverQueue);
-  serverQueue.songs.push(...songsFound.map(s => ({ ...s, requester: interaction.member.id })));
+  serverQueue.songs.push(...accepted.map(s => ({ ...s, requester: interaction.member.id })));
   saveQueueState(guildId, serverQueue);
+
+  const rejectedNotice = msg.rejectedSongsNotice(tooLong, live, maxMinutes);
 
   if (!serverQueue.currentDeckLoaded) {
     try {
       await deps.playSong(guildId, interaction);
-      return interaction.editReply(serverQueue.sessionRestored ? msg.SESSION_RESTORED_UPDATED : msg.PLAYBACK_STARTING);
+      const started = serverQueue.sessionRestored ? msg.SESSION_RESTORED_UPDATED : msg.PLAYBACK_STARTING;
+      return interaction.editReply(started + rejectedNotice);
     } catch (e) {
       console.error('Error in playSong:', e);
       return interaction.editReply(msg.PLAYBACK_START_ERROR);
@@ -91,7 +102,8 @@ async function addToQueue(interaction, serverQueue, query, deps) {
   if (serverQueue.dashboardMessage) {
     await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
   }
-  if (songsFound.length > 1) return interaction.editReply(msg.songsAdded(songsFound.length));
+  if (accepted.length > 1) return interaction.editReply(msg.songsAdded(accepted.length) + rejectedNotice);
+  if (rejectedNotice) return interaction.editReply(msg.songsAdded(accepted.length) + rejectedNotice);
   return interaction.deleteReply().catch(() => { });
 }
 
@@ -103,6 +115,12 @@ async function execute(interaction, deps) {
 
   if (queue.get(guild.id)?.isTaskRunning) {
     return interaction.reply({ content: msg.TASK_IN_PROGRESS, flags: MessageFlags.Ephemeral });
+  }
+
+  // Only one server at a time may use the player: say so before doing any work,
+  // so the user gets a real answer instead of a silent refusal deeper down.
+  if (!canStartPlayback(guild.id)) {
+    return interaction.reply({ content: msg.PLAYER_BUSY_ELSEWHERE, flags: MessageFlags.Ephemeral });
   }
 
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });

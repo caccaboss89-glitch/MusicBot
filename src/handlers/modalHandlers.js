@@ -7,9 +7,9 @@ import { MessageFlags } from 'discord.js';
 import { loadDatabase, saveDatabase, getUserData, validatePlaylistName } from '../database/playlists.js';
 import { generateSearchResultsView, createDashboardComponents } from '../ui/index.js';
 import { getVideoInfo } from '../utils/youtube.js';
-import { clearFinishedQueue } from '../queue/QueueManager.js';
+import { clearFinishedQueue, filterPlayableSongs } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER } from '../../config/index.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
 import { activeSearches } from './playlistHandlers.js';
 import * as audio from '../audio/index.js';
 import {
@@ -17,6 +17,8 @@ import {
   SEARCH_ERROR,
   NO_RESULTS,
   songsAdded,
+  allSongsRejected,
+  rejectedSongsNotice,
   playlistLimitReached,
   playlistAlreadyExists,
   playlistCreated,
@@ -138,8 +140,14 @@ async function handleModal(interaction, guildId, deps) {
 
     if (found.length === 0) return interaction.editReply(NO_RESULTS);
 
+    // Same acceptance rules as /play: no live streams, nothing over the limit
+    const maxMinutes = MAX_SONG_DURATION_SECONDS / 60;
+    const { accepted, tooLong, live } = filterPlayableSongs(found);
+    if (accepted.length === 0) return interaction.editReply(allSongsRejected(maxMinutes));
+    const rejectedNotice = rejectedSongsNotice(tooLong, live, maxMinutes);
+
     clearFinishedQueue(serverQueue);
-    found.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
+    accepted.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
     saveQueueState(guildId, serverQueue);
 
     // A deck marked as loaded without a live audio chain is stale state left by
@@ -174,7 +182,9 @@ async function handleModal(interaction, guildId, deps) {
     if (serverQueue.dashboardMessage) {
       await serverQueue.dashboardMessage.edit({ components: createDashboardComponents(serverQueue) }).catch(() => { });
     }
-    if (found.length > 1) return interaction.editReply(songsAdded(found.length));
+    if (accepted.length > 1 || rejectedNotice) {
+      return interaction.editReply(songsAdded(accepted.length) + rejectedNotice);
+    }
     return interaction.deleteReply().catch(() => { });
   } finally { serverQueue.isTaskRunning = false; }
 }

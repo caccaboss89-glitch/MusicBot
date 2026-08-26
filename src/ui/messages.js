@@ -16,6 +16,45 @@ export const SEARCH_ERROR = '❌ Errore durante la ricerca.';
 export const SEARCH_TERM_REQUIRED = '❌ Inserisci un termine di ricerca.';
 export const NO_RESULTS = '❌ Nessun risultato.';
 export const QUEUE_LIMIT_REACHED = '❌ **Limite della coda raggiunto!**';
+
+/**
+ * Every result was refused (too long or live).
+ * @param {number} maxMinutes - Maximum track length allowed
+ * @returns {string}
+ */
+export const allSongsRejected = (maxMinutes) =>
+  `❌ Nessuna canzone aggiunta: sono ammesse solo tracce non in diretta e più corte di ${maxMinutes} minuti.`;
+
+/**
+ * Some results were refused: appended to the confirmation message.
+ * @param {number} tooLong - Tracks refused because too long
+ * @param {number} live - Tracks refused because they are live streams
+ * @param {number} maxMinutes - Maximum track length allowed
+ * @returns {string}
+ */
+export const rejectedSongsNotice = (tooLong, live, maxMinutes) => {
+  const parts = [];
+  if (tooLong > 0) parts.push(`${tooLong} più lunghe di ${maxMinutes} minuti`);
+  if (live > 0) parts.push(`${live} in diretta`);
+  return parts.length > 0 ? `
+⚠️ Scartate: ${parts.join(', ')}.` : '';
+};
+
+/**
+ * A single track was refused because it exceeds the length limit.
+ * @param {number} maxMinutes - Maximum track length allowed
+ * @returns {string}
+ */
+export const songTooLong = (maxMinutes) =>
+  `❌ Traccia troppo lunga: il limite è ${maxMinutes} minuti.`;
+
+export const SONG_IS_LIVE = '❌ Le dirette non sono supportate.';
+
+/**
+ * Another server is already using the player.
+ * @returns {string}
+ */
+export const PLAYER_BUSY_ELSEWHERE = '❌ Il player è già in uso in un altro server: riprova quando la riproduzione sarà terminata.';
 export const TASK_IN_PROGRESS = '⚠️ **Sto elaborando...**';
 
 /**
@@ -32,6 +71,14 @@ export const SESSION_RESTORED_UPDATED = '✅ **Sessione ripristinata e aggiornat
 export const PLAYBACK_STARTING = '✅ Avvio riproduzione...';
 export const PLAYBACK_START_ERROR = '❌ Errore durante l\'avvio della riproduzione.';
 export const LOADING_FOOTER = '⏳ Caricamento in corso...';
+
+/**
+ * The bot left the channel after being paused for too long.
+ * @param {number} minutes - Pause limit in minutes
+ * @returns {string}
+ */
+export const pausedTooLong = (minutes) =>
+  `⏸️ In pausa da più di ${minutes} minuti: mi disconnetto per liberare memoria. Usa \`/play\` per riprendere.`;
 export const SKIP_FAILED = '❌ Impossibile saltare. Riprova tra un momento.';
 export const PAUSE_TOGGLE_FAILED = '❌ Impossibile mettere in pausa o riprendere la riproduzione.';
 

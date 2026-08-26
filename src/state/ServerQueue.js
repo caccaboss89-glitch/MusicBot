@@ -65,6 +65,14 @@ class ServerQueue {
     // ── Crash Recovery ──
     this.crashRecoveryAttempts = 0;
     this.intentionalKill = false;
+    // Pending playSong() retry after a mixer crash: cleared by any teardown, so
+    // it can never rejoin a channel the bot has meanwhile left.
+    this._recoveryTimer = null;
+
+    // ── Pause ──
+    // Disconnects the bot once a pause has lasted too long, releasing the
+    // engine and the audio it still holds.
+    this._pauseTimer = null;
 
     // ── UI / Dashboard ──
     this.dashboardMessage = null;

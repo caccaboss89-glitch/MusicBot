@@ -2,7 +2,7 @@ import { Events, ModalBuilder, ActionRowBuilder, TextInputBuilder, TextInputStyl
 import { interactionCooldowns } from '../state/globals.js';
 import { audioOperationBarrier } from '../audio/SerialQueue.js';
 import * as audio from '../audio/index.js';
-import { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong } from '../queue/QueueManager.js';
+import { getCurrentSong, clearFinishedQueue, clearDeckBindings, bindDeckSong, filterPlayableSongs } from '../queue/QueueManager.js';
 import { createDashboardComponents } from '../ui/index.js';
 import { sanitizeTitle, areSameSong, safeParseInt, getYoutubeId } from '../utils/sanitize.js';
 import { getVideoInfo } from '../utils/youtube.js';
@@ -10,7 +10,7 @@ import { getLyrics, chunkLyrics } from '../utils/lyrics.js';
 import { loadDatabase } from '../database/playlists.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { safeReply } from '../utils/discord.js';
-import { MAX_QUEUE_SIZE } from '../../config/index.js';
+import { MAX_QUEUE_SIZE, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
 import { handlePlaylist } from './playlistHandlers.js';
 import handleModal from './modalHandlers.js';
 import * as msg from '../ui/messages.js';
@@ -101,12 +101,17 @@ async function handleYtMix(interaction, serverQueue, guildId, deps) {
     const currentMixSong = getCurrentSong(serverQueue);
     if (currentMixSong && areSameSong(songsFound[0].url, currentMixSong.url)) songsFound.shift();
 
-    if (serverQueue.songs.length + songsFound.length > MAX_QUEUE_SIZE) {
+    // A mix is a raw YouTube playlist: it can hold hours-long tracks and lives
+    const maxMinutes = MAX_SONG_DURATION_SECONDS / 60;
+    const { accepted } = filterPlayableSongs(songsFound);
+    if (accepted.length === 0) return await setStatus(msg.allSongsRejected(maxMinutes));
+
+    if (serverQueue.songs.length + accepted.length > MAX_QUEUE_SIZE) {
       return await setStatus(msg.QUEUE_LIMIT_REACHED);
     }
 
     clearFinishedQueue(serverQueue);
-    songsFound.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
+    accepted.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));
     saveQueueState(guildId, serverQueue);
 
     if (!serverQueue.currentDeckLoaded) {
