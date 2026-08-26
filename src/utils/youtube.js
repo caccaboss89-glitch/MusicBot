@@ -14,8 +14,19 @@ import { UNKNOWN_TITLE } from '../ui/messages.js';
 
 const DURATION_FETCH_CONCURRENCY = 3;  // Duration lookups started at the same time
 const MAX_YTDLP_CONCURRENT = 6;        // Max global yt-dlp processes (cross-guild)
-const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
+// yt-dlp output is accumulated as a string and then parsed, so this is the
+// single biggest allocation the bot makes. 16 MB of --flat-playlist JSON is
+// already several times MAX_QUEUE_SIZE worth of songs, so anything larger
+// would be turned away by the queue limit anyway.
+const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
 const MAX_STDERR_CHARS = 8 * 1024;     // Keep only the tail we would ever log
+// A process that ignores the kill signal would leave runYtDlp() pending for
+// good, and with it the semaphore slot it holds.
+const KILL_ESCALATION_MS = 5000;
+// Ceiling on the per-request duration backfill. Each lookup is its own yt-dlp
+// run, so a playlist with hundreds of entries missing a duration could keep a
+// command waiting far longer than its interaction stays valid.
+const MAX_DURATION_LOOKUPS = 60;
 
 const FALLBACK_THUMBNAIL = 'https://i.imgur.com/AfFp7pu.png';
 
@@ -75,16 +86,34 @@ function runYtDlp(args, timeoutMs, label) {
     let timedOut = false;
     let tooLarge = false;
 
+    // Escalated to SIGKILL if the process is still around: 'close' is the only
+    // thing that settles this promise, so a child that survives its kill would
+    // hold a semaphore slot for the life of the bot.
+    let killEscalation = null;
+    const killChild = () => {
+      try { child.kill(); } catch { /* already gone */ }
+      if (killEscalation) return;
+      killEscalation = setTimeout(() => {
+        try { child.kill('SIGKILL'); } catch { /* already gone */ }
+      }, KILL_ESCALATION_MS);
+      killEscalation.unref?.();
+    };
+
+    const clearTimers = () => {
+      clearTimeout(killTimer);
+      if (killEscalation) clearTimeout(killEscalation);
+    };
+
     const killTimer = setTimeout(() => {
       timedOut = true;
-      child.kill();
+      killChild();
     }, timeoutMs);
 
     child.stdout.on('data', chunk => {
       stdout += chunk;
       if (stdout.length > MAX_OUTPUT_BYTES) {
         tooLarge = true;
-        child.kill();
+        killChild();
       }
     });
 
@@ -94,13 +123,13 @@ function runYtDlp(args, timeoutMs, label) {
     });
 
     child.on('error', (e) => {
-      clearTimeout(killTimer);
+      clearTimers();
       console.error(`❌ [${label}] Process spawn error: ${e.message}`);
       reject(e);
     });
 
     child.on('close', (code) => {
-      clearTimeout(killTimer);
+      clearTimers();
       resolve({ stdout, stderr, code, timedOut, tooLarge });
     });
   });
@@ -152,10 +181,19 @@ async function getVideoDuration(videoUrl) {
  * Fills in the duration of the songs missing one, a few at a time.
  * Runs OUTSIDE the caller's semaphore slot so the lookups cannot deadlock
  * against the request that produced them.
+ *
+ * Capped at MAX_DURATION_LOOKUPS: a flat playlist normally comes back with
+ * durations already filled in, and when it does not, spawning one yt-dlp run
+ * per entry would keep the caller waiting minutes. Songs left without a
+ * duration are still queueable — the audio engine has its own ceiling.
  * @param {Array<{url: string, duration: number}>} songs - Mutated in place
  */
 async function enrichMissingDurations(songs) {
-  const pending = songs.filter(s => !s.duration);
+  const missing = songs.filter(s => !s.duration);
+  const pending = missing.slice(0, MAX_DURATION_LOOKUPS);
+  if (missing.length > pending.length) {
+    console.warn(`⚠️ [DURATION] ${missing.length} songs without duration, looking up only the first ${pending.length}`);
+  }
   for (let i = 0; i < pending.length; i += DURATION_FETCH_CONCURRENCY) {
     const batch = pending.slice(i, i + DURATION_FETCH_CONCURRENCY);
     await Promise.all(batch.map(async (song) => {
