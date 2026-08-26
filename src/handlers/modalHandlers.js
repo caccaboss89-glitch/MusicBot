@@ -9,7 +9,7 @@ import { generateSearchResultsView, createDashboardComponents } from '../ui/inde
 import { getVideoInfo } from '../utils/youtube.js';
 import { clearFinishedQueue, filterPlayableSongs } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
-import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLISTS_PER_USER, MAX_SONG_DURATION_SECONDS, MAX_QUEUE_SIZE } from '../../config/index.js';
 import { activeSearches } from './playlistHandlers.js';
 import * as audio from '../audio/index.js';
 import {
@@ -17,6 +17,7 @@ import {
   SEARCH_ERROR,
   NO_RESULTS,
   songsAdded,
+  QUEUE_LIMIT_REACHED,
   allSongsRejected,
   rejectedSongsNotice,
   playlistLimitReached,
@@ -145,6 +146,10 @@ async function handleModal(interaction, guildId, deps) {
     const { accepted, tooLong, live } = filterPlayableSongs(found);
     if (accepted.length === 0) return interaction.editReply(allSongsRejected(maxMinutes));
     const rejectedNotice = rejectedSongsNotice(tooLong, live, maxMinutes);
+
+    if (serverQueue.songs.length + accepted.length > MAX_QUEUE_SIZE) {
+      return interaction.editReply(QUEUE_LIMIT_REACHED);
+    }
 
     clearFinishedQueue(serverQueue);
     accepted.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.user.id }));

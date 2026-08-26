@@ -10,7 +10,7 @@ import { sanitizeTitle, areSameSong, safeParseInt } from '../utils/sanitize.js';
 import { clearFinishedQueue, insertSongAtIndex, getCurrentSong, filterPlayableSongs, songRejectionReason } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { safeReply } from '../utils/discord.js';
-import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH, MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
+import { DEFAULT_PLAYLIST_NAME, MAX_PLAYLIST_NAME_LENGTH, MAX_SONG_DURATION_SECONDS, MAX_QUEUE_SIZE } from '../../config/index.js';
 import * as audio from '../audio/index.js';
 import { recordPlaylistAdd } from '../database/stats.js';
 import {
@@ -24,6 +24,7 @@ import {
   REMOVE_BUTTON,
   BACK_MODAL_BUTTON,
   playlistSongsAdded,
+  QUEUE_LIMIT_REACHED,
   allSongsRejected,
   rejectedSongsNotice,
   songTooLong,
@@ -136,6 +137,10 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
     const { accepted, tooLong, live } = filterPlayableSongs(items);
     if (accepted.length === 0) return await safeReply(interaction, { content: allSongsRejected(maxMinutes), flags: MessageFlags.Ephemeral }), true;
 
+    if (serverQueue.songs.length + accepted.length > MAX_QUEUE_SIZE) {
+      return await safeReply(interaction, { content: QUEUE_LIMIT_REACHED, flags: MessageFlags.Ephemeral }), true;
+    }
+
     const toAdd = accepted.map(s => ({ ...s, requester: interaction.user.id }));
     for (let i = toAdd.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -243,7 +248,8 @@ async function handlePlaylist(interaction, serverQueue, guildId, customId, deps)
         const insertAt = (serverQueue.playIndex || 0) + 1;
         const inserted = insertSongAtIndex(serverQueue, playObj, insertAt);
         if (!inserted.success) {
-          await safeReply(interaction, { content: SONG_NOT_FOUND, flags: MessageFlags.Ephemeral });
+          const content = inserted.reason === 'queue_full' ? QUEUE_LIMIT_REACHED : SONG_NOT_FOUND;
+          await safeReply(interaction, { content, flags: MessageFlags.Ephemeral });
           return true;
         }
         await audio.updatePreloadAfterQueueChange(guildId);

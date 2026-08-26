@@ -10,7 +10,7 @@
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
 import { saveQueueState } from './persistence.js';
 import { stateVersionManager } from '../state/StateVersion.js';
-import { MAX_SONG_DURATION_SECONDS } from '../../config/index.js';
+import { MAX_SONG_DURATION_SECONDS, MAX_QUEUE_SIZE } from '../../config/index.js';
 
 /**
  * Check if the bot is alone in the voice channel
@@ -214,11 +214,16 @@ function isValidSong(song) {
  * @param {object} serverQueue - Server queue
  * @param {object} song - Song to insert
  * @param {number} index - Insertion index
- * @returns {{success: boolean, error?: string}}
+ * @returns {{success: boolean, error?: string, reason?: string}}
  */
 function insertSongAtIndex(serverQueue, song, index) {
   if (!serverQueue || !serverQueue.songs) {
     return { success: false, error: 'Invalid queue' };
+  }
+  // The same ceiling /play enforces: it was missing on every path that inserts
+  // rather than appends, so the queue could grow past it one song at a time.
+  if (serverQueue.songs.length >= MAX_QUEUE_SIZE) {
+    return { success: false, reason: 'queue_full', error: `Queue limit reached (${MAX_QUEUE_SIZE})` };
   }
   if (!isValidSong(song) || index < 0) {
     console.warn('⚠️ [QUEUE-INSERT] Attempted to insert invalid song');
