@@ -17,11 +17,6 @@ export const DEFAULT_PLAYLIST_NAME = 'Generale'; // Default personal playlist na
 // the Rust side: keep the two in step.
 export const MAX_SONG_DURATION_SECONDS = 12 * 60;
 
-// Only one guild may be playing at a time across the whole process: each
-// playback owns a Rust engine holding up to two decks' worth of samples, and
-// the host shares its RAM with three other bots.
-export const MAX_CONCURRENT_PLAYBACK_SESSIONS = 1;
-
 // --- TIMING CONSTANTS (AUDIO) ---
 export const CROSSFADE_DURATION_MS = 6000;       // Standard crossfade duration (6 seconds)
 

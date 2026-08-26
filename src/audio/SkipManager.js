@@ -223,9 +223,10 @@ async function performTransition(guildId, targetIndex, reason) {
       }
 
       // ── DEFERRED TRANSITION ──
-      // Download on Linux takes 10-12s; waiting here would block the barrier
-      // and cause systematic timeouts. Instead we register pendingTransition and
-      // return immediately. completePendingTransition() will be called by:
+      // A cold start has to reach YouTube before it has a single sample, which
+      // is seconds even on a good connection: waiting for it here would hold the
+      // barrier and time out. Instead we register pendingTransition and return
+      // immediately. completePendingTransition() will be called by:
       //   • handleBufferReady()   → deck ready while song still playing
       //   • handleAutoEndSwitch() → Rust switched autonomously via auto-gapless stall
 
