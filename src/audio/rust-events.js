@@ -376,8 +376,8 @@ async function handleDeckFailed(guildId, data) {
   bindDeckSong(sq, deck, null, null);
 
   // Move past the unplayable song, or close the queue if it was the last one.
-  // Failing songs in a row means streaming itself is broken (yt-dlp, proxy,
-  // network): stop instead of grinding through the queue one error at a time.
+  // Failing songs in a row means streaming itself is broken (yt-dlp, network,
+  // YouTube blocking): stop instead of grinding through the queue one error at a time.
   const nextIndex = ((failedIndex !== null && failedIndex !== undefined) ? failedIndex : (sq.playIndex || 0)) + 1;
   sq._consecutiveFailures = (sq._consecutiveFailures || 0) + 1;
   const giveUp = sq._consecutiveFailures >= MAX_CONSECUTIVE_PLAYBACK_FAILURES || nextIndex >= sq.songs.length;

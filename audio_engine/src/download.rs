@@ -14,8 +14,8 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::config::{
-    default_ytdlp_cookie_browser, default_ytdlp_proxy_url, env_opt, get_base_path,
-    get_download_watchdog_secs, CHANNELS, SAMPLE_RATE,
+    default_ytdlp_cookie_browser, env_opt, get_base_path, get_download_watchdog_secs, CHANNELS,
+    SAMPLE_RATE,
 };
 use crate::protocol::send_log;
 
@@ -56,19 +56,12 @@ pub fn download_and_decode_advanced(
 
     yt_dlp_cmd.env("PATH", env::var("PATH").unwrap_or_default());
 
-    // Proxy: default socks5h://127.0.0.1:5040; YTDLP_PROXY_URL=none to disable
-    let proxy_url = env_opt("YTDLP_PROXY_URL").or_else(|| {
-        if env::var("YTDLP_PROXY_URL").is_ok() {
-            None
-        } else {
-            Some(default_ytdlp_proxy_url())
-        }
-    });
+    // Proxy: none by default, the bot goes out on a residential connection.
+    // Set YTDLP_PROXY_URL only to route the download through a tunnel/VPN.
+    let proxy_url = env_opt("YTDLP_PROXY_URL");
     if let Some(ref proxy) = proxy_url {
         send_log("info", &format!("yt-dlp proxy active: {}", proxy));
         yt_dlp_cmd.arg("--proxy").arg(proxy);
-    } else {
-        send_log("info", "yt-dlp proxy disabled (YTDLP_PROXY_URL=none)");
     }
 
     // Cookie browser: disabled by default on Linux; YTDLP_COOKIE_BROWSER=chromium to force them
@@ -344,10 +337,8 @@ pub fn download_and_decode_advanced(
                         send_log(
                             "error",
                             &format!(
-                                "Check: (3) SOCKS proxy/tunnel active (proxy: {})",
-                                proxy_url
-                                    .as_deref()
-                                    .unwrap_or("none")
+                                "Check: (3) outbound network reachable (proxy: {})",
+                                proxy_url.as_deref().unwrap_or("direct")
                             ),
                         );
                         if let Ok(buf) = stderr_lines.lock() {

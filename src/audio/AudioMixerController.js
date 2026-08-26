@@ -49,7 +49,9 @@ class AudioMixerController {
 
     console.info(`🦀 [RUST] Starting audio engine for ${this.guildId}`);
 
-    // Pass DISCORD_BOT_PATH and yt-dlp config to Rust process (same defaults as config/paths.js)
+    // Pass DISCORD_BOT_PATH and the yt-dlp config to the Rust process, resolved
+    // here so both languages agree on it. The proxy has no default: 'none' is
+    // sent unless YTDLP_PROXY_URL explicitly configures one.
     const proxyUrl = resolveYtDlpProxyUrl();
     const cookieBrowser = resolveYtDlpCookieBrowser();
     const env = {

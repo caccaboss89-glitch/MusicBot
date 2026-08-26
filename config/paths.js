@@ -13,7 +13,6 @@ const __dirname = path.dirname(__filename);
 export const ROOT_DIR = path.join(__dirname, '..');
 export const IS_WINDOWS = process.platform === 'win32';
 export const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
-export const DEFAULT_YTDLP_PROXY_URL = 'socks5h://127.0.0.1:5040';
 export const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:player_client=web,android,ios,mweb';
 export const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -23,12 +22,16 @@ export function isEnvDisabled(value) {
   return v === 'none' || v === 'off' || v === 'false' || v === '0' || v === 'no';
 }
 
+/**
+ * Proxy for yt-dlp. There is NO default: the bot runs on a residential
+ * connection and talks to YouTube directly. Set YTDLP_PROXY_URL only if that
+ * ever has to change again (VPN, tunnel, another network).
+ * @returns {string} Proxy URL, or '' when no proxy must be used
+ */
 export function resolveYtDlpProxyUrl() {
-  if (process.env.YTDLP_PROXY_URL !== undefined) {
-    const raw = process.env.YTDLP_PROXY_URL.trim();
-    return isEnvDisabled(raw) ? '' : raw;
-  }
-  return DEFAULT_YTDLP_PROXY_URL;
+  const raw = process.env.YTDLP_PROXY_URL;
+  if (raw === undefined) return '';
+  return isEnvDisabled(raw) ? '' : raw.trim();
 }
 
 export function resolveYtDlpCookieBrowser() {
@@ -36,7 +39,7 @@ export function resolveYtDlpCookieBrowser() {
     const raw = process.env.YTDLP_COOKIE_BROWSER.trim();
     return isEnvDisabled(raw) ? null : raw;
   }
-  // On Linux VPS, Chromium cookies often give only images / no bestaudio
+  // On Linux servers, Chromium cookies often give only images / no bestaudio
   return IS_WINDOWS ? 'chromium' : null;
 }
 

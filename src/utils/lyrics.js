@@ -7,8 +7,8 @@
  *  - Direct REST API returning plainLyrics / syncedLyrics
  *  - Legal and designed for music bots
  *
- * Uses native `https` module (no extra dependencies). LRCLIB is
- * directly reachable: does NOT go through the SOCKS proxy used for YouTube.
+ * Uses native `https` module (no extra dependencies): the request goes out
+ * directly, it is never routed through any yt-dlp proxy setting.
  * If the title doesn't include the artist, uses YouTube oEmbed on the video link.
  */
 
