@@ -12,8 +12,15 @@ import {
 import { normalizeYoutubeUrl } from './sanitize.js';
 import { UNKNOWN_TITLE } from '../ui/messages.js';
 
-const DURATION_FETCH_CONCURRENCY = 3;  // Duration lookups started at the same time
-const MAX_YTDLP_CONCURRENT = 6;        // Max global yt-dlp processes (cross-guild)
+// Every yt-dlp run is a full Python interpreter loading the whole package:
+// 60-120 MB of RSS each. These caps exist for memory, not for politeness to
+// YouTube. They used to be 3 and 6, chosen when the bot reached YouTube through
+// a SOCKS tunnel that throttled the requests long before the process count
+// mattered. On a direct connection the caps are reached for real, and six
+// interpreters at once put 350-700 MB on top of the audio engine and Node,
+// which is most of the service's memory budget.
+const DURATION_FETCH_CONCURRENCY = 2;  // Duration lookups started at the same time
+const MAX_YTDLP_CONCURRENT = 3;        // Max global yt-dlp processes (cross-guild)
 // yt-dlp output is accumulated as a string and then parsed, so this is the
 // single biggest allocation the bot makes. 16 MB of --flat-playlist JSON is
 // already several times MAX_QUEUE_SIZE worth of songs, so anything larger

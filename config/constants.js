@@ -31,5 +31,9 @@ export const MAX_CONSECUTIVE_PLAYBACK_FAILURES = 3; // Unplayable songs in a row
 // --- TIMING CONSTANTS (TIMEOUT) ---
 export const VOICE_CONNECTION_TIMEOUT_MS = 20000; // Voice connection timeout (20 sec) - allows Rust engine to start
 export const VIDEO_DURATION_TIMEOUT_MS = 15000;  // Timeout for getVideoDuration()
-export const VIDEO_INFO_TIMEOUT_MS = 120000;     // Timeout for getVideoInfo()
+// Timeout for getVideoInfo(). A stalled lookup holds one of the yt-dlp
+// concurrency slots for this whole time, so it is a throughput limit as much as
+// a timeout. Two minutes was sized for a request going through a SOCKS tunnel;
+// on a direct connection 45 seconds is already generous.
+export const VIDEO_INFO_TIMEOUT_MS = 45000;
 export const SKIP_THROTTLE_MS = 250;             // Throttle between fast skips (250ms, increased from 150)
