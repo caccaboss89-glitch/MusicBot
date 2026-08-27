@@ -97,6 +97,23 @@ pub fn download_and_decode_advanced(
             "yt-dlp cookies-from-browser disabled (YTDLP_COOKIE_BROWSER=none)",
         );
     }
+
+    // JS engine for YouTube's `n` challenge. yt-dlp enables only deno on its
+    // own, so without this it downloads whatever formats survive the failed
+    // challenge instead of the best audio. Node is the safe default: it is the
+    // process that spawned this one. YTDLP_JS_RUNTIME=none hands the choice
+    // back to yt-dlp.
+    let js_runtime = env_opt("YTDLP_JS_RUNTIME").or_else(|| {
+        if env::var("YTDLP_JS_RUNTIME").is_ok() {
+            None
+        } else {
+            Some("node".to_string())
+        }
+    });
+    if let Some(ref runtime) = js_runtime {
+        yt_dlp_cmd.arg("--js-runtimes").arg(runtime);
+    }
+
     yt_dlp_cmd.arg("--mark-watched");
 
     // Fallback to cookies file if exists

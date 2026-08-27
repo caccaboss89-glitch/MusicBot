@@ -17,7 +17,8 @@ import {
   CROSSFADE_DURATION_MS,
   resolveYtDlpProxyUrl,
   resolveYtDlpCookieBrowser,
-  resolveYtDlpExtractorArgs
+  resolveYtDlpExtractorArgs,
+  resolveYtDlpJsRuntime
 } from '../../config/index.js';
 import { getNextMixerGeneration } from '../state/globals.js';
 
@@ -71,6 +72,7 @@ class AudioMixerController {
       PYTHON_BIN,
       YTDLP_PROXY_URL: proxyUrl || 'none',
       YTDLP_COOKIE_BROWSER: cookieBrowser || 'none',
+      YTDLP_JS_RUNTIME: resolveYtDlpJsRuntime() || 'none',
       YTDLP_EXTRACTOR_ARGS: resolveYtDlpExtractorArgs()
     };
 

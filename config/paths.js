@@ -14,6 +14,13 @@ export const ROOT_DIR = path.join(__dirname, '..');
 export const IS_WINDOWS = process.platform === 'win32';
 export const PYTHON_BIN = process.env.PYTHON_BIN || (IS_WINDOWS ? 'python' : 'python3');
 export const DEFAULT_YTDLP_EXTRACTOR_ARGS = 'youtube:player_client=web,android,ios,mweb';
+// yt-dlp needs a JavaScript engine to solve YouTube's `n` challenge, and it
+// enables only deno on its own. Node is the one interpreter this bot is
+// guaranteed to have, so it is the default here. Without it the extraction
+// still succeeds, which is what makes the problem easy to miss: it just
+// silently returns fewer formats, and with cookies present it fails outright
+// with "The page needs to be reloaded".
+export const DEFAULT_YTDLP_JS_RUNTIME = 'node';
 export const DEFAULT_YTDLP_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export function isEnvDisabled(value) {
@@ -32,6 +39,18 @@ export function resolveYtDlpProxyUrl() {
   const raw = process.env.YTDLP_PROXY_URL;
   if (raw === undefined) return '';
   return isEnvDisabled(raw) ? '' : raw.trim();
+}
+
+/**
+ * JavaScript engine yt-dlp uses to solve YouTube's `n` challenge.
+ * @returns {string|null} Runtime name, or null to let yt-dlp decide on its own
+ */
+export function resolveYtDlpJsRuntime() {
+  if (process.env.YTDLP_JS_RUNTIME !== undefined) {
+    const raw = process.env.YTDLP_JS_RUNTIME.trim();
+    return isEnvDisabled(raw) ? null : raw;
+  }
+  return DEFAULT_YTDLP_JS_RUNTIME;
 }
 
 export function resolveYtDlpCookieBrowser() {
@@ -84,9 +103,15 @@ export function getYtDlpCommand(additionalArgs = []) {
   const extractorArgsValue = resolveYtDlpExtractorArgs();
   const extractorArgs = extractorArgsValue ? ['--extractor-args', extractorArgsValue] : [];
   const userAgentArgs = ['--user-agent', DEFAULT_YTDLP_USER_AGENT];
+  const jsRuntime = resolveYtDlpJsRuntime();
+  const jsRuntimeArgs = jsRuntime ? ['--js-runtimes', jsRuntime] : [];
 
   return {
     cmd: PYTHON_BIN,
-    args: ['-m', 'yt_dlp', ...proxyArgs, ...cookiesFromBrowserArgs, ...extractorArgs, ...userAgentArgs, ...additionalArgs]
+    args: [
+      '-m', 'yt_dlp',
+      ...proxyArgs, ...cookiesFromBrowserArgs, ...jsRuntimeArgs,
+      ...extractorArgs, ...userAgentArgs, ...additionalArgs
+    ]
   };
 }
