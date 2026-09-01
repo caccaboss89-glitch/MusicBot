@@ -5,7 +5,9 @@
 import { spawn } from 'child_process';
 import {
   LOCAL_TEMP_DIR,
+  MAX_QUEUE_SIZE,
   VIDEO_DURATION_TIMEOUT_MS,
+  VIDEO_INFO_MAX_MS,
   VIDEO_INFO_TIMEOUT_MS,
   getYtDlpCommand
 } from '../../config/index.js';
@@ -21,11 +23,13 @@ import { UNKNOWN_TITLE } from '../ui/messages.js';
 // which is most of the service's memory budget.
 const DURATION_FETCH_CONCURRENCY = 2;  // Duration lookups started at the same time
 const MAX_YTDLP_CONCURRENT = 3;        // Max global yt-dlp processes (cross-guild)
-// yt-dlp output is accumulated as a string and then parsed, so this is the
-// single biggest allocation the bot makes. 16 MB of --flat-playlist JSON is
-// already several times MAX_QUEUE_SIZE worth of songs, so anything larger
-// would be turned away by the queue limit anyway.
+// Cap for the runs whose output is accumulated as a string and then parsed
+// (a single -J document). Playlist enumeration does not go through this path:
+// it is read line by line and never held in full, so a playlist of tens of
+// thousands of entries costs only the songs kept from it.
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
+// A single JSON line describes one video. Anything this long is not one.
+const MAX_LINE_BYTES = 4 * 1024 * 1024;
 const MAX_STDERR_CHARS = 8 * 1024;     // Keep only the tail we would ever log
 // A process that ignores the kill signal would leave runYtDlp() pending for
 // good, and with it the semaphore slot it holds.
@@ -79,17 +83,30 @@ async function withSlot(task) {
  * Spawns yt-dlp and resolves its stdout once the process exits.
  * Always drains stderr: an unread pipe fills up and blocks the child process.
  * @param {string[]} args - Arguments for yt-dlp
- * @param {number} timeoutMs - Kill the process after this long
+ * @param {number} timeoutMs - Kill the process after this long without output
  * @param {string} label - Log prefix
+ * @param {object} [opts]
+ * @param {(line: string) => boolean} [opts.onLine] - Called with every complete
+ *   stdout line INSTEAD of buffering stdout, so the output is never held whole.
+ *   Return false to stop reading and kill the process; `stdout` then resolves empty.
+ * @param {number} [opts.maxTotalMs] - Ceiling on the whole run, refreshed output
+ *   or not. Without it only the idle timeout applies.
  * @returns {Promise<{stdout: string, stderr: string, code: number|null, timedOut: boolean, tooLarge: boolean}>}
  */
-function runYtDlp(args, timeoutMs, label) {
+function runYtDlp(args, timeoutMs, label, opts = {}) {
+  const { onLine = null, maxTotalMs = 0 } = opts;
   return new Promise((resolve, reject) => {
     const { cmd, args: fullArgs } = getYtDlpCommand(args);
     const child = spawn(cmd, fullArgs);
+    // Decoded as text: a multi-byte character split across two chunks would
+    // otherwise be mangled, and here every chunk is concatenated to the last.
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
 
     let stdout = '';
     let stderr = '';
+    let pending = '';   // Tail of the last chunk, up to the next newline
+    let reading = onLine !== null;
     let timedOut = false;
     let tooLarge = false;
 
@@ -107,16 +124,55 @@ function runYtDlp(args, timeoutMs, label) {
     };
 
     const clearTimers = () => {
-      clearTimeout(killTimer);
+      clearTimeout(idleTimer);
+      if (totalTimer) clearTimeout(totalTimer);
       if (killEscalation) clearTimeout(killEscalation);
     };
 
-    const killTimer = setTimeout(() => {
+    const onTimeout = () => {
       timedOut = true;
       killChild();
-    }, timeoutMs);
+    };
+
+    // Idle timer: restarted on every chunk, so only a process that has gone
+    // quiet is killed. The total timer is what bounds a run that keeps talking.
+    let idleTimer = setTimeout(onTimeout, timeoutMs);
+    const totalTimer = maxTotalMs > 0 ? setTimeout(onTimeout, maxTotalMs) : null;
+
+    // Feeds `onLine` every complete line and reports whether to keep reading
+    const consumeLines = (flush) => {
+      let newline;
+      while ((newline = pending.indexOf('\n')) !== -1) {
+        const line = pending.slice(0, newline).trim();
+        pending = pending.slice(newline + 1);
+        if (line && !onLine(line)) return false;
+      }
+      if (pending.length > MAX_LINE_BYTES) {
+        tooLarge = true;
+        return false;
+      }
+      if (flush && pending.trim()) {
+        const line = pending.trim();
+        pending = '';
+        return onLine(line);
+      }
+      return true;
+    };
 
     child.stdout.on('data', chunk => {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(onTimeout, timeoutMs);
+
+      if (onLine) {
+        if (!reading) return;   // Already told to stop: the kill is on its way
+        pending += chunk;
+        if (!consumeLines(false)) {
+          reading = false;
+          killChild();
+        }
+        return;
+      }
+
       stdout += chunk;
       if (stdout.length > MAX_OUTPUT_BYTES) {
         tooLarge = true;
@@ -137,6 +193,8 @@ function runYtDlp(args, timeoutMs, label) {
 
     child.on('close', (code) => {
       clearTimers();
+      // A process that exits without a trailing newline still has one last line
+      if (reading) consumeLines(true);
       resolve({ stdout, stderr, code, timedOut, tooLarge });
     });
   });
@@ -162,7 +220,7 @@ async function getVideoDuration(videoUrl) {
         '--paths', `home:${LOCAL_TEMP_DIR}`,
         '-J',
         url
-      ], VIDEO_DURATION_TIMEOUT_MS, 'DURATION');
+      ], VIDEO_DURATION_TIMEOUT_MS, 'DURATION', { maxTotalMs: VIDEO_DURATION_TIMEOUT_MS });
     } catch {
       return 0;
     }
@@ -227,6 +285,12 @@ function toSong(entry) {
 
 /**
  * Gets complete information about a video, playlist or search term.
+ *
+ * yt-dlp is asked for one JSON document per entry (-j) rather than a single
+ * document for the whole playlist (-J), and the lines are turned into songs as
+ * they arrive: only the songs are kept, never the output that produced them.
+ * Reading stops as soon as MAX_QUEUE_SIZE entries are in hand, since the queue
+ * would refuse the rest anyway.
  * @param {string} query - URL or search term
  * @returns {Promise<Array>} - Array of song objects (empty if nothing usable was found)
  * @throws {Error} - 'TIMEOUT' or 'TOO_LARGE' when yt-dlp had to be killed
@@ -239,9 +303,12 @@ async function getVideoInfo(query) {
   const target = query.startsWith('http') ? normalizeYoutubeUrl(query.trim()) : query.trim();
 
   const songs = await withSlot(async () => {
+    const collected = [];
+    let unparsable = 0;
+
     const result = await runYtDlp([
       '--flat-playlist',
-      '-J',
+      '-j',
       '--no-warnings',
       '--mark-watched',
       '--no-cache-dir',
@@ -260,39 +327,42 @@ async function getVideoInfo(query) {
       '--compat-options', 'no-youtube-unavailable-videos',
       '--yes-playlist',
       target.startsWith('http') ? target : `ytsearch1:${target}`
-    ], VIDEO_INFO_TIMEOUT_MS, 'YT-INFO');
+    ], VIDEO_INFO_TIMEOUT_MS, 'YT-INFO', {
+      maxTotalMs: VIDEO_INFO_MAX_MS,
+      onLine: (line) => {
+        let entry;
+        try {
+          entry = JSON.parse(line);
+        } catch {
+          unparsable++;
+          return true;   // One malformed entry must not lose the whole playlist
+        }
+        if (entry && typeof entry === 'object') {
+          const song = toSong(entry);
+          if (song.url) collected.push(song);
+        }
+        return collected.length < MAX_QUEUE_SIZE;
+      }
+    });
 
-    if (result.timedOut) throw new Error('TIMEOUT');
-    if (result.tooLarge) throw new Error('TOO_LARGE');
+    if (unparsable > 0) {
+      console.warn(`[getVideoInfo] ${unparsable} unparsable entr${unparsable === 1 ? 'y' : 'ies'} for "${target.substring(0, 80)}"`);
+    }
+    // A run killed part-way still has everything it managed to enumerate:
+    // dropping thousands of songs already in hand would help nobody.
+    if (result.timedOut) {
+      if (collected.length === 0) throw new Error('TIMEOUT');
+      console.warn(`[getVideoInfo] Timed out after ${collected.length} songs, keeping them`);
+    }
+    if (result.tooLarge && collected.length === 0) throw new Error('TOO_LARGE');
 
-    if (!result.stdout) {
+    if (collected.length === 0) {
       console.warn(`[getVideoInfo] No data from yt-dlp for query: ${target.substring(0, 120)}`);
       if (result.stderr) console.warn(`[getVideoInfo] stderr: ${result.stderr.substring(0, 300)}`);
-      return [];
+    } else if (collected.length >= MAX_QUEUE_SIZE) {
+      console.warn(`[getVideoInfo] Stopped at the queue ceiling (${MAX_QUEUE_SIZE} songs)`);
     }
-
-    let info;
-    try {
-      info = JSON.parse(result.stdout);
-    } catch (e) {
-      console.warn(`[getVideoInfo] Unparsable yt-dlp output for "${target.substring(0, 80)}": ${e.message}`);
-      console.warn(`[getVideoInfo] Raw data (first 500 chars): ${result.stdout.substring(0, 500)}`);
-      return [];
-    }
-
-    if (!info || typeof info !== 'object') {
-      console.warn(`[getVideoInfo] yt-dlp returned null/empty for query: ${target.substring(0, 120)}`);
-      return [];
-    }
-
-    // Playlist or search results
-    if (Array.isArray(info.entries) && info.entries.length > 0) {
-      return info.entries.map(toSong).filter(s => s.url);
-    }
-
-    // Single video
-    const song = toSong(info);
-    return song.url ? [song] : [];
+    return collected;
   });
 
   await enrichMissingDurations(songs);

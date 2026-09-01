@@ -4,7 +4,12 @@
  */
 
 // --- LIMITS ---
-export const MAX_QUEUE_SIZE = 1000;              // Maximum number of songs in queue
+// Ceiling on the queued songs of a single guild. Each entry is a small metadata
+// object (title, url, thumbnail, requester, duration), so the queue itself costs
+// a few hundred bytes per song: what used to make a huge playlist expensive was
+// buffering yt-dlp's whole JSON dump and rewriting the backup file synchronously,
+// and neither is done that way any more (src/utils/youtube.js, src/queue/persistence.js).
+export const MAX_QUEUE_SIZE = 50000;             // Maximum number of songs in queue
 export const PLAYLIST_PAGE_SIZE = 25;            // Items per page in playlists
 export const MAX_PLAYLIST_NAME_LENGTH = 20;      // Maximum length of personal playlist name
 export const MAX_PLAYLISTS_PER_USER = 25;        // Maximum number of playlists per user
@@ -31,9 +36,15 @@ export const MAX_CONSECUTIVE_PLAYBACK_FAILURES = 3; // Unplayable songs in a row
 // --- TIMING CONSTANTS (TIMEOUT) ---
 export const VOICE_CONNECTION_TIMEOUT_MS = 20000; // Voice connection timeout (20 sec) - allows Rust engine to start
 export const VIDEO_DURATION_TIMEOUT_MS = 15000;  // Timeout for getVideoDuration()
-// Timeout for getVideoInfo(). A stalled lookup holds one of the yt-dlp
-// concurrency slots for this whole time, so it is a throughput limit as much as
-// a timeout. Two minutes was sized for a request going through a SOCKS tunnel;
-// on a direct connection 45 seconds is already generous.
+// Idle timeout for getVideoInfo(): yt-dlp is killed when it produces nothing
+// for this long. A stalled lookup holds one of the yt-dlp concurrency slots for
+// this whole time, so it is a throughput limit as much as a timeout. Two minutes
+// was sized for a request going through a SOCKS tunnel; on a direct connection
+// 45 seconds is already generous.
 export const VIDEO_INFO_TIMEOUT_MS = 45000;
+// Ceiling on a whole getVideoInfo() run. Enumerating a playlist of thousands of
+// entries keeps yt-dlp writing for minutes, so it never goes idle long enough to
+// trip the timeout above: this is what bounds the slot it holds. Kept well under
+// the 15 minutes a deferred interaction stays repliable.
+export const VIDEO_INFO_MAX_MS = 10 * 60 * 1000;
 export const SKIP_THROTTLE_MS = 250;             // Throttle between fast skips (250ms, increased from 150)

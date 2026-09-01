@@ -81,7 +81,9 @@ async function addToQueue(interaction, serverQueue, query, deps) {
   }
 
   clearFinishedQueue(serverQueue);
-  serverQueue.songs.push(...accepted.map(s => ({ ...s, requester: interaction.member.id })));
+  // Appended one by one: push(...songs) passes every song as an argument, and a
+  // playlist the size of the queue ceiling would blow the argument limit.
+  accepted.forEach(s => serverQueue.songs.push({ ...s, requester: interaction.member.id }));
   saveQueueState(guildId, serverQueue);
 
   const rejectedNotice = msg.rejectedSongsNotice(tooLong, live, maxMinutes);
