@@ -1,8 +1,8 @@
 {
   "users": {
     "704006042819756083": {
-      "listeningTimeMs": 102929577,
-      "serverPlaylistAdds": 111,
+      "listeningTimeMs": 103406452,
+      "serverPlaylistAdds": 112,
       "personalPlaylistAdds": 152,
       "songPlays": {
         "https://www.youtube.com/watch?v=7Eqy1u2frPU": {
@@ -1622,8 +1622,8 @@
         "https://www.youtube.com/watch?v=WzmJWVVri-Q": {
           "title": "Tony Boy, Sick Luke - Rock’n’roll",
           "url": "https://www.youtube.com/watch?v=WzmJWVVri-Q",
-          "thumbnail": "https://i.ytimg.com/vi_webp/WzmJWVVri-Q/maxresdefault.webp",
-          "count": 1
+          "thumbnail": "https://i.ytimg.com/vi/WzmJWVVri-Q/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBApZqxLdXtCJWwI8wSvRjkkPC-TA",
+          "count": 2
         },
         "https://www.youtube.com/watch?v=4J-qYNLZzWs": {
           "title": "Tony Boy - Uragano (Visual Video)",
@@ -1972,6 +1972,18 @@
           "url": "https://www.youtube.com/watch?v=37Qg69N2F2c",
           "thumbnail": "https://i.ytimg.com/vi/37Qg69N2F2c/maxresdefault.jpg",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=07EZlTcVU7I": {
+          "title": "DON PERO - “Emotions” feat. Tony Boy",
+          "url": "https://www.youtube.com/watch?v=07EZlTcVU7I",
+          "thumbnail": "https://i.ytimg.com/vi/07EZlTcVU7I/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIFEoKjAP&rs=AOn4CLDGw4UCtRop99XayOLjaYe7JcbiFw",
+          "count": 2
+        },
+        "https://www.youtube.com/watch?v=9cgG6NtngbE": {
+          "title": "Artie 5ive - Ready Rock (2/3)",
+          "url": "https://www.youtube.com/watch?v=9cgG6NtngbE",
+          "thumbnail": "https://i.ytimg.com/vi/9cgG6NtngbE/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCubN6_Xq3Kpq_SyiGdrxE-SUrCew",
+          "count": 1
         }
       },
       "username": "caccaboss89",
@@ -2012,8 +2024,8 @@
       ]
     },
     "1373779309877006482": {
-      "listeningTimeMs": 72904845,
-      "serverPlaylistAdds": 36,
+      "listeningTimeMs": 76190647,
+      "serverPlaylistAdds": 37,
       "personalPlaylistAdds": 1,
       "songPlays": {
         "https://www.youtube.com/watch?v=7Eqy1u2frPU": {
@@ -3341,6 +3353,114 @@
           "url": "https://www.youtube.com/watch?v=37Qg69N2F2c",
           "thumbnail": "https://i.ytimg.com/vi/37Qg69N2F2c/maxresdefault.jpg",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=07EZlTcVU7I": {
+          "title": "DON PERO - “Emotions” feat. Tony Boy",
+          "url": "https://www.youtube.com/watch?v=07EZlTcVU7I",
+          "thumbnail": "https://i.ytimg.com/vi/07EZlTcVU7I/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIFEoKjAP&rs=AOn4CLDGw4UCtRop99XayOLjaYe7JcbiFw",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=9cgG6NtngbE": {
+          "title": "Artie 5ive - Ready Rock (2/3)",
+          "url": "https://www.youtube.com/watch?v=9cgG6NtngbE",
+          "thumbnail": "https://i.ytimg.com/vi/9cgG6NtngbE/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCubN6_Xq3Kpq_SyiGdrxE-SUrCew",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=KlfUaYah6oc": {
+          "title": "NABI - KUTA UBUD (Official Video)",
+          "url": "https://www.youtube.com/watch?v=KlfUaYah6oc",
+          "thumbnail": "https://i.ytimg.com/vi/KlfUaYah6oc/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDC9vGdTE-YpeD5-gJhLex3tyIX1w",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fCE9mDVdr5A": {
+          "title": "Nabi - \"Guérrilla\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fCE9mDVdr5A",
+          "thumbnail": "https://i.ytimg.com/vi/fCE9mDVdr5A/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDq4hnTy_KF4_PWpn9HHZuZVmLFfA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=q8PV8gd-Bl0": {
+          "title": "Nabi - \"Plaquètte\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=q8PV8gd-Bl0",
+          "thumbnail": "https://i.ytimg.com/vi/q8PV8gd-Bl0/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDB_0PRGCatYHZyGHo9b511WZxjrg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=sOrB_F5qtzI": {
+          "title": "NABI - MANESKIN MELODIA (OFFICIAL AUDIO)",
+          "url": "https://www.youtube.com/watch?v=sOrB_F5qtzI",
+          "thumbnail": "https://i.ytimg.com/vi/sOrB_F5qtzI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCGaErS2XsRno3JVjxnRYylcz6qhg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=E4i_g5TK_6k": {
+          "title": "ESCO FRESCO DAGLI SHTAR",
+          "url": "https://www.youtube.com/watch?v=E4i_g5TK_6k",
+          "thumbnail": "https://i.ytimg.com/vi/E4i_g5TK_6k/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDHOWvi-VyQoBJY6v6DZuvzno3VNQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=9XB__xLioEI": {
+          "title": "OKAY OKAY (feat. Niky Savage)",
+          "url": "https://www.youtube.com/watch?v=9XB__xLioEI",
+          "thumbnail": "https://i.ytimg.com/vi/9XB__xLioEI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBzI9Gi27nFB1bR8YWlEw3moR8rlw",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ChUCGsRHVEg": {
+          "title": "TOGLIMI L’AUTOTUNE FREESTYLE",
+          "url": "https://www.youtube.com/watch?v=ChUCGsRHVEg",
+          "thumbnail": "https://i.ytimg.com/vi/ChUCGsRHVEg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCNA0N5sXMZGHuOJQd1K82KQZ63ew",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=J_p80876Wgw": {
+          "title": "NABI “CALIBRO” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=J_p80876Wgw",
+          "thumbnail": "https://i.ytimg.com/vi/J_p80876Wgw/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8OK_p9FaBnXRvud8Kr2ayD3Eisg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=d-twnjidQk8": {
+          "title": "NABI KICHTA - “ZWAG” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=d-twnjidQk8",
+          "thumbnail": "https://i.ytimg.com/vi/d-twnjidQk8/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB0-Yt2uqnu06jd5nH5wd3XcuLwZA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ssghGYJG4iI": {
+          "title": "Nabi - Nati Per Fare La Guerra (Official Video)",
+          "url": "https://www.youtube.com/watch?v=ssghGYJG4iI",
+          "thumbnail": "https://i.ytimg.com/vi/ssghGYJG4iI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDpCAon9ICfLV5PDGE2vfquTbKQwQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=lKSPKbBVGgU": {
+          "title": "NABI “WROØM WROØM” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=lKSPKbBVGgU",
+          "thumbnail": "https://i.ytimg.com/vi/lKSPKbBVGgU/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhhIGEoYTAP&rs=AOn4CLDB3uQ79QINKYqyx9Ryr1u3cQAX2A",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=cPykUOIGisA": {
+          "title": "NABI - NEW YORK (Official Video)",
+          "url": "https://www.youtube.com/watch?v=cPykUOIGisA",
+          "thumbnail": "https://i.ytimg.com/vi/cPykUOIGisA/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDAVP5oK5krbuLoKyVLMM4TgBSG8g",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fNYxGtmokL8": {
+          "title": "NABI - “Pillole & Cucchiai” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fNYxGtmokL8",
+          "thumbnail": "https://i.ytimg.com/vi/fNYxGtmokL8/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCrpAx4MNdnY4Y4Y3psU0yqPtuEHQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=evqJ_IXzxfg": {
+          "title": "Nabi - Braquages (Official Video)",
+          "url": "https://www.youtube.com/watch?v=evqJ_IXzxfg",
+          "thumbnail": "https://i.ytimg.com/vi/evqJ_IXzxfg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDIfTdGtgSTBmGtgXQUDGqpPWrVMA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=-O5Y4J8xaBY": {
+          "title": "NABI - #FREESTYLE46",
+          "url": "https://www.youtube.com/watch?v=-O5Y4J8xaBY",
+          "thumbnail": "https://i.ytimg.com/vi/-O5Y4J8xaBY/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLChN-WH1TtZd91VCJQul-LI9IJgvA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=M0PtASd8ujI": {
+          "title": "ABBY 6IX - HUSSLA FEAT. NABI (VIDEO UFFICIALE)",
+          "url": "https://www.youtube.com/watch?v=M0PtASd8ujI",
+          "thumbnail": "https://i.ytimg.com/vi/M0PtASd8ujI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBjhIB4eEoTdzQ-6cppOuUyU2OlIQ",
+          "count": 1
         }
       },
       "username": "lil_nga0542_15301",
@@ -3381,7 +3501,7 @@
       ]
     },
     "1439293517276119224": {
-      "listeningTimeMs": 19529985,
+      "listeningTimeMs": 19927290,
       "serverPlaylistAdds": 1,
       "personalPlaylistAdds": 0,
       "songPlays": {
@@ -3990,6 +4110,18 @@
           "url": "https://www.youtube.com/watch?v=6aWKAWWFIFI",
           "thumbnail": "https://i.ytimg.com/vi/6aWKAWWFIFI/hq720.jpg?sqp=-oaymwE5COgCEMoBSFXyq4qpAysIARUAAIhCGAFwAcABBvABAfgBtAiAAtAFigIMCAAQARgRIHIoNTAPuAIZ&rs=AOn4CLAAYC2PIieKXL04jgAVNYTmqrNJgw",
           "count": 3
+        },
+        "https://www.youtube.com/watch?v=07EZlTcVU7I": {
+          "title": "DON PERO - “Emotions” feat. Tony Boy",
+          "url": "https://www.youtube.com/watch?v=07EZlTcVU7I",
+          "thumbnail": "https://i.ytimg.com/vi/07EZlTcVU7I/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIFEoKjAP&rs=AOn4CLDGw4UCtRop99XayOLjaYe7JcbiFw",
+          "count": 2
+        },
+        "https://www.youtube.com/watch?v=9cgG6NtngbE": {
+          "title": "Artie 5ive - Ready Rock (2/3)",
+          "url": "https://www.youtube.com/watch?v=9cgG6NtngbE",
+          "thumbnail": "https://i.ytimg.com/vi/9cgG6NtngbE/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCubN6_Xq3Kpq_SyiGdrxE-SUrCew",
+          "count": 1
         }
       },
       "username": "lorenzo419",
@@ -3998,8 +4130,8 @@
       "discriminator": "0"
     },
     "1444313159182712924": {
-      "listeningTimeMs": 2705336,
-      "serverPlaylistAdds": 0,
+      "listeningTimeMs": 5763068,
+      "serverPlaylistAdds": 2,
       "personalPlaylistAdds": 0,
       "songPlays": {
         "https://www.youtube.com/watch?v=xvspdRocg8U": {
@@ -4103,11 +4235,107 @@
           "url": "https://www.youtube.com/watch?v=n2gdbefSpxE",
           "thumbnail": "https://i.ytimg.com/vi/n2gdbefSpxE/hqdefault.jpg?sqp=-oaymwEbCKgBEF5IVfKriqkDDggBFQAAiEIYAXABwAEG&rs=AOn4CLAY8Ad-B3U3vAY1q3CMS8oMGV3rZQ",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=KlfUaYah6oc": {
+          "title": "NABI - KUTA UBUD (Official Video)",
+          "url": "https://www.youtube.com/watch?v=KlfUaYah6oc",
+          "thumbnail": "https://i.ytimg.com/vi/KlfUaYah6oc/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDC9vGdTE-YpeD5-gJhLex3tyIX1w",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fCE9mDVdr5A": {
+          "title": "Nabi - \"Guérrilla\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fCE9mDVdr5A",
+          "thumbnail": "https://i.ytimg.com/vi/fCE9mDVdr5A/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDq4hnTy_KF4_PWpn9HHZuZVmLFfA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=q8PV8gd-Bl0": {
+          "title": "Nabi - \"Plaquètte\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=q8PV8gd-Bl0",
+          "thumbnail": "https://i.ytimg.com/vi/q8PV8gd-Bl0/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDB_0PRGCatYHZyGHo9b511WZxjrg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=sOrB_F5qtzI": {
+          "title": "NABI - MANESKIN MELODIA (OFFICIAL AUDIO)",
+          "url": "https://www.youtube.com/watch?v=sOrB_F5qtzI",
+          "thumbnail": "https://i.ytimg.com/vi/sOrB_F5qtzI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCGaErS2XsRno3JVjxnRYylcz6qhg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=E4i_g5TK_6k": {
+          "title": "ESCO FRESCO DAGLI SHTAR",
+          "url": "https://www.youtube.com/watch?v=E4i_g5TK_6k",
+          "thumbnail": "https://i.ytimg.com/vi/E4i_g5TK_6k/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDHOWvi-VyQoBJY6v6DZuvzno3VNQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=9XB__xLioEI": {
+          "title": "OKAY OKAY (feat. Niky Savage)",
+          "url": "https://www.youtube.com/watch?v=9XB__xLioEI",
+          "thumbnail": "https://i.ytimg.com/vi/9XB__xLioEI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBzI9Gi27nFB1bR8YWlEw3moR8rlw",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ChUCGsRHVEg": {
+          "title": "TOGLIMI L’AUTOTUNE FREESTYLE",
+          "url": "https://www.youtube.com/watch?v=ChUCGsRHVEg",
+          "thumbnail": "https://i.ytimg.com/vi/ChUCGsRHVEg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCNA0N5sXMZGHuOJQd1K82KQZ63ew",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=J_p80876Wgw": {
+          "title": "NABI “CALIBRO” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=J_p80876Wgw",
+          "thumbnail": "https://i.ytimg.com/vi/J_p80876Wgw/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8OK_p9FaBnXRvud8Kr2ayD3Eisg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=d-twnjidQk8": {
+          "title": "NABI KICHTA - “ZWAG” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=d-twnjidQk8",
+          "thumbnail": "https://i.ytimg.com/vi/d-twnjidQk8/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB0-Yt2uqnu06jd5nH5wd3XcuLwZA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ssghGYJG4iI": {
+          "title": "Nabi - Nati Per Fare La Guerra (Official Video)",
+          "url": "https://www.youtube.com/watch?v=ssghGYJG4iI",
+          "thumbnail": "https://i.ytimg.com/vi/ssghGYJG4iI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDpCAon9ICfLV5PDGE2vfquTbKQwQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=lKSPKbBVGgU": {
+          "title": "NABI “WROØM WROØM” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=lKSPKbBVGgU",
+          "thumbnail": "https://i.ytimg.com/vi/lKSPKbBVGgU/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhhIGEoYTAP&rs=AOn4CLDB3uQ79QINKYqyx9Ryr1u3cQAX2A",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=cPykUOIGisA": {
+          "title": "NABI - NEW YORK (Official Video)",
+          "url": "https://www.youtube.com/watch?v=cPykUOIGisA",
+          "thumbnail": "https://i.ytimg.com/vi/cPykUOIGisA/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDAVP5oK5krbuLoKyVLMM4TgBSG8g",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fNYxGtmokL8": {
+          "title": "NABI - “Pillole & Cucchiai” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fNYxGtmokL8",
+          "thumbnail": "https://i.ytimg.com/vi/fNYxGtmokL8/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCrpAx4MNdnY4Y4Y3psU0yqPtuEHQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=evqJ_IXzxfg": {
+          "title": "Nabi - Braquages (Official Video)",
+          "url": "https://www.youtube.com/watch?v=evqJ_IXzxfg",
+          "thumbnail": "https://i.ytimg.com/vi/evqJ_IXzxfg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDIfTdGtgSTBmGtgXQUDGqpPWrVMA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=-O5Y4J8xaBY": {
+          "title": "NABI - #FREESTYLE46",
+          "url": "https://www.youtube.com/watch?v=-O5Y4J8xaBY",
+          "thumbnail": "https://i.ytimg.com/vi/-O5Y4J8xaBY/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLChN-WH1TtZd91VCJQul-LI9IJgvA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=M0PtASd8ujI": {
+          "title": "ABBY 6IX - HUSSLA FEAT. NABI (VIDEO UFFICIALE)",
+          "url": "https://www.youtube.com/watch?v=M0PtASd8ujI",
+          "thumbnail": "https://i.ytimg.com/vi/M0PtASd8ujI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBjhIB4eEoTdzQ-6cppOuUyU2OlIQ",
+          "count": 1
         }
       },
       "username": "sdrogo_21",
       "global_name": "Caick",
-      "avatar": "fbf478390d952a56d13d20b99ec4c123",
+      "avatar": "28cc880c3db885052944f01051058bcb",
       "discriminator": "0"
     },
     "894275339495297024": {
@@ -4643,7 +4871,7 @@
       "discriminator": "0"
     },
     "1066462518903570503": {
-      "listeningTimeMs": 6075117,
+      "listeningTimeMs": 9132849,
       "serverPlaylistAdds": 0,
       "personalPlaylistAdds": 0,
       "songPlays": {
@@ -4766,6 +4994,102 @@
           "url": "https://www.youtube.com/watch?v=37Qg69N2F2c",
           "thumbnail": "https://i.ytimg.com/vi/37Qg69N2F2c/maxresdefault.jpg",
           "count": 1
+        },
+        "https://www.youtube.com/watch?v=KlfUaYah6oc": {
+          "title": "NABI - KUTA UBUD (Official Video)",
+          "url": "https://www.youtube.com/watch?v=KlfUaYah6oc",
+          "thumbnail": "https://i.ytimg.com/vi/KlfUaYah6oc/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDC9vGdTE-YpeD5-gJhLex3tyIX1w",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fCE9mDVdr5A": {
+          "title": "Nabi - \"Guérrilla\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fCE9mDVdr5A",
+          "thumbnail": "https://i.ytimg.com/vi/fCE9mDVdr5A/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDq4hnTy_KF4_PWpn9HHZuZVmLFfA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=q8PV8gd-Bl0": {
+          "title": "Nabi - \"Plaquètte\" (Official Video)",
+          "url": "https://www.youtube.com/watch?v=q8PV8gd-Bl0",
+          "thumbnail": "https://i.ytimg.com/vi/q8PV8gd-Bl0/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDB_0PRGCatYHZyGHo9b511WZxjrg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=sOrB_F5qtzI": {
+          "title": "NABI - MANESKIN MELODIA (OFFICIAL AUDIO)",
+          "url": "https://www.youtube.com/watch?v=sOrB_F5qtzI",
+          "thumbnail": "https://i.ytimg.com/vi/sOrB_F5qtzI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCGaErS2XsRno3JVjxnRYylcz6qhg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=E4i_g5TK_6k": {
+          "title": "ESCO FRESCO DAGLI SHTAR",
+          "url": "https://www.youtube.com/watch?v=E4i_g5TK_6k",
+          "thumbnail": "https://i.ytimg.com/vi/E4i_g5TK_6k/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDHOWvi-VyQoBJY6v6DZuvzno3VNQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=9XB__xLioEI": {
+          "title": "OKAY OKAY (feat. Niky Savage)",
+          "url": "https://www.youtube.com/watch?v=9XB__xLioEI",
+          "thumbnail": "https://i.ytimg.com/vi/9XB__xLioEI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBzI9Gi27nFB1bR8YWlEw3moR8rlw",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ChUCGsRHVEg": {
+          "title": "TOGLIMI L’AUTOTUNE FREESTYLE",
+          "url": "https://www.youtube.com/watch?v=ChUCGsRHVEg",
+          "thumbnail": "https://i.ytimg.com/vi/ChUCGsRHVEg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCNA0N5sXMZGHuOJQd1K82KQZ63ew",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=J_p80876Wgw": {
+          "title": "NABI “CALIBRO” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=J_p80876Wgw",
+          "thumbnail": "https://i.ytimg.com/vi/J_p80876Wgw/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8OK_p9FaBnXRvud8Kr2ayD3Eisg",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=d-twnjidQk8": {
+          "title": "NABI KICHTA - “ZWAG” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=d-twnjidQk8",
+          "thumbnail": "https://i.ytimg.com/vi/d-twnjidQk8/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB0-Yt2uqnu06jd5nH5wd3XcuLwZA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=ssghGYJG4iI": {
+          "title": "Nabi - Nati Per Fare La Guerra (Official Video)",
+          "url": "https://www.youtube.com/watch?v=ssghGYJG4iI",
+          "thumbnail": "https://i.ytimg.com/vi/ssghGYJG4iI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDpCAon9ICfLV5PDGE2vfquTbKQwQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=lKSPKbBVGgU": {
+          "title": "NABI “WROØM WROØM” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=lKSPKbBVGgU",
+          "thumbnail": "https://i.ytimg.com/vi/lKSPKbBVGgU/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhhIGEoYTAP&rs=AOn4CLDB3uQ79QINKYqyx9Ryr1u3cQAX2A",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=cPykUOIGisA": {
+          "title": "NABI - NEW YORK (Official Video)",
+          "url": "https://www.youtube.com/watch?v=cPykUOIGisA",
+          "thumbnail": "https://i.ytimg.com/vi/cPykUOIGisA/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDAVP5oK5krbuLoKyVLMM4TgBSG8g",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=fNYxGtmokL8": {
+          "title": "NABI - “Pillole & Cucchiai” (Official Video)",
+          "url": "https://www.youtube.com/watch?v=fNYxGtmokL8",
+          "thumbnail": "https://i.ytimg.com/vi/fNYxGtmokL8/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCrpAx4MNdnY4Y4Y3psU0yqPtuEHQ",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=evqJ_IXzxfg": {
+          "title": "Nabi - Braquages (Official Video)",
+          "url": "https://www.youtube.com/watch?v=evqJ_IXzxfg",
+          "thumbnail": "https://i.ytimg.com/vi/evqJ_IXzxfg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDIfTdGtgSTBmGtgXQUDGqpPWrVMA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=-O5Y4J8xaBY": {
+          "title": "NABI - #FREESTYLE46",
+          "url": "https://www.youtube.com/watch?v=-O5Y4J8xaBY",
+          "thumbnail": "https://i.ytimg.com/vi/-O5Y4J8xaBY/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLChN-WH1TtZd91VCJQul-LI9IJgvA",
+          "count": 1
+        },
+        "https://www.youtube.com/watch?v=M0PtASd8ujI": {
+          "title": "ABBY 6IX - HUSSLA FEAT. NABI (VIDEO UFFICIALE)",
+          "url": "https://www.youtube.com/watch?v=M0PtASd8ujI",
+          "thumbnail": "https://i.ytimg.com/vi/M0PtASd8ujI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBjhIB4eEoTdzQ-6cppOuUyU2OlIQ",
+          "count": 1
         }
       },
       "username": "tedescoduro",
@@ -4775,8 +5099,8 @@
     }
   },
   "global": {
-    "songsStarted": 739,
-    "songsCompleted": 519,
+    "songsStarted": 759,
+    "songsCompleted": 532,
     "songPlays": {
       "https://www.youtube.com/watch?v=7Eqy1u2frPU": {
         "title": "Bello FiGo - Mi Piace Venire (SWAG SBORRA) Amatur HD",
@@ -6395,8 +6719,8 @@
       "https://www.youtube.com/watch?v=WzmJWVVri-Q": {
         "title": "Tony Boy, Sick Luke - Rock’n’roll",
         "url": "https://www.youtube.com/watch?v=WzmJWVVri-Q",
-        "thumbnail": "https://i.ytimg.com/vi_webp/WzmJWVVri-Q/maxresdefault.webp",
-        "count": 1
+        "thumbnail": "https://i.ytimg.com/vi/WzmJWVVri-Q/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBApZqxLdXtCJWwI8wSvRjkkPC-TA",
+        "count": 2
       },
       "https://www.youtube.com/watch?v=4J-qYNLZzWs": {
         "title": "Tony Boy - Uragano (Visual Video)",
@@ -6745,6 +7069,114 @@
         "url": "https://www.youtube.com/watch?v=37Qg69N2F2c",
         "thumbnail": "https://i.ytimg.com/vi/37Qg69N2F2c/maxresdefault.jpg",
         "count": 1
+      },
+      "https://www.youtube.com/watch?v=07EZlTcVU7I": {
+        "title": "DON PERO - “Emotions” feat. Tony Boy",
+        "url": "https://www.youtube.com/watch?v=07EZlTcVU7I",
+        "thumbnail": "https://i.ytimg.com/vi/07EZlTcVU7I/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhyIFEoKjAP&rs=AOn4CLDGw4UCtRop99XayOLjaYe7JcbiFw",
+        "count": 2
+      },
+      "https://www.youtube.com/watch?v=9cgG6NtngbE": {
+        "title": "Artie 5ive - Ready Rock (2/3)",
+        "url": "https://www.youtube.com/watch?v=9cgG6NtngbE",
+        "thumbnail": "https://i.ytimg.com/vi/9cgG6NtngbE/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCubN6_Xq3Kpq_SyiGdrxE-SUrCew",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=KlfUaYah6oc": {
+        "title": "NABI - KUTA UBUD (Official Video)",
+        "url": "https://www.youtube.com/watch?v=KlfUaYah6oc",
+        "thumbnail": "https://i.ytimg.com/vi/KlfUaYah6oc/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDC9vGdTE-YpeD5-gJhLex3tyIX1w",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=fCE9mDVdr5A": {
+        "title": "Nabi - \"Guérrilla\" (Official Video)",
+        "url": "https://www.youtube.com/watch?v=fCE9mDVdr5A",
+        "thumbnail": "https://i.ytimg.com/vi/fCE9mDVdr5A/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDq4hnTy_KF4_PWpn9HHZuZVmLFfA",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=q8PV8gd-Bl0": {
+        "title": "Nabi - \"Plaquètte\" (Official Video)",
+        "url": "https://www.youtube.com/watch?v=q8PV8gd-Bl0",
+        "thumbnail": "https://i.ytimg.com/vi/q8PV8gd-Bl0/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDB_0PRGCatYHZyGHo9b511WZxjrg",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=sOrB_F5qtzI": {
+        "title": "NABI - MANESKIN MELODIA (OFFICIAL AUDIO)",
+        "url": "https://www.youtube.com/watch?v=sOrB_F5qtzI",
+        "thumbnail": "https://i.ytimg.com/vi/sOrB_F5qtzI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCGaErS2XsRno3JVjxnRYylcz6qhg",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=E4i_g5TK_6k": {
+        "title": "ESCO FRESCO DAGLI SHTAR",
+        "url": "https://www.youtube.com/watch?v=E4i_g5TK_6k",
+        "thumbnail": "https://i.ytimg.com/vi/E4i_g5TK_6k/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDHOWvi-VyQoBJY6v6DZuvzno3VNQ",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=9XB__xLioEI": {
+        "title": "OKAY OKAY (feat. Niky Savage)",
+        "url": "https://www.youtube.com/watch?v=9XB__xLioEI",
+        "thumbnail": "https://i.ytimg.com/vi/9XB__xLioEI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBzI9Gi27nFB1bR8YWlEw3moR8rlw",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=ChUCGsRHVEg": {
+        "title": "TOGLIMI L’AUTOTUNE FREESTYLE",
+        "url": "https://www.youtube.com/watch?v=ChUCGsRHVEg",
+        "thumbnail": "https://i.ytimg.com/vi/ChUCGsRHVEg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCNA0N5sXMZGHuOJQd1K82KQZ63ew",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=J_p80876Wgw": {
+        "title": "NABI “CALIBRO” (Official Video)",
+        "url": "https://www.youtube.com/watch?v=J_p80876Wgw",
+        "thumbnail": "https://i.ytimg.com/vi/J_p80876Wgw/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB8OK_p9FaBnXRvud8Kr2ayD3Eisg",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=d-twnjidQk8": {
+        "title": "NABI KICHTA - “ZWAG” (Official Video)",
+        "url": "https://www.youtube.com/watch?v=d-twnjidQk8",
+        "thumbnail": "https://i.ytimg.com/vi/d-twnjidQk8/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLB0-Yt2uqnu06jd5nH5wd3XcuLwZA",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=ssghGYJG4iI": {
+        "title": "Nabi - Nati Per Fare La Guerra (Official Video)",
+        "url": "https://www.youtube.com/watch?v=ssghGYJG4iI",
+        "thumbnail": "https://i.ytimg.com/vi/ssghGYJG4iI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDpCAon9ICfLV5PDGE2vfquTbKQwQ",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=lKSPKbBVGgU": {
+        "title": "NABI “WROØM WROØM” (Official Video)",
+        "url": "https://www.youtube.com/watch?v=lKSPKbBVGgU",
+        "thumbnail": "https://i.ytimg.com/vi/lKSPKbBVGgU/hq720.jpg?sqp=-oaymwE2COgCEMoBSFXyq4qpAygIARUAAIhCGAFwAcABBvABAfgB_gmAAtAFigIMCAAQARhhIGEoYTAP&rs=AOn4CLDB3uQ79QINKYqyx9Ryr1u3cQAX2A",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=cPykUOIGisA": {
+        "title": "NABI - NEW YORK (Official Video)",
+        "url": "https://www.youtube.com/watch?v=cPykUOIGisA",
+        "thumbnail": "https://i.ytimg.com/vi/cPykUOIGisA/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDAVP5oK5krbuLoKyVLMM4TgBSG8g",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=fNYxGtmokL8": {
+        "title": "NABI - “Pillole & Cucchiai” (Official Video)",
+        "url": "https://www.youtube.com/watch?v=fNYxGtmokL8",
+        "thumbnail": "https://i.ytimg.com/vi/fNYxGtmokL8/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLCrpAx4MNdnY4Y4Y3psU0yqPtuEHQ",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=evqJ_IXzxfg": {
+        "title": "Nabi - Braquages (Official Video)",
+        "url": "https://www.youtube.com/watch?v=evqJ_IXzxfg",
+        "thumbnail": "https://i.ytimg.com/vi/evqJ_IXzxfg/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDIfTdGtgSTBmGtgXQUDGqpPWrVMA",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=-O5Y4J8xaBY": {
+        "title": "NABI - #FREESTYLE46",
+        "url": "https://www.youtube.com/watch?v=-O5Y4J8xaBY",
+        "thumbnail": "https://i.ytimg.com/vi/-O5Y4J8xaBY/hqdefault.jpg?sqp=-oaymwEcCOADEI4CSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLChN-WH1TtZd91VCJQul-LI9IJgvA",
+        "count": 1
+      },
+      "https://www.youtube.com/watch?v=M0PtASd8ujI": {
+        "title": "ABBY 6IX - HUSSLA FEAT. NABI (VIDEO UFFICIALE)",
+        "url": "https://www.youtube.com/watch?v=M0PtASd8ujI",
+        "thumbnail": "https://i.ytimg.com/vi/M0PtASd8ujI/hq720.jpg?sqp=-oaymwEcCOgCEMoBSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLBjhIB4eEoTdzQ-6cppOuUyU2OlIQ",
+        "count": 1
       }
     },
     "topSongs": [
@@ -6780,5 +7212,5 @@
       }
     ]
   },
-  "lastUpdated": "2026-07-28T20:25:06.809Z"
+  "lastUpdated": "2026-08-30T15:26:00.088Z"
 }
