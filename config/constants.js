@@ -31,6 +31,7 @@ export const RECONCILE_WINDOW_MS = 5000;         // Reconciliation window for mo
 // A paused session keeps the whole engine (and its buffers) alive for nothing.
 // Past this the bot disconnects and everything it holds is released.
 export const MAX_PAUSE_MS = 5 * 60 * 1000;       // Maximum pause before disconnecting (5 min)
+export const PAUSE_NOTICE_TTL_MS = 5 * 60 * 1000; // Pause-disconnect notice lifetime (5 min)
 export const MAX_CONSECUTIVE_PLAYBACK_FAILURES = 3; // Unplayable songs in a row before stopping the queue
 
 // --- TIMING CONSTANTS (TIMEOUT) ---

@@ -11,7 +11,7 @@
  */
 
 import { disconnectTimers, releasePlaybackSession } from '../state/globals.js';
-import { DISCONNECT_TIMEOUT_MS, MAX_PAUSE_MS } from '../../config/index.js';
+import { DISCONNECT_TIMEOUT_MS, MAX_PAUSE_MS, PAUSE_NOTICE_TTL_MS } from '../../config/index.js';
 import { clearDeckBindings, isBotAloneInChannel } from '../queue/QueueManager.js';
 import { saveQueueState } from '../queue/persistence.js';
 import { flushGuildAndSave } from '../database/stats.js';
@@ -23,6 +23,23 @@ import { clearStreamErrors } from './rust-events.js';
 import { cleanupRecoveryState } from './crash-cooldown.js';
 import { refreshDashboard } from '../ui/index.js';
 import { pausedTooLong } from '../ui/messages.js';
+
+/**
+ * Sends the pause-disconnect notice and removes it after its short lifetime.
+ * Deleting the bot's own message individually also works in channels where it
+ * cannot bulk-delete message history.
+ * @param {import('discord.js').TextChannel|null} channel
+ * @param {number} minutes
+ */
+async function sendTemporaryPauseNotice(channel, minutes) {
+  if (!channel?.send) return;
+
+  const notice = await channel.send({ content: pausedTooLong(minutes) });
+  const deleteTimer = setTimeout(() => {
+    notice.delete().catch(() => { });
+  }, PAUSE_NOTICE_TTL_MS);
+  deleteTimer.unref?.();
+}
 
 /**
  * Stops everything that produces audio for a guild and resets the deck state
@@ -126,7 +143,7 @@ function schedulePauseTimeout(serverQueue) {
     serverQueue.sessionRestored = true;
 
     const minutes = Math.round(MAX_PAUSE_MS / 60000);
-    channel?.send?.({ content: pausedTooLong(minutes) })?.catch?.(() => { });
+    sendTemporaryPauseNotice(channel, minutes).catch(() => { });
     refreshDashboard(serverQueue).catch(() => { });
   }, MAX_PAUSE_MS);
 }
