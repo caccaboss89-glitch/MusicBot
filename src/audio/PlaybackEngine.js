@@ -5,6 +5,7 @@
  * 2. Reacting to the 'end' event from Rust (natural track end): skip to the next
  *    song, or close the queue when there is none
  * 3. Crediting the play to the statistics if the engine never confirms playback
+ * 4. Asking the TTSBot to read the title of the song that just started
  *
  * Does NOT use timers tied to the song end: the automatic crossfade 3 seconds
  * before the end is driven by the 'approaching_end' event sent by Rust.
@@ -12,7 +13,8 @@
 
 import { queue } from '../state/globals.js';
 import { sanitizeTitle, areSameSong } from '../utils/sanitize.js';
-import { CROSSFADE_DURATION_MS } from '../../config/index.js';
+import { announceSong } from '../utils/ttsAnnounce.js';
+import { CROSSFADE_DURATION_MS, TTS_ANNOUNCE_DELAY_MS, isTtsAnnounceEnabled } from '../../config/index.js';
 import { isMixerAlive, getCurrentSong, getNextSong, hasNextSong, bindDeckSong } from '../queue/QueueManager.js';
 import { commandQueue } from './SerialQueue.js';
 import { autoSkip, endQueue, hasSkipInProgress } from './SkipManager.js';
@@ -31,7 +33,7 @@ const PLAYBACK_CONFIRM_FALLBACK_MS = 90000;
 
 // ─── State ──────────────────────────────────────────────────
 
-const timers = new Map(); // guildId -> { preloadTimer, confirmTimer }
+const timers = new Map(); // guildId -> { preloadTimer, confirmTimer, announceTimer }
 
 // ─── Timer Management ───────────────────────────────────────
 
@@ -40,6 +42,7 @@ function clearAllTimers(guildId) {
   if (state) {
     if (state.preloadTimer) clearTimeout(state.preloadTimer);
     if (state.confirmTimer) clearTimeout(state.confirmTimer);
+    if (state.announceTimer) clearTimeout(state.announceTimer);
   }
   timers.delete(guildId);
 }
@@ -87,10 +90,31 @@ function preloadDelayFor(sq) {
 // ─── Core ───────────────────────────────────────────────────
 
 /**
+ * Asks the TTSBot to read the title, unless the song that was playing when the
+ * timer was armed is no longer the one on air. Five seconds are enough for a
+ * skip, a pause or a disconnection to happen in between.
+ * @param {string} guildId
+ * @param {object} song - Song the announcement was scheduled for
+ */
+function announceCurrentSong(guildId, song) {
+  const sq = queue.get(guildId);
+  if (!sq || sq.isPaused || !isMixerAlive(sq)) return;
+
+  const playing = getCurrentSong(sq);
+  if (!playing || !areSameSong(playing.url, song.url)) return;
+
+  const channelId = sq.voiceChannel?.id;
+  if (!channelId) return;
+
+  void announceSong({ guildId, channelId, title: playing.title });
+}
+
+/**
  * Called when a new song starts playing.
  * Schedules:
  *  - preload after 5 seconds on the other deck
  *  - the statistics fallback, in case the engine never confirms playback
+ *  - the spoken announcement of the title, when it is enabled
  *
  * Does not use timers to monitor the end: it waits for the 'end' (or
  * 'approaching_end') event from Rust.
@@ -128,8 +152,14 @@ function onSongStart(guildId) {
     });
   }, PLAYBACK_CONFIRM_FALLBACK_MS);
 
+  // ── Timer: spoken announcement of the title ──
+  // Armed only when the feature is on, so a disabled announcement costs nothing.
+  const announceTimer = isTtsAnnounceEnabled()
+    ? setTimeout(() => announceCurrentSong(guildId, currentSong), TTS_ANNOUNCE_DELAY_MS)
+    : null;
+
   // Save the timers
-  timers.set(guildId, { preloadTimer, confirmTimer });
+  timers.set(guildId, { preloadTimer, confirmTimer, announceTimer });
 
   console.log(`🎵 [PLAYBACK] Started: "${sanitizeTitle(currentSong.title)}"`);
   if (currentSong.duration && currentSong.duration > 0) {
