@@ -24,7 +24,7 @@ const LOGS_DIR = path.join(ROOT_DIR, 'logs');
 const PUSH_STATE_FILE = path.join(DATA_DIR, 'pushState.json');
 
 const STATS_PUSH_CHECK_INTERVAL_MS = 60 * 1000;
-const STATS_PUSH_HOUR = 10; // Rome time, on the 1st of the month
+const STATS_PUSH_HOUR = 0; // Rome time, on the 1st of the month
 
 // temp/ collects one log per guild mixer plus whatever yt-dlp leaves behind,
 // and nothing ever removed any of it. Swept at startup and once a day after.
@@ -136,7 +136,7 @@ client.on('guildDelete', (guild) => {
 
 // ─── AUTO-PUSH STATS ──────────────────────────────────────────
 // Checks every minute whether the monthly stats push is due (1st of the month,
-// from 10:00 Rome time onwards), so a bot started late still performs it.
+// from 00:00 Rome time onwards), so a bot started late still performs it.
 
 function loadPushState() {
   try {
